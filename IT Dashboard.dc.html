@@ -243,9 +243,10 @@ class Component extends DCLogic {
 
   renderVals() {
     // ── Load from Supabase (primary) or localStorage (fallback) ───
-    const { filterMonth, filterYear, session, userRole, userName, loginEmail, loginPassword, loginLoading, loginError } = this.state;
+    const e = React.createElement;
+    const { session, userRole, userName, loginEmail, loginPassword, loginLoading, loginError } = this.state;
     try {
-      const key = 'it_report_' + (filterYear||2026) + '_' + String(filterMonth||7).padStart(2,'0');
+      const key = 'it_report_' + (this.state.filterYear||2026) + '_' + String(this.state.filterMonth||7).padStart(2,'0');
       const local = localStorage.getItem(key);
       this._savedData = this.state.supabaseData || (local ? JSON.parse(local) : null);
     } catch(_) { this._savedData = null; }
@@ -318,7 +319,6 @@ class Component extends DCLogic {
         ? React.createElement('div', { style: { fontSize: 10, color: '#334155', lineHeight: 1.8, whiteSpace: 'nowrap' } }, 'Generated Jun 26, 2026', React.createElement('br'), 'IT Department Report')
         : React.createElement('div', { style: { width: 6, height: 6, borderRadius: '50%', background: '#334155' } })
     );
-    const e = React.createElement;
 
     // ── Nav ──────────────────────────────────────────────────────
     const navDefs = [
