@@ -8,7 +8,7 @@
 // ================================================================
 
 (function () {
-  const SUPABASE_URL      = 'https://rnpjiilastgjsbyfpfkl.supabase.com';   // ← replace
+  const SUPABASE_URL      = 'https://rnpjiilastgjsbyfpfkl.supabase.co';   // ← replace
   const SUPABASE_ANON_KEY = 'sb_publishable_hZWtRGHc3mm5cRip6PYAjQ_hzGiUSml'; 
 
   // Guard: SDK must be loaded before this file
@@ -16,7 +16,7 @@
     console.error('[supabase-config] Supabase SDK not found. Make sure the CDN script is loaded first.');
     return;
   }
-  if (SUPABASE_URL === 'https://rnpjiilastgjsbyfpfkl.supabase.com') {
+  if (SUPABASE_URL === 'https://rnpjiilastgjsbyfpfkl.supabase.co') {
     console.warn('[supabase-config] ⚠️  Please set SUPABASE_URL in supabase-config.js');
   }
 
