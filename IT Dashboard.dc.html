@@ -251,7 +251,6 @@ class Component extends DCLogic {
     } catch(_) { this._savedData = null; }
 
     // ── Auth overlay ─────────────────────────────────────────────
-    const e = this.e;
     const authOverlay = !session ? e('div',{style:{position:'fixed',inset:0,background:'rgba(15,23,42,.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}},
       e('div',{style:{background:'#fff',borderRadius:20,padding:'40px',boxShadow:'0 30px 80px rgba(0,0,0,.35)',width:380,fontFamily:"'72','Inter','Kanit',sans-serif"}},
         e('div',{style:{textAlign:'center',marginBottom:28}},
