@@ -45,10 +45,7 @@
 
   <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
     <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-      <div>
-        <h1 style="margin:0;font-size:17px;font-weight:600;color:#0f172a;letter-spacing:-.01em">{{ headerTitle }}</h1>
-        <div style="font-size:11px;color:#94a3b8;margin-top:1px">{{ headerSubtitle }}</div>
-      </div>
+      {{ appMenuBtn }}
       <div style="display:flex;align-items:center;gap:10px">
         {{ periodFilter }}
         {{ userBadge }}
@@ -67,7 +64,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { tab: 'overview', tip: null, sidebarOpen: false, filterMonth: 7, filterYear: 2026, filterOpen: false,
+  state = { tab: 'overview', tip: null, sidebarOpen: false, filterMonth: 7, filterYear: 2026, filterOpen: false, showAppMenu: false,
     session: null, user: null, userRole: null, userName: '',
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     supabaseData: null, loadingData: false };
@@ -2923,6 +2920,43 @@ class Component extends DCLogic {
       periodFilter,
       mainContent: map[tab] || overviewEl,
       printFn: () => window.print(),
+      appMenuBtn: (() => {
+        const { showAppMenu } = this.state;
+        const titles = { overview:'Dashboard Overview', uptime:'Uptime & Availability', network:'Network & Infrastructure', security:'Security & Compliance', budget:'Budget & Projects', projects:'Project Portfolio' };
+        return e('div',{style:{position:'relative'},onClick:(ev)=>ev.stopPropagation()},
+          e('div',{onClick:()=>this.setState({showAppMenu:!showAppMenu}),style:{cursor:'pointer',userSelect:'none'}},
+            e('div',{style:{margin:0,fontSize:17,fontWeight:600,color:'#0f172a',letterSpacing:'-.01em',display:'flex',alignItems:'center',gap:6}},
+              titles[tab]||'IT Dashboard',
+              e('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M19 9l-7 7-7-7'}))
+            ),
+            e('div',{style:{fontSize:11,color:'#94a3b8',marginTop:1}},headerSubtitle)
+          ),
+          showAppMenu?e('div',{style:{position:'absolute',top:'calc(100% + 8px)',left:0,background:'#fff',borderRadius:12,boxShadow:'0 8px 30px rgba(0,0,0,.15)',border:'1px solid #e2e8f0',minWidth:240,zIndex:200,overflow:'hidden'}},
+            e('div',{style:{padding:'6px'}},
+              e('div',{style:{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,background:'#eff6ff'}},
+                e('div',{style:{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#1e40af,#3b82f6)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+                  e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'}))
+                ),
+                e('div',null,
+                  e('div',{style:{fontSize:13,fontWeight:600,color:'#2563eb'}},'IT Dashboard'),
+                  e('div',{style:{fontSize:11,color:'#64748b'}},'ดูรายงาน KPI (หน้านี้)')
+                )
+              ),
+              e('div',{onClick:()=>{ window.location.href='./IT Data Entry.dc.html'; },style:{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,cursor:'pointer',background:'transparent',transition:'background .15s'},
+                onMouseEnter:(ev)=>ev.currentTarget.style.background='#f8fafc',
+                onMouseLeave:(ev)=>ev.currentTarget.style.background='transparent'},
+                e('div',{style:{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#059669,#10b981)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+                  e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'}))
+                ),
+                e('div',null,
+                  e('div',{style:{fontSize:13,fontWeight:600,color:'#0f172a'}},'Data Entry'),
+                  e('div',{style:{fontSize:11,color:'#64748b'}},'กรอกข้อมูลรายงานประจำเดือน')
+                )
+              )
+            )
+          ):null
+        );
+      })(),
       authOverlay,
       userBadge: session ? e('div',{style:{display:'flex',alignItems:'center',gap:8}},
         e('div',{style:{display:'flex',alignItems:'center',gap:8,background:'rgba(255,255,255,.1)',borderRadius:20,padding:'5px 12px'}},
