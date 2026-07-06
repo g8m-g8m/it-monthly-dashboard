@@ -51,10 +51,7 @@
     <div style="display:flex;align-items:center;gap:10px">
       <div style="width:30px;height:30px;background:#2563eb;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(37,99,235,.3)">P</div>
       <div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:14px;font-weight:700;color:#0f172a;letter-spacing:-.01em">IT Monthly Report – Data Entry</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9l-7 7-7-7"/></svg>
-        </div>
+        {{ appMenuBtn }}
         <div style="font-size:10px;color:#94a3b8">Pacicpipe PLC, IT Department</div>
       </div>
     </div>
@@ -95,6 +92,7 @@ class Component extends DCLogic {
   state = {
     tab: 'period',
     saveStatus: '',
+    showAppMenu: false,
     session: null, user: null, userRole: null, userName: '',
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     realtimeNotice: '', showHistory: false, historyVersions: [], loadingData: false,
@@ -2325,7 +2323,39 @@ class Component extends DCLogic {
       'Submit Report'
     );
 
-    return { periodBadge, tabNav, formContent, saveBtn, resetBtn, submitBtn, saveStatus: saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report', authOverlay, historyPanel, realtimeBanner, userBadge };
+    const { showAppMenu } = this.state;
+    const appMenuBtn = e('div',{style:{position:'relative'},onClick:(ev)=>ev.stopPropagation()},
+      e('div',{onClick:()=>this.setState({showAppMenu:!showAppMenu}),style:{display:'flex',alignItems:'center',gap:6,cursor:'pointer',userSelect:'none'}},
+        e('span',{style:{fontSize:14,fontWeight:700,color:'#0f172a',letterSpacing:'-.01em'}},'IT Monthly Report – Data Entry'),
+        e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M19 9l-7 7-7-7'}))
+      ),
+      showAppMenu?e('div',{style:{position:'absolute',top:'calc(100% + 8px)',left:0,background:'#fff',borderRadius:12,boxShadow:'0 8px 30px rgba(0,0,0,.15)',border:'1px solid #e2e8f0',minWidth:240,zIndex:200,overflow:'hidden'}},
+        e('div',{style:{padding:'6px'}},
+          e('a',{href:'./IT Dashboard.dc.html',style:{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,textDecoration:'none',background:'transparent',transition:'background .15s'},
+            onMouseEnter:(ev)=>ev.currentTarget.style.background='#f8fafc',
+            onMouseLeave:(ev)=>ev.currentTarget.style.background='transparent'},
+            e('div',{style:{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#1e40af,#3b82f6)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+              e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'}))
+            ),
+            e('div',null,
+              e('div',{style:{fontSize:13,fontWeight:600,color:'#0f172a'}},'IT Dashboard'),
+              e('div',{style:{fontSize:11,color:'#64748b'}},'ดูรายงาน KPI รายเดือน')
+            )
+          ),
+          e('div',{style:{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,background:'#eff6ff'}},
+            e('div',{style:{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#059669,#10b981)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+              e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'}))
+            ),
+            e('div',null,
+              e('div',{style:{fontSize:13,fontWeight:600,color:'#2563eb'}},'Data Entry'),
+              e('div',{style:{fontSize:11,color:'#64748b'}},'กรอกข้อมูลรายงาน (หน้านี้)')
+            )
+          )
+        )
+      ):null
+    );
+
+    return { periodBadge, tabNav, formContent, saveBtn, resetBtn, submitBtn, saveStatus: saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report', authOverlay, historyPanel, realtimeBanner, userBadge, appMenuBtn };
   }
 }
 
