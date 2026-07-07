@@ -2353,7 +2353,18 @@ class Component extends DCLogic {
               e('div',{style:{fontSize:13,fontWeight:600,color:'#2563eb'}},'Data Entry'),
               e('div',{style:{fontSize:11,color:'#64748b'}},'กรอกข้อมูลรายงาน (หน้านี้)')
             )
-          )
+          ),
+          this.state.userRole==='admin'?e('div',{onClick:()=>{ window.location.href='./admin-users.html'; },style:{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,cursor:'pointer',background:'transparent',transition:'background .15s'},
+            onMouseEnter:(ev)=>ev.currentTarget.style.background='#f8fafc',
+            onMouseLeave:(ev)=>ev.currentTarget.style.background='transparent'},
+            e('div',{style:{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#6b21a8,#9333ea)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+              e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75'}))
+            ),
+            e('div',null,
+              e('div',{style:{fontSize:13,fontWeight:600,color:'#0f172a'}},'User Management'),
+              e('div',{style:{fontSize:11,color:'#64748b'}},'จัดการผู้ใช้งานและสิทธิ์')
+            )
+          ):null
         )
       ):null
     );
