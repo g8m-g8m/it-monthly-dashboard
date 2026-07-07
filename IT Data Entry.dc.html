@@ -612,7 +612,7 @@ class Component extends DCLogic {
     const avatarGrads = ['linear-gradient(135deg,#6366f1,#8b5cf6)','linear-gradient(135deg,#14b8a6,#0891b2)','linear-gradient(135deg,#f97316,#ef4444)','linear-gradient(135deg,#22c55e,#16a34a)','linear-gradient(135deg,#f59e0b,#ea580c)','linear-gradient(135deg,#ec4899,#8b5cf6)','linear-gradient(135deg,#38bdf8,#6366f1)'];
     const getInitials = (name) => name.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
     const cycleStatus = (cur) => { const ord = ['on-track','at-risk','delayed','on-hold','completed']; return ord[(ord.indexOf(cur)+1)%ord.length]; };
-    const COL_P = '36px minmax(120px,1fr) 110px 120px 80px 130px 160px 120px 120px 130px 36px';
+    const COL_P = '36px minmax(100px,1fr) 100px 95px 65px 115px 150px 105px 105px 160px 36px';
     const GANTT_COLORS = { 'Infra':'#2563eb','ERP/App':'#f59e0b','Security':'#8b5cf6','Cloud':'#0ea5e9','Continuity':'#10b981','Asset':'#84cc16','Other':'#94a3b8' };
     // Parse "Apr 2026" → month index 1-12
     const parseMonth = (s) => { const m = DUE_MONTHS.indexOf((s||'').split(' ')[0]); return m>=0 ? m+1 : 1; };
@@ -863,9 +863,10 @@ class Component extends DCLogic {
             ) : null
           )),
           // Milestones
-          this.tdCell(e('div',{style:{display:'flex',flexDirection:'column',gap:4}},
-            e('input',{type:'text',value:p.milestones||'',onChange:(ev)=>this.updateProject(idx,'milestones',ev.target.value),placeholder:'Jun,Sep',style:{fontSize:12,color:'#374151',border:'1px solid #e5e7eb',borderRadius:8,padding:'5px 8px',background:'#f8fafc',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
-            e('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginTop:2}},
+          this.tdCell(e('div',{style:{display:'flex',flexDirection:'row',alignItems:'center',gap:4,flexWrap:'wrap'}},
+            e('input',{type:'text',value:p.milestones||'',onChange:(ev)=>this.updateProject(idx,'milestones',ev.target.value),placeholder:'Jun,Sep',style:{fontSize:12,color:'#374151',border:'1px solid #e5e7eb',borderRadius:8,padding:'4px 7px',background:'#f8fafc',outline:'none',width:72,fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+            parseMilestones(p.milestones).length > 0 ? e('span',{style:{color:'#d1d5db',fontSize:12,margin:'0 2px'}},'|') : null,
+            e('div',{style:{display:'flex',gap:3,flexWrap:'wrap'}},
               ...parseMilestones(p.milestones).map(m=>
                 e('div',{key:m,style:{fontSize:10,fontWeight:700,color:'#fff',background:GANTT_COLORS[p.type]||'#94a3b8',borderRadius:10,padding:'2px 6px'}},DUE_MONTHS[m-1])
               )
