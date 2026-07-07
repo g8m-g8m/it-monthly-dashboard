@@ -325,6 +325,22 @@ class Component extends DCLogic {
     this.setState({ uptime: Object.assign({}, this.state.uptime, { [field]: val }) });
   }
 
+  componentDidUpdate(prevProps, prevState) {
+    const DATA_KEYS = ['period','projects','inhouse','budget','capexProjects','maData','security','vulns','securityEvents','network','networkKpis','networkKpiDefs','bizServices','statusKpis','uptime','uptimeItems','stabilityKpiDefs','changeRequests'];
+    const changed = DATA_KEYS.some(k => prevState[k] !== this.state[k]);
+    if (!changed) return;
+    if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
+    this._autoSaveTimer = setTimeout(() => {
+      try {
+        const s = this.state;
+        const data = { period:s.period, projects:s.projects, inhouse:s.inhouse, budget:s.budget, capexProjects:s.capexProjects, maData:s.maData, security:s.security, vulns:s.vulns, securityEvents:s.securityEvents, network:s.network, networkKpis:s.networkKpis, networkKpiDefs:s.networkKpiDefs, bizServices:s.bizServices, statusKpis:s.statusKpis, uptime:s.uptime, uptimeItems:s.uptimeItems, stabilityKpiDefs:s.stabilityKpiDefs, changeRequests:s.changeRequests };
+        const key = 'it_report_' + s.period.year + '_' + String(s.period.month).padStart(2,'0');
+        localStorage.setItem(key, JSON.stringify(data));
+        this.setState({ saveStatus: '💾 Auto-saved · ' + new Date().toLocaleTimeString() });
+      } catch(_) {}
+    }, 800);
+  }
+
   async componentDidMount() {
     this._closePicker = () => {
       const upd = {};
