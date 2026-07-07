@@ -1597,7 +1597,7 @@ class Component extends DCLogic {
 
     const networkEl = e('div',{style:{display:'flex',flexDirection:'column',gap:10}},
       // ── Top 6 KPI strip ──────────────────────────────────────
-      e('div',{style:{background:'#fff',borderRadius:10,boxShadow:'0 1px 3px rgba(0,0,0,.07)',display:'flex',alignItems:'center',overflow:'hidden'}},
+      e('div',{style:{background:'#fff',borderRadius:10,boxShadow:'0 4px 16px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06)',display:'flex',alignItems:'center',overflow:'hidden'}},
         ...netTopKpis.map((k,i)=>e('div',{key:k.lbl,style:{display:'flex',flexDirection:'column',gap:6,padding:'12px 14px',borderRight:'1px solid #e2e8f0',flex:1,minWidth:0}},
           e('div',{style:{fontSize:12,color:'#64748b',lineHeight:1.4,fontWeight:500}},k.lbl),
           e('div',{style:{display:'flex',alignItems:'center',gap:10}},
@@ -1611,7 +1611,7 @@ class Component extends DCLogic {
         ))
       ),
       // ── Section 1: Business Impact Overview ──────────────────
-      e('div',{style:{background:'#fff',borderRadius:10,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.07)'}},
+      e('div',{style:{background:'#fff',borderRadius:10,overflow:'hidden',boxShadow:'0 4px 16px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06)'}},
         secHd('1. Business Impact Overview'),
         e('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1.1fr',gap:0}},
           // Business Services Health
@@ -1677,7 +1677,7 @@ class Component extends DCLogic {
       // ── Sections 2-3-4 ───────────────────────────────────────
       e('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}},
         // Section 2: Infrastructure Health — per-plant Latency / Packet Loss
-        e('div',{style:{background:'#fff',borderRadius:10,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.07)'}},
+        e('div',{style:{background:'#fff',borderRadius:10,overflow:'hidden',boxShadow:'0 4px 16px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06)'}},
           secHd('2. Infrastructure Health'),
           e('div',{style:{padding:'10px'}},
             e('div',{style:{fontSize: 14,fontWeight:600,color:'#0f172a',marginBottom:2}},'Network Latency & Packet Loss – July 2026'),
@@ -1729,7 +1729,7 @@ class Component extends DCLogic {
           )
         ),
         // Section 3: Capacity & Demand
-        e('div',{style:{background:'#fff',borderRadius:10,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.07)'}},
+        e('div',{style:{background:'#fff',borderRadius:10,overflow:'hidden',boxShadow:'0 4px 16px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06)'}},
           secHd('3. Capacity & Demand'),
           e('div',{style:{padding:'10px'}},
             e('div',{style:{fontSize: 14,fontWeight:600,color:'#0f172a',marginBottom:2}},'WAN Bandwidth Utilization'),
@@ -1750,7 +1750,7 @@ class Component extends DCLogic {
           )
         ),
         // Section 4: Risks & Recommendations
-        e('div',{style:{background:'#fff',borderRadius:10,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.07)'}},
+        e('div',{style:{background:'#fff',borderRadius:10,overflow:'hidden',boxShadow:'0 4px 16px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06)'}},
           secHd('4. Risks & Recommendations'),
           e('div',{style:{padding:'10px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}},
             e('div',null,
@@ -1889,7 +1889,7 @@ class Component extends DCLogic {
     const securityEl = e('div',{style:{display:'flex',flexDirection:'column',gap:12}},
 
       // ── Top KPI strip ─────────────────────────────────────────
-      e('div',{style:{background:'#fff',borderRadius:10,boxShadow:'0 1px 3px rgba(0,0,0,.07)',display:'flex',alignItems:'center',overflow:'hidden'}},
+      e('div',{style:{background:'#fff',borderRadius:10,boxShadow:'0 4px 16px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06)',display:'flex',alignItems:'center',overflow:'hidden'}},
         ...secKpis.map(k=>e('div',{key:k.lbl,style:{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',borderRight:'1px solid #e2e8f0',flex:1,minWidth:0}},
           e('div',{style:{width:30,height:30,borderRadius:'50%',background:k.c,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 2px 6px '+k.c+'55'}},
             e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:k.ic}))
@@ -1908,7 +1908,7 @@ class Component extends DCLogic {
       ),
 
       // ── 5-column flow ─────────────────────────────────────────
-      e('div',{style:{display:'grid',gridTemplateColumns:'1fr 24px 0.85fr 24px 1fr 24px 0.85fr 24px 0.85fr',gap:0,background:'#fff',borderRadius:10,overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,.08)'}},
+      e('div',{style:{display:'grid',gridTemplateColumns:'1fr 24px 0.85fr 24px 1fr 24px 0.85fr 24px 0.85fr',gap:0,background:'#fff',borderRadius:10,overflow:'hidden',boxShadow:'0 4px 16px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06)'}},
 
         // 1. Security Events
         e('div',{style:{borderRight:'1px solid #e2e8f0'}},
