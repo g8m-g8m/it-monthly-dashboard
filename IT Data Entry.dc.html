@@ -444,10 +444,10 @@ class Component extends DCLogic {
     }
   }
 
-  _loadPeriodData() {
+  _loadPeriodData(overridePeriod) {
+    const period = overridePeriod || this.state.period;
     // Try localStorage first, then Supabase
     try {
-      const { period } = this.state;
       const key = 'it_report_' + period.year + '_' + String(period.month).padStart(2,'0');
       const raw = localStorage.getItem(key);
       if (raw) {
@@ -455,7 +455,7 @@ class Component extends DCLogic {
         const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
         const usedTypes = (saved.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
         const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
-        this.setState({ ...saved, customTypes: mergedCT, saveStatus: '📂 ' + period.month + '/' + period.year + ' loaded from draft' });
+        this.setState({ ...saved, period, customTypes: mergedCT, saveStatus: '📂 ' + period.month + '/' + period.year + ' loaded from draft' });
         setTimeout(() => this.setState({ saveStatus: '' }), 2000);
         return;
       }
@@ -463,10 +463,9 @@ class Component extends DCLogic {
     // Try Supabase
     if (this._sb && this.state.session) {
       this.setState({ loadingData: true });
-      const { period } = this.state;
       this._sb.from('it_reports').select('data').eq('period_year', period.year).eq('period_month', period.month).single().then(({ data }) => {
         if (data?.data) {
-          this.setState({ ...data.data, loadingData: false, saveStatus: '✓ ' + period.month + '/' + period.year + ' loaded from DB' });
+          this.setState({ ...data.data, period, loadingData: false, saveStatus: '✓ ' + period.month + '/' + period.year + ' loaded from DB' });
           setTimeout(() => this.setState({ saveStatus: '' }), 2000);
         } else {
           this.setState({ loadingData: false, saveStatus: 'ℹ No data for ' + period.month + '/' + period.year });
@@ -596,7 +595,7 @@ class Component extends DCLogic {
             const mn=i+1; const active=mn===period.month;
             return e('button',{
               key:mn,
-              onClick:()=>{ this.setState({period:{...period,month:mn},periodPickerOpen:false}); setTimeout(()=>this._loadPeriodData(),50); },
+              onClick:()=>{ const np={...period,month:mn}; this.setState({period:np,periodPickerOpen:false}); this._loadPeriodData(np); },
               style:{padding:'6px 4px',borderRadius:6,fontSize:12,fontWeight:active?700:400,cursor:'pointer',background:active?'#2563eb':'transparent',color:active?'#fff':'#334155',border:active?'none':'1px solid transparent',fontFamily:"'72','Inter','Kanit',sans-serif"}
             },m);
           })
@@ -654,13 +653,13 @@ class Component extends DCLogic {
       e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 } },
         e('div', null,
           this.label('Month', true),
-          this.sel(period.month, (v) => { this.setState({ period: Object.assign({}, period, { month: parseInt(v) }) }); setTimeout(()=>this._loadPeriodData(),50); },
+          this.sel(period.month, (v) => { const np={...period,month:parseInt(v)}; this.setState({period:np}); this._loadPeriodData(np); },
             MONTHS.map((m, i) => [i+1, m])
           )
         ),
         e('div', null,
           this.label('Year', true),
-          this.sel(period.year, (v) => { this.setState({ period: Object.assign({}, period, { year: parseInt(v) }) }); setTimeout(()=>this._loadPeriodData(),50); },
+          this.sel(period.year, (v) => { const np={...period,year:parseInt(v)}; this.setState({period:np}); this._loadPeriodData(np); },
             [[2026,'2026'],[2025,'2025'],[2024,'2024'],[2023,'2023']]
           )
         ),
