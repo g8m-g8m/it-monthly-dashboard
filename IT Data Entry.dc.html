@@ -94,6 +94,7 @@ class Component extends DCLogic {
     tab: 'period',
     saveStatus: '',
     clockStr: '',
+    projView: 'projects',
     showAppMenu: false,
     session: null, user: null, userRole: null, userName: '',
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
@@ -331,6 +332,12 @@ class Component extends DCLogic {
   }
 
   componentDidUpdate(prevProps, prevState) {
+    // Reload data when period changes
+    if (prevState.period.month !== this.state.period.month || prevState.period.year !== this.state.period.year) {
+      if (this._autoSaveTimer) { clearTimeout(this._autoSaveTimer); this._autoSaveTimer = null; }
+      this._loadPeriodData();
+      return;
+    }
     const DATA_KEYS = ['period','projects','inhouse','budget','capexProjects','maData','security','vulns','securityEvents','network','networkKpis','networkKpiDefs','bizServices','statusKpis','uptime','uptimeItems','stabilityKpiDefs','changeRequests'];
     const changed = DATA_KEYS.some(k => prevState[k] !== this.state[k]);
     if (!changed) return;
@@ -433,6 +440,38 @@ class Component extends DCLogic {
     } else {
       this._loadFromLocal();
       this.setState({ loadingData: false });
+    }
+  }
+
+  _loadPeriodData() {
+    // Try localStorage first, then Supabase
+    try {
+      const { period } = this.state;
+      const key = 'it_report_' + period.year + '_' + String(period.month).padStart(2,'0');
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
+        const usedTypes = (saved.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
+        const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
+        this.setState({ ...saved, customTypes: mergedCT, saveStatus: '📂 ' + period.month + '/' + period.year + ' loaded from draft' });
+        setTimeout(() => this.setState({ saveStatus: '' }), 2000);
+        return;
+      }
+    } catch(_) {}
+    // Try Supabase
+    if (this._sb && this.state.session) {
+      this.setState({ loadingData: true });
+      const { period } = this.state;
+      this._sb.from('it_reports').select('data').eq('period_year', period.year).eq('period_month', period.month).single().then(({ data }) => {
+        if (data?.data) {
+          this.setState({ ...data.data, loadingData: false, saveStatus: '✓ ' + period.month + '/' + period.year + ' loaded from DB' });
+          setTimeout(() => this.setState({ saveStatus: '' }), 2000);
+        } else {
+          this.setState({ loadingData: false, saveStatus: 'ℹ No data for ' + period.month + '/' + period.year });
+          setTimeout(() => this.setState({ saveStatus: '' }), 2000);
+        }
+      });
     }
   }
 
@@ -687,8 +726,14 @@ class Component extends DCLogic {
             e('div', { style:{ fontSize:24, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'Programs & Projects'),
             // Projects / Programs toggle
             e('div', { style:{ display:'flex', background:'#f3f4f6', borderRadius:20, padding:2 } },
-              e('button', { style:{ fontSize:12, fontWeight:600, color:'#fff', background:'#1e293b', borderRadius:18, border:'none', padding:'4px 14px', cursor:'pointer', fontFamily:"'72','Inter','Kanit',sans-serif" } }, 'Projects'),
-              e('button', { style:{ fontSize:12, fontWeight:400, color:'#6b7280', background:'transparent', borderRadius:18, border:'none', padding:'4px 14px', cursor:'pointer', fontFamily:"'72','Inter','Kanit',sans-serif" } }, 'Programs')
+              e('button', { onClick:()=>this.setState({projView:'projects'}), style:{ fontSize:12, fontWeight:600, color: this.state.projView==='projects'?'#fff':'#6b7280', background: this.state.projView==='projects'?'#1e293b':'transparent', borderRadius:18, border:'none', padding:'4px 14px', cursor:'pointer', fontFamily:"'72','Inter','Kanit',sans-serif", transition:'all .15s' } }, 'Projects'),
+              e('button', { onClick:()=>this.setState({projView:'programs'}), style:{ fontSize:12, fontWeight:600, color: this.state.projView==='programs'?'#fff':'#6b7280', background: this.state.projView==='programs'?'#1e293b':'transparent', borderRadius:18, border:'none', padding:'4px 14px', cursor:'pointer', fontFamily:"'72','Inter','Kanit',sans-serif", transition:'all .15s' } }, 'Programs')
+            ),
+            // Compact period selector
+            e('div', { style:{ display:'flex', alignItems:'center', gap:4, background:'#eff6ff', borderRadius:20, padding:'3px 8px', border:'1px solid #bfdbfe' } },
+              e('button', { onClick:()=>{ const m=period.month-1<1?12:period.month-1; const y=period.month-1<1?period.year-1:period.year; this.setState({period:{...period,month:m,year:y}}); }, style:{ background:'none', border:'none', cursor:'pointer', color:'#2563eb', fontWeight:700, fontSize:14, padding:'0 4px', lineHeight:1 } }, '‹'),
+              e('span', { style:{ fontSize:12, fontWeight:700, color:'#2563eb', minWidth:70, textAlign:'center' } }, MONTHS[period.month-1].substring(0,3) + ' ' + period.year),
+              e('button', { onClick:()=>{ const m=period.month+1>12?1:period.month+1; const y=period.month+1>12?period.year+1:period.year; this.setState({period:{...period,month:m,year:y}}); }, style:{ background:'none', border:'none', cursor:'pointer', color:'#2563eb', fontWeight:700, fontSize:14, padding:'0 4px', lineHeight:1 } }, '›')
             )
           ),
           e('div', { style:{ fontSize:12, color:'#9ca3af' } }, 'อัพเดตสถานะและความคืบหน้าโครงการ IT ประจำเดือน')
@@ -719,16 +764,10 @@ class Component extends DCLogic {
           )
         )
       ),
-      // Table header with search
+      // Table header
       e('div', { style: { display: 'grid', gridTemplateColumns: COL_P, gap: 0, marginBottom: 0 } },
         this.thCell('#'),
-        e('div', { style:{ padding:'10px 12px', display:'flex', alignItems:'center', gap:8, borderBottom:'1px solid #f3f4f6' } },
-          e('span', { style:{ fontSize:10.5, fontWeight:600, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'.07em' } }, 'Project Name'),
-          e('div', { style:{ display:'flex', alignItems:'center', gap:5, background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:20, padding:'3px 10px', marginLeft:8 } },
-            e('svg',{width:11,height:11,viewBox:'0 0 24 24',fill:'none',stroke:'#9ca3af',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'})),
-            e('span',{style:{fontSize:11,color:'#9ca3af'}}, 'Search')
-          )
-        ),
+        this.thCell('Project Name'),
         ...['Type','Lead','Dept','Status','Progress %','Start','Due Date','Milestones',''].map(h => this.thCell(h))
       ),
       // Rows
@@ -1997,7 +2036,7 @@ class Component extends DCLogic {
     );
 
     // ── Form content by tab ───────────────────────────────────────
-    const contentMap = { period: periodForm, projects: projectsForm, inhouse: inhouseForm, budget: budgetForm, security: e('div',null,securityForm,vulnsSection), secevents: secEventsForm, changereq: changeReqForm, network: networkForm, netkpis: netKpisForm, bizsvcs: bizSvcsForm, statusovr: statusOvrForm, uptime: uptimeForm };
+    const contentMap = { period: periodForm, projects: this.state.projView === 'programs' ? inhouseForm : projectsForm, inhouse: inhouseForm, budget: budgetForm, security: e('div',null,securityForm,vulnsSection), secevents: secEventsForm, changereq: changeReqForm, network: networkForm, netkpis: netKpisForm, bizsvcs: bizSvcsForm, statusovr: statusOvrForm, uptime: uptimeForm };
     // ── Confirm Delete modal ──────────────────────────────────────
     const { addTypePopup, newTypeName, addDeptPopup, newDeptName, confirmDelete, confirmDeleteIH, confirmDeleteCR, confirmDeleteSE, confirmDeleteBS, confirmDeleteCapex, confirmDeleteMA, confirmDeleteBudCat } = this.state;
 
