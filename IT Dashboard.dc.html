@@ -1353,13 +1353,17 @@ class Component extends DCLogic {
     );
 
     // KPI Summary bar data
-    const _kpiSrc = _savedInhouse || ((_savedProjects && _savedProjects.length) ? _savedProjects.map(p=>({ status:p.status==='on-track'?'ON-PLAN':p.status==='delayed'?'DELAYED':p.status==='at-risk'?'ON-HOLD':'ON-PLAN', progress:p.progress||0 })) : null);
-    const totalPrgAll = _kpiSrc ? _kpiSrc.length : 19;
-    const finishAll   = _kpiSrc ? _kpiSrc.filter(p=>p.status==='COMPLETED'||(p.progress||0)>=85).length : 8;
-    const wipAll      = _kpiSrc ? _kpiSrc.filter(p=>p.status==='ON-PLAN'&&(p.progress||0)<85).length : 8;
-    const waitAll     = _kpiSrc ? _kpiSrc.filter(p=>p.status==='NOT STARTED').length : 3;
-    const pipelinePct = (_kpiSrc && _kpiSrc.length) ? Math.round(_kpiSrc.reduce((s,p)=>s+(p.progress||0),0)/_kpiSrc.length) : 61;
-    const readyRate   = (_kpiSrc && _kpiSrc.length) ? Math.round(_kpiSrc.filter(p=>p.status!=='DELAYED'&&p.status!=='ON-HOLD').length/_kpiSrc.length*100) : 88;
+    const _kpiSrc = [
+      ...(_savedInhouse || []),
+      ...(_savedProjects && _savedProjects.length ? _savedProjects.map(p=>({ status: p.status==='on-track'?'ON-PLAN':p.status==='delayed'?'DELAYED':p.status==='at-risk'?'ON-HOLD':'ON-PLAN', progress:p.progress||0, dept:p.dept||'IT' })) : [])
+    ];
+    const _kpiLen = _kpiSrc.length || 1;
+    const totalPrgAll = _kpiSrc.length || 19;
+    const finishAll   = _kpiSrc.filter(p=>p.status==='COMPLETED'||(p.progress||0)>=85).length;
+    const wipAll      = _kpiSrc.filter(p=>p.status!=='COMPLETED'&&p.status!=='NOT STARTED'&&(p.progress||0)<85).length;
+    const waitAll     = _kpiSrc.filter(p=>p.status==='NOT STARTED'||(p.progress||0)===0).length;
+    const pipelinePct = Math.round(_kpiSrc.reduce((s,p)=>s+(p.progress||0),0)/(_kpiSrc.length||1));
+    const readyRate   = Math.round(_kpiSrc.filter(p=>p.status!=='DELAYED'&&p.status!=='ON-HOLD').length/(_kpiSrc.length||1)*100);
     const notReadyRate= 100 - readyRate;
     const totalBudgetM= tBg;
     const budgetUsedPct = Math.round((tSp/tBg)*100);

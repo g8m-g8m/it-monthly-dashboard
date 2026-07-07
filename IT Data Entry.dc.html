@@ -83,7 +83,7 @@
   </div>
 
 </div>
-{{ authOverlay }}{{ historyPanel }}{{ realtimeBanner }}
+{{ authOverlay }}{{ historyPanel }}{{ realtimeBanner }}{{ addDeptModal }}
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{
@@ -102,6 +102,9 @@ class Component extends DCLogic {
     customTypes: [],
     addTypePopup: null,
     newTypeName: '',
+    customDepts: [],
+    addDeptPopup: null,
+    newDeptName: '',
     confirmDelete: null,
     confirmDeleteIH: null,
     ihDuePicker: null,
@@ -130,13 +133,13 @@ class Component extends DCLogic {
     ],
     period: { month: 7, year: 2026 },
     projects: [
-      { id: 1, name: 'Network Infrastructure Upgrade', type: 'Infra',      lead: 'K. Wattana',     status: 'on-track', progress: 75, startDate: 'Apr 2026', due: 'Sep 2026', milestones: 'Jun,Sep' },
-      { id: 2, name: 'ERP Migration Phase 2',          type: 'ERP/App',    lead: 'P. Suksan',      status: 'at-risk',  progress: 40, startDate: 'Mar 2026', due: 'Oct 2026', milestones: 'Jul,Oct' },
-      { id: 3, name: 'Security Awareness Program',     type: 'Security',   lead: 'S. Charoenporn', status: 'on-track', progress: 90, startDate: 'May 2026', due: 'Aug 2026', milestones: 'Jul' },
-      { id: 4, name: 'Cloud Migration Pilot',          type: 'Cloud',      lead: 'T. Boonmee',     status: 'on-track', progress: 25, startDate: 'Jun 2026', due: 'Dec 2026', milestones: 'Sep,Dec' },
-      { id: 5, name: 'DR/BC Plan Update',              type: 'Continuity', lead: 'A. Phongphan',   status: 'on-track', progress: 60, startDate: 'May 2026', due: 'Sep 2026', milestones: 'Aug' },
-      { id: 6, name: 'Fiber Expansion – Plant B',      type: 'Infra',      lead: 'C. Nirattisai',  status: 'delayed',  progress: 55, startDate: 'Apr 2026', due: 'Aug 2026', milestones: 'Jul' },
-      { id: 7, name: 'IT Asset Refresh',               type: 'Asset',      lead: 'N. Sombat',      status: 'on-track', progress: 85, startDate: 'May 2026', due: 'Jul 2026', milestones: 'Jul' },
+      { id: 1, name: 'Network Infrastructure Upgrade', type: 'Infra',      lead: 'K. Wattana',     dept: 'IT',   status: 'on-track', progress: 75, startDate: 'Apr 2026', due: 'Sep 2026', milestones: 'Jun,Sep' },
+      { id: 2, name: 'ERP Migration Phase 2',          type: 'ERP/App',    lead: 'P. Suksan',      dept: 'IT',   status: 'at-risk',  progress: 40, startDate: 'Mar 2026', due: 'Oct 2026', milestones: 'Jul,Oct' },
+      { id: 3, name: 'Security Awareness Program',     type: 'Security',   lead: 'S. Charoenporn', dept: 'IT',   status: 'on-track', progress: 90, startDate: 'May 2026', due: 'Aug 2026', milestones: 'Jul' },
+      { id: 4, name: 'Cloud Migration Pilot',          type: 'Cloud',      lead: 'T. Boonmee',     dept: 'IT',   status: 'on-track', progress: 25, startDate: 'Jun 2026', due: 'Dec 2026', milestones: 'Sep,Dec' },
+      { id: 5, name: 'DR/BC Plan Update',              type: 'Continuity', lead: 'A. Phongphan',   dept: 'IT',   status: 'on-track', progress: 60, startDate: 'May 2026', due: 'Sep 2026', milestones: 'Aug' },
+      { id: 6, name: 'Fiber Expansion – Plant B',      type: 'Infra',      lead: 'C. Nirattisai',  dept: 'IT',   status: 'delayed',  progress: 55, startDate: 'Apr 2026', due: 'Aug 2026', milestones: 'Jul' },
+      { id: 7, name: 'IT Asset Refresh',               type: 'Asset',      lead: 'N. Sombat',      dept: 'IT',   status: 'on-track', progress: 85, startDate: 'May 2026', due: 'Jul 2026', milestones: 'Jul' },
     ],
     budget: [
       { id: 1, category: 'Infrastructure',        type: 'CapEx', budget: 5.8, actual: 4.2, monthBudget: 0.48, monthActual: 0.38 },
@@ -603,12 +606,13 @@ class Component extends DCLogic {
     const typeGrad = { 'Infra':'linear-gradient(135deg,#f97316,#ea580c)','ERP/App':'linear-gradient(135deg,#eab308,#ca8a04)','Security':'linear-gradient(135deg,#a78bfa,#7c3aed)','Cloud':'linear-gradient(135deg,#38bdf8,#0284c7)','Continuity':'linear-gradient(135deg,#34d399,#059669)','Asset':'linear-gradient(135deg,#86efac,#16a34a)','Other':'linear-gradient(135deg,#94a3b8,#475569)' };
     const typeText  = { 'Infra':'#fff','ERP/App':'#1a1000','Security':'#fff','Cloud':'#fff','Continuity':'#0a1f0f','Asset':'#0a1f0f','Other':'#fff' };
     const typeIconPath = { 'Infra':'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z','ERP/App':'M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z','Security':'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z','Cloud':'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z','Continuity':'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z','Asset':'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z','Other':'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' };
+    const DEPTS = ['IT','HR','ACC','SALE','WH','PROD','QA','Other', ...this.state.customDepts];
     const TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other', ...this.state.customTypes];
     // Avatar gradient colors by index
     const avatarGrads = ['linear-gradient(135deg,#6366f1,#8b5cf6)','linear-gradient(135deg,#14b8a6,#0891b2)','linear-gradient(135deg,#f97316,#ef4444)','linear-gradient(135deg,#22c55e,#16a34a)','linear-gradient(135deg,#f59e0b,#ea580c)','linear-gradient(135deg,#ec4899,#8b5cf6)','linear-gradient(135deg,#38bdf8,#6366f1)'];
     const getInitials = (name) => name.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
     const cycleStatus = (cur) => { const ord = ['on-track','at-risk','delayed','on-hold','completed']; return ord[(ord.indexOf(cur)+1)%ord.length]; };
-    const COL_P = '36px minmax(120px,1fr) 110px 120px 130px 160px 120px 120px 130px 36px';
+    const COL_P = '36px minmax(120px,1fr) 110px 120px 80px 130px 160px 120px 120px 130px 36px';
     const GANTT_COLORS = { 'Infra':'#2563eb','ERP/App':'#f59e0b','Security':'#8b5cf6','Cloud':'#0ea5e9','Continuity':'#10b981','Asset':'#84cc16','Other':'#94a3b8' };
     // Parse "Apr 2026" → month index 1-12
     const parseMonth = (s) => { const m = DUE_MONTHS.indexOf((s||'').split(' ')[0]); return m>=0 ? m+1 : 1; };
@@ -715,7 +719,7 @@ class Component extends DCLogic {
             e('span',{style:{fontSize:11,color:'#9ca3af'}}, 'Search')
           )
         ),
-        ...['Type','Lead','Status','Progress %','Start','Due Date','Milestones',''].map(h => this.thCell(h))
+        ...['Type','Lead','Dept','Status','Progress %','Start','Due Date','Milestones',''].map(h => this.thCell(h))
       ),
       // Rows
       ...projects.map((p, idx) =>
@@ -744,6 +748,15 @@ class Component extends DCLogic {
             e('div', { style:{ width:28, height:28, borderRadius:'50%', background:'#e5e7eb', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:10, fontWeight:700, color:'#6b7280' } }, getInitials(p.lead||'?')),
             e('input', { type:'text', value:p.lead, onChange:(ev)=>this.updateProject(idx,'lead',ev.target.value), style:{ fontSize:13, color:'#374151', border:'none', background:'transparent', outline:'none', flex:1, fontFamily:"'72','Inter','Kanit',sans-serif" } })
           )),
+          this.tdCell(
+            e('select', { value: p.dept||'IT', onChange:(ev)=>{
+              if(ev.target.value==='__add_dept__') { this.setState({addDeptPopup:idx, newDeptName:''}); }
+              else { this.updateProject(idx,'dept',ev.target.value); }
+            }, style:{ fontSize:12, fontWeight:600, color:'#374151', border:'1px solid #e5e7eb', borderRadius:6, padding:'4px 6px', background:'#f9fafb', cursor:'pointer', fontFamily:"'72','Inter','Kanit',sans-serif", width:'100%' } },
+              ...DEPTS.map(d => e('option',{key:d,value:d},d)),
+              e('option',{key:'__add_dept__',value:'__add_dept__',style:{background:'#eff6ff',color:'#2563eb',fontWeight:600}},'+ Add dept...')
+            )
+          ),
           this.tdCell(
             e('div', {
               title:'Click to cycle status',
@@ -879,7 +892,7 @@ class Component extends DCLogic {
       // Add row button
       e('button', {
         onClick: () => {
-          const newP = { id: Date.now(), name: 'New Project', type: 'Infra', lead: '', status: 'on-track', progress: 0, startDate: '', due: '', milestones: '' };
+          const newP = { id: Date.now(), name: 'New Project', type: 'Infra', lead: '', dept: 'IT', status: 'on-track', progress: 0, startDate: '', due: '', milestones: '' };
           this.setState({ projects: [...this.state.projects, newP] });
         },
         className: 'add-proj',
@@ -1985,7 +1998,7 @@ class Component extends DCLogic {
     // ── Form content by tab ───────────────────────────────────────
     const contentMap = { period: periodForm, projects: projectsForm, inhouse: inhouseForm, budget: budgetForm, security: e('div',null,securityForm,vulnsSection), secevents: secEventsForm, changereq: changeReqForm, network: networkForm, netkpis: netKpisForm, bizsvcs: bizSvcsForm, statusovr: statusOvrForm, uptime: uptimeForm };
     // ── Confirm Delete modal ──────────────────────────────────────
-    const { addTypePopup, newTypeName, confirmDelete, confirmDeleteIH, confirmDeleteCR, confirmDeleteSE, confirmDeleteBS, confirmDeleteCapex, confirmDeleteMA, confirmDeleteBudCat } = this.state;
+    const { addTypePopup, newTypeName, addDeptPopup, newDeptName, confirmDelete, confirmDeleteIH, confirmDeleteCR, confirmDeleteSE, confirmDeleteBS, confirmDeleteCapex, confirmDeleteMA, confirmDeleteBudCat } = this.state;
 
     // MA delete modal
     const _mkDelModal = (title, name, onYes, onNo) => e('div',{onClick:onNo,style:{position:'fixed',inset:0,background:'rgba(15,23,42,.4)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}},
@@ -2183,6 +2196,28 @@ class Component extends DCLogic {
       )
     ) : null;
 
+    const addDeptModal = addDeptPopup !== null ? e('div', {
+      onClick: () => this.setState({ addDeptPopup: null }),
+      style: { position:'fixed', inset:0, background:'rgba(15,23,42,.35)', zIndex:500, display:'flex', alignItems:'center', justifyContent:'center' }
+    },
+      e('div', { onClick: ev=>ev.stopPropagation(), style:{ background:'#fff', borderRadius:16, padding:'28px 32px', width:360, boxShadow:'0 20px 60px rgba(0,0,0,.2)' } },
+        e('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 } },
+          e('div', { style:{ fontSize:16, fontWeight:700, color:'#111827' } }, 'Add New Dept'),
+          e('button', { onClick:()=>this.setState({addDeptPopup:null}), style:{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:18 } }, '×')
+        ),
+        e('input', { type:'text', value: newDeptName, placeholder:'e.g. R&D, Logistics, Finance...', autoFocus:true,
+          onChange: ev=>this.setState({newDeptName:ev.target.value}),
+          onKeyDown: ev=>{ if(ev.key==='Enter'&&newDeptName.trim()){const d=newDeptName.trim();this.setState({customDepts:[...this.state.customDepts.filter(x=>x!==d),d],addDeptPopup:null,newDeptName:''});this.updateProject(addDeptPopup,'dept',d);}if(ev.key==='Escape')this.setState({addDeptPopup:null}); },
+          style:{ width:'100%', fontSize:14, color:'#111827', background:'#f9fafb', border:'2px solid #e5e7eb', borderRadius:10, padding:'10px 14px', outline:'none', boxSizing:'border-box', fontFamily:"'72','Inter','Kanit',sans-serif", marginBottom:16 }
+        }),
+        e('div', { style:{ display:'flex', gap:8, justifyContent:'flex-end' } },
+          e('button', { onClick:()=>this.setState({addDeptPopup:null}), style:{ fontSize:13, color:'#6b7280', background:'#f3f4f6', border:'none', borderRadius:8, padding:'8px 18px', cursor:'pointer', fontFamily:"'72','Inter','Kanit',sans-serif" } }, 'Cancel'),
+          e('button', { onClick:()=>{ if(newDeptName.trim()){const d=newDeptName.trim();this.setState({customDepts:[...this.state.customDepts.filter(x=>x!==d),d],addDeptPopup:null,newDeptName:''});this.updateProject(addDeptPopup,'dept',d);}},
+            style:{ fontSize:13, color:'#fff', background:newDeptName.trim()?'#2563eb':'#93c5fd', border:'none', borderRadius:8, padding:'8px 20px', cursor:newDeptName.trim()?'pointer':'default', fontFamily:"'72','Inter','Kanit',sans-serif", fontWeight:600 } }, 'Add Dept')
+        )
+      )
+    ) : null;
+
     // ── Add Type popup modal ──────────────────────────────────────
     const addTypeModal = addTypePopup !== null ? e('div', {
       onClick: () => this.setState({ addTypePopup: null }),
@@ -2272,6 +2307,7 @@ class Component extends DCLogic {
       confirmMAModal,
       confirmBudCatModal,
       addTypeModal,
+      addDeptModal,
       contentMap[tab] || periodForm
     );
 
@@ -2435,7 +2471,7 @@ class Component extends DCLogic {
 
     const clockDisplay = e('div', { style: { fontSize: 12, color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap', letterSpacing: '.01em' } }, this.state.clockStr);
 
-    return { periodBadge, tabNav, formContent, saveBtn, resetBtn, submitBtn, saveStatus: saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report', authOverlay, historyPanel, realtimeBanner, userBadge, appMenuBtn, clockDisplay };
+    return { periodBadge, tabNav, formContent, saveBtn, resetBtn, submitBtn, saveStatus: saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report', authOverlay, historyPanel, realtimeBanner, userBadge, appMenuBtn, clockDisplay, addTypeModal, addDeptModal };
   }
 }
 
