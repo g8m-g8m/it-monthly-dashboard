@@ -56,6 +56,7 @@
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
+      {{ clockDisplay }}
       {{ periodBadge }}
       {{ saveBtn }}
       {{ userBadge }}
@@ -92,6 +93,7 @@ class Component extends DCLogic {
   state = {
     tab: 'period',
     saveStatus: '',
+    clockStr: '',
     showAppMenu: false,
     session: null, user: null, userRole: null, userName: '',
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
@@ -338,7 +340,7 @@ class Component extends DCLogic {
         localStorage.setItem(key, JSON.stringify(data));
         this.setState({ saveStatus: '💾 Auto-saved · ' + new Date().toLocaleTimeString() });
       } catch(_) {}
-    }, 800);
+    }, 60);
   }
 
   async componentDidMount() {
@@ -352,11 +354,20 @@ class Component extends DCLogic {
       if(Object.keys(upd).length) this.setState(upd);
     };
     document.addEventListener('click', this._closePicker);
+    this._clockTick = () => {
+      const now = new Date();
+      const d = now.toLocaleDateString('th-TH', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+      const t = now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      this.setState({ clockStr: d + '  ' + t });
+    };
+    this._clockTick();
+    this._clockInterval = setInterval(this._clockTick, 1000);
     this._loadFromLocal();
     await this._sbInit();
   }
   componentWillUnmount() {
     document.removeEventListener('click', this._closePicker);
+    if (this._clockInterval) clearInterval(this._clockInterval);
     if (this._rtChannel) this._rtChannel.unsubscribe();
   }
 
@@ -2399,7 +2410,9 @@ class Component extends DCLogic {
       ):null
     );
 
-    return { periodBadge, tabNav, formContent, saveBtn, resetBtn, submitBtn, saveStatus: saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report', authOverlay, historyPanel, realtimeBanner, userBadge, appMenuBtn };
+    const clockDisplay = e('div', { style: { fontSize: 12, color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap', letterSpacing: '.01em' } }, this.state.clockStr);
+
+    return { periodBadge, tabNav, formContent, saveBtn, resetBtn, submitBtn, saveStatus: saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report', authOverlay, historyPanel, realtimeBanner, userBadge, appMenuBtn, clockDisplay };
   }
 }
 
