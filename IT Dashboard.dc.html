@@ -415,14 +415,28 @@ class Component extends DCLogic {
 
     // ── Data ─────────────────────────────────────────────────────
     const _sdUptime = this._savedData && this._savedData.uptime;
-    const _svcsBase = [
-      { n: 'Data Center & Server', score: _sdUptime?(_sdUptime.datacenter||100):100, target: 99.9, incidents: 1, actions: 1, c: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', ic: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01' },
-      { n: 'Database',             score: 100, target: 99.9, incidents: 0, actions: 0, c: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe', ic: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4' },
-      { n: 'Database',             score: _sdUptime?(_sdUptime.database||100):100, target: 99.9, incidents: 0, actions: 0, c: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe', ic: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4' },
-      { n: 'Network Link',         score: _sdUptime?(_sdUptime.networkLink||100):100, target: 99.5, incidents: 1, actions: 1, c: '#f97316', bg: '#fff7ed', border: '#fed7aa', ic: 'M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0' },
-      { n: 'Internet',             score: _sdUptime?(_sdUptime.internet||100):100, target: 99.5, incidents: 0, actions: 0, c: '#0ea5e9', bg: '#f0f9ff', border: '#bae6fd', ic: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9' },
-      { n: 'Security',             score: _sdUptime?(_sdUptime.security||100):100, target: 100,  incidents: 0, actions: 0, c: '#10b981', bg: '#f0fdf4', border: '#bbf7d0', ic: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
-    ];
+    // Read uptimeItems definitions from saved data (dynamic) or use defaults
+    const _sdUptimeItems = (this._savedData && this._savedData.uptimeItems && this._savedData.uptimeItems.length)
+      ? this._savedData.uptimeItems
+      : [
+          { key:'datacenter',  label:'Data Center & Server', target:99.9, ic:'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2' },
+          { key:'database',    label:'Database',             target:99.9, ic:'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4' },
+          { key:'networkLink', label:'Network Link',         target:99.5, ic:'M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0' },
+          { key:'internet',    label:'Internet',             target:99.5, ic:'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9' },
+          { key:'security',    label:'Security',             target:100,  ic:'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+        ];
+    const _domColors = ['#2563eb','#8b5cf6','#f97316','#0ea5e9','#10b981','#e11d48','#d97706'];
+    const _domBgs    = ['#eff6ff','#f5f3ff','#fff7ed','#f0f9ff','#f0fdf4','#fff1f2','#fffbeb'];
+    const _domBrds   = ['#bfdbfe','#ddd6fe','#fed7aa','#bae6fd','#bbf7d0','#fecdd3','#fde68a'];
+    const _svcsBase = _sdUptimeItems.map((d,i) => ({
+      n: d.label, target: d.target,
+      score: _sdUptime ? (_sdUptime[d.key] || 100) : 100,
+      incidents: 0, actions: 0,
+      c: _domColors[i % _domColors.length],
+      bg: _domBgs[i % _domBgs.length],
+      border: _domBrds[i % _domBrds.length],
+      ic: d.ic
+    }));
     const svcs = _svcsBase.map((s, i) => Object.assign({}, s, { score: M.upt(s.score, i) }));
     const upTr = [100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100];
     const bwTr = [62,71,68,74,79,73,65,70,76,81,73,68,72,77,73,69,74,78,73,70,73,76,71,68,73,75,73,71,73,72,73];
@@ -437,14 +451,30 @@ class Component extends DCLogic {
     const _fwBlk   = _sdNetKpi ? (_sdNetKpi.firewallBlocks||4872) : M.sec(4872, 3);
     const _actSess = _sdNetKpi ? (_sdNetKpi.activeSessions||1243) : M.sec(1243, 4);
     const _dnsQps  = _sdNetKpi ? (_sdNetKpi.dnsQueriesPerSec||342) : M.lat(342, 5);
-    const netM = [
-      { n: 'WAN Latency',      v: _wanLat + ' ms',  st: _wanLat<=30?1:0, s: 'Target ≤ 50ms · ' + (_wanLat<=30?'Stable':'Elevated') },
-      { n: 'Packet Loss',      v: _pktLoss + '%',   st: _pktLoss<=0.5?1:0, s: 'Target ≤ 1% · ' + (_pktLoss<=0.5?'Decreasing':'Watch') },
-      { n: 'Bandwidth Util.',  v: _bwUtil + '%',    st: _bwUtil<80?1:0, s: 'Peak ~' + Math.min(98,_bwUtil+18) + '% on ' + _pm + ' 11' },
-      { n: 'Active Sessions',  v: (_actSess).toLocaleString(), st: 1, s: 'Monthly average' },
-      { n: 'Firewall Blocks',  v: (_fwBlk).toLocaleString(),   st: 2, s: _pm + ' ' + filterYear + ' total events' },
-      { n: 'DNS Queries/s',    v: _dnsQps + '',                st: 1, s: 'Average per second' },
-    ];
+    // Read networkKpiDefs from saved data (dynamic) or use defaults
+    const _sdNetKpiDefs = (this._savedData && this._savedData.networkKpiDefs && this._savedData.networkKpiDefs.length)
+      ? this._savedData.networkKpiDefs
+      : [
+          { key:'firewallBlocks',   label:'Firewall Blocks',       unit:'events' },
+          { key:'activeSessions',   label:'Active Sessions',       unit:'sessions' },
+          { key:'dnsQueriesPerSec', label:'DNS Queries/sec',       unit:'req/s' },
+          { key:'bandwidthUtil',    label:'Bandwidth Utilization', unit:'%' },
+          { key:'activeConnections',label:'Active Connections',    unit:'conn' },
+        ];
+    const netM = _sdNetKpiDefs.map(f => {
+      const val = _sdNetKpi ? (_sdNetKpi[f.key] || 0) : 0;
+      return { n: f.label, v: val.toLocaleString() + (f.unit ? ' ' + f.unit : ''), st: 1, s: f.unit === '%' ? (val < 80 ? 'Within target' : 'Above threshold') : 'Monthly value' };
+    });
+    // Read stabilityKpiDefs from saved data (dynamic) or use defaults
+    const _sdStabilityDefs = (this._savedData && this._savedData.stabilityKpiDefs && this._savedData.stabilityKpiDefs.length)
+      ? this._savedData.stabilityKpiDefs
+      : [
+          { key:'availabilityPct', label:'System Uptime',  unit:'%',  thresholdOp:'gte', thresholdVal:99.5, passColor:'#16a34a', failColor:'#e11d48' },
+          { key:'capacityUtil',    label:'Capacity Util.', unit:'%',  thresholdOp:'lt',  thresholdVal:80,   passColor:'#16a34a', failColor:'#d97706' },
+          { key:'wanLatency',      label:'WAN Latency',    unit:'ms', thresholdOp:'lte', thresholdVal:50,   passColor:'#2563eb', failColor:'#e11d48' },
+          { key:'packetLoss',      label:'Packet Loss',    unit:'%',  thresholdOp:'lte', thresholdVal:1,    passColor:'#16a34a', failColor:'#e11d48' },
+          { key:'openVulns',       label:'Open Vulns',     unit:'',   thresholdOp:null,  thresholdVal:null, passColor:'#f97316', failColor:'#f97316' },
+        ];
     const srvs = [
       { n: 'APP-SRV-01', cpu: 45, ram: 67, dsk: 52 },
       { n: 'APP-SRV-02', cpu: 38, ram: 71, dsk: 48 },
@@ -1399,16 +1429,19 @@ class Component extends DCLogic {
     // ── UPTIME ───────────────────────────────────────────────────
     const UPTIME_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul'];
     const _uptBase = [[99.8,99.9,100,99.7,100,99.9,100],[100,100,99.9,100,100,100,100],[99.5,99.8,99.9,100,99.8,100,100],[99.9,100,100,99.8,100,100,100],[100,100,100,100,100,100,100]];
-    const svcMonthly = [
-      { n: 'Data Center & Server', c: '#2563eb', data: _uptBase[0].map((v,i) => M.upt(v, i+20)) },
-      { n: 'Database',             c: '#10b981', data: _uptBase[1].map((v,i) => M.upt(v, i+27)) },
-      { n: 'Network Link',         c: '#f97316', data: _uptBase[2].map((v,i) => M.upt(v, i+34)) },
-      { n: 'Internet',             c: '#8b5cf6', data: _uptBase[3].map((v,i) => M.upt(v, i+41)) },
-      { n: 'Security',             c: '#0ea5e9', data: _uptBase[4].map((v,i) => M.upt(v, i+48)) },
-    ];
+    const svcMonthly = _sdUptimeItems.map((d,i) => ({
+      n: d.label,
+      c: _domColors[i % _domColors.length],
+      data: (_uptBase[i] || _uptBase[0]).map((v,j) => _sdUptime ? (_sdUptime[d.key] || v) : M.upt(v, j+20+i*7))
+    }));
     const uptimeEl = e('div', { style: { display: 'flex', flexDirection: 'column', gap: 18 } },
       e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 } },
-        this.kpi('Overall Uptime', '100%', 'All 5 domains Met · July 2026', '#10b981', I.ok)
+        (() => {
+          const metDomains = svcs.filter(s => s.score >= s.target).length;
+          const avgUptime = svcs.length ? (svcs.reduce((a,s)=>a+s.score,0)/svcs.length).toFixed(2) : 100;
+          const allMet = metDomains === svcs.length;
+          return this.kpi('Overall Uptime', avgUptime+'%', (allMet?'All ':'') + metDomains+'/'+svcs.length+' domains Met · '+_pm+' '+filterYear, allMet?'#10b981':'#e11d48', I.ok);
+        })()
       ),
       e('div', { style: { display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 14 } },
         card([
