@@ -95,6 +95,7 @@ class Component extends DCLogic {
     saveStatus: '',
     clockStr: '',
     projView: 'projects',
+    periodPickerOpen: false,
     showAppMenu: false,
     session: null, user: null, userRole: null, userName: '',
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
@@ -332,12 +333,6 @@ class Component extends DCLogic {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    // Reload data when period changes
-    if (prevState.period.month !== this.state.period.month || prevState.period.year !== this.state.period.year) {
-      if (this._autoSaveTimer) { clearTimeout(this._autoSaveTimer); this._autoSaveTimer = null; }
-      this._loadPeriodData();
-      return;
-    }
     const DATA_KEYS = ['period','projects','inhouse','budget','capexProjects','maData','security','vulns','securityEvents','network','networkKpis','networkKpiDefs','bizServices','statusKpis','uptime','uptimeItems','stabilityKpiDefs','changeRequests'];
     const changed = DATA_KEYS.some(k => prevState[k] !== this.state[k]);
     if (!changed) return;
@@ -361,6 +356,7 @@ class Component extends DCLogic {
       if(this.state.seDatePicker !== null) upd.seDatePicker = null;
       if(this.state.crDatePicker !== null) upd.crDatePicker = null;
       if(this.state.startPicker !== null) upd.startPicker = null;
+      if(this.state.periodPickerOpen) upd.periodPickerOpen = false;
       if(Object.keys(upd).length) this.setState(upd);
     };
     document.addEventListener('click', this._closePicker);
@@ -416,6 +412,11 @@ class Component extends DCLogic {
   async _onSignIn(session) {
     const { data: profile } = await this._sb.from('profiles').select('*').eq('id', session.user.id).single();
     this.setState({ session, user: session.user, userRole: profile?.role || 'viewer', userName: profile?.full_name || session.user.email, loginError: '' });
+    // Load latest period from DB
+    const { data: latest } = await this._sb.from('it_reports').select('period_year,period_month').order('period_year',{ascending:false}).order('period_month',{ascending:false}).limit(1);
+    if (latest && latest[0]) {
+      this.setState({ period: { year: latest[0].period_year, month: latest[0].period_month } });
+    }
     await this._loadFromSupabase();
     this._subscribeRealtime();
   }
@@ -570,10 +571,38 @@ class Component extends DCLogic {
     const COL_UT = '44px 1fr 110px 165px 100px 44px';
     const COL_SK = '44px 1fr 60px 130px 90px 44px';
 
-    // ── Period badge ──────────────────────────────────────────────
-    const periodBadge = e('div', { style: { display:'flex', alignItems:'center', gap:6, background:'#fff', border:'1px solid #e2e8f0', borderRadius:20, padding:'5px 14px', fontSize:12, color:'#374151', fontWeight:600, cursor:'default', whiteSpace:'nowrap', boxShadow:'0 1px 3px rgba(0,0,0,.06)' } },
-      MONTHS[period.month-1] + ' ' + period.year,
-      e('svg',{width:11,height:11,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:'M19 9l-7 7-7-7'}))
+    // ── Period badge (interactive picker) ─────────────────────
+    const { periodPickerOpen } = this.state;
+    const MN_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const periodBadge = e('div', { style:{ position:'relative' } },
+      e('button', {
+        onClick: () => this.setState({ periodPickerOpen: !periodPickerOpen }),
+        style:{ display:'flex', alignItems:'center', gap:6, background:'#fff', border:'1px solid #e2e8f0', borderRadius:20, padding:'5px 14px', fontSize:12, color:'#374151', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 1px 3px rgba(0,0,0,.06)', fontFamily:"'72','Inter','Kanit',sans-serif" }
+      },
+        MONTHS[period.month-1] + ' ' + period.year,
+        e('svg',{width:11,height:11,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:'M19 9l-7 7-7-7'}))
+      ),
+      periodPickerOpen ? e('div', {
+        onClick: ev=>ev.stopPropagation(),
+        style:{ position:'absolute', top:'110%', right:0, zIndex:999, background:'#fff', border:'1px solid #e2e8f0', borderRadius:12, boxShadow:'0 8px 24px rgba(0,0,0,.12)', padding:14, width:240 }
+      },
+        e('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
+          e('button',{onClick:()=>this.setState({period:{...period,year:period.year-1}}),style:{background:'none',border:'1px solid #e2e8f0',borderRadius:6,width:28,height:28,cursor:'pointer',fontSize:14,color:'#64748b'}},'‹'),
+          e('span',{style:{fontSize:14,fontWeight:700,color:'#0f172a'}},period.year),
+          e('button',{onClick:()=>this.setState({period:{...period,year:period.year+1}}),style:{background:'none',border:'1px solid #e2e8f0',borderRadius:6,width:28,height:28,cursor:'pointer',fontSize:14,color:'#64748b'}},'›')
+        ),
+        e('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}},
+          MN_SHORT.map((m,i)=>{
+            const mn=i+1; const active=mn===period.month;
+            return e('button',{
+              key:mn,
+              onClick:()=>{ this.setState({period:{...period,month:mn},periodPickerOpen:false}); setTimeout(()=>this._loadPeriodData(),50); },
+              style:{padding:'6px 4px',borderRadius:6,fontSize:12,fontWeight:active?700:400,cursor:'pointer',background:active?'#2563eb':'transparent',color:active?'#fff':'#334155',border:active?'none':'1px solid transparent',fontFamily:"'72','Inter','Kanit',sans-serif"}
+            },m);
+          })
+        ),
+        e('div',{style:{marginTop:10,textAlign:'center',fontSize:11,color:'#94a3b8',cursor:'pointer'},onClick:()=>this.setState({periodPickerOpen:false})},'✕ Close')
+      ) : null
     );
 
     // ── Tab nav ───────────────────────────────────────────────────
@@ -625,13 +654,13 @@ class Component extends DCLogic {
       e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 } },
         e('div', null,
           this.label('Month', true),
-          this.sel(period.month, (v) => this.setState({ period: Object.assign({}, period, { month: parseInt(v) }) }),
+          this.sel(period.month, (v) => { this.setState({ period: Object.assign({}, period, { month: parseInt(v) }) }); setTimeout(()=>this._loadPeriodData(),50); },
             MONTHS.map((m, i) => [i+1, m])
           )
         ),
         e('div', null,
           this.label('Year', true),
-          this.sel(period.year, (v) => this.setState({ period: Object.assign({}, period, { year: parseInt(v) }) }),
+          this.sel(period.year, (v) => { this.setState({ period: Object.assign({}, period, { year: parseInt(v) }) }); setTimeout(()=>this._loadPeriodData(),50); },
             [[2026,'2026'],[2025,'2025'],[2024,'2024'],[2023,'2023']]
           )
         ),
