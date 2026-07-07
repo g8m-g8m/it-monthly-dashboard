@@ -362,12 +362,26 @@ class Component extends DCLogic {
     };
     this._clockTick();
     this._clockInterval = setInterval(this._clockTick, 1000);
+    // Save immediately when user switches tab or closes window
+    this._saveNow = () => {
+      try {
+        const s = this.state;
+        const data = { period:s.period, projects:s.projects, inhouse:s.inhouse, budget:s.budget, capexProjects:s.capexProjects, maData:s.maData, security:s.security, vulns:s.vulns, securityEvents:s.securityEvents, network:s.network, networkKpis:s.networkKpis, networkKpiDefs:s.networkKpiDefs, bizServices:s.bizServices, statusKpis:s.statusKpis, uptime:s.uptime, uptimeItems:s.uptimeItems, stabilityKpiDefs:s.stabilityKpiDefs, changeRequests:s.changeRequests };
+        const key = 'it_report_' + s.period.year + '_' + String(s.period.month).padStart(2,'0');
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch(_) {}
+    };
+    this._onVisibility = () => { if (document.visibilityState === 'hidden') this._saveNow(); };
+    document.addEventListener('visibilitychange', this._onVisibility);
+    window.addEventListener('beforeunload', this._saveNow);
     this._loadFromLocal();
     await this._sbInit();
   }
   componentWillUnmount() {
     document.removeEventListener('click', this._closePicker);
     if (this._clockInterval) clearInterval(this._clockInterval);
+    document.removeEventListener('visibilitychange', this._onVisibility);
+    window.removeEventListener('beforeunload', this._saveNow);
     if (this._rtChannel) this._rtChannel.unsubscribe();
   }
 
