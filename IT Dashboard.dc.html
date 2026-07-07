@@ -249,25 +249,28 @@ class Component extends DCLogic {
     } catch(_) { this._savedData = null; }
 
     // ── Auth overlay ─────────────────────────────────────────────
-    const authOverlay = !session ? e('div',{style:{position:'fixed',inset:0,background:'rgba(15,23,42,.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}},
-      e('div',{style:{background:'#fff',borderRadius:20,padding:'40px',boxShadow:'0 30px 80px rgba(0,0,0,.35)',width:380,fontFamily:"'72','Inter','Kanit',sans-serif"}},
+    const authOverlay = !session ? e('div',{style:{position:'fixed',inset:0,background:'#f0f2f5',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'72','Segoe UI','Kanit',sans-serif"}},
+      e('div',{style:{width:420,maxWidth:'94vw'}},
         e('div',{style:{textAlign:'center',marginBottom:28}},
-          e('div',{style:{width:56,height:56,background:'linear-gradient(135deg,#1e40af,#3b82f6)',borderRadius:16,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',boxShadow:'0 8px 24px rgba(59,130,246,.4)'}},
-            e('svg',{width:28,height:28,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'}))
+          e('div',{style:{width:56,height:56,background:'#0070f2',borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px'}},
+            e('svg',{width:26,height:26,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'}))
           ),
-          e('div',{style:{fontSize:20,fontWeight:800,color:'#0f172a',letterSpacing:'-.02em'}},'IT Monthly Dashboard'),
-          e('div',{style:{fontSize:13,color:'#64748b',marginTop:4}},'Pacific Pipe PLC · IT Department')
+          e('div',{style:{fontSize:20,fontWeight:700,color:'#1d2d3e',letterSpacing:'-.01em'}},'IT Monthly Dashboard'),
+          e('div',{style:{fontSize:13,color:'#6b7c8d',marginTop:4}},'Pacific Pipe PLC · IT Department')
         ),
-        loginError?e('div',{style:{background:'#fff1f2',border:'1px solid #fecdd3',borderRadius:10,padding:'10px 14px',fontSize:12,color:'#e11d48',marginBottom:16}},loginError):null,
-        e('div',{style:{marginBottom:14}},
-          e('label',{style:{fontSize:11,fontWeight:600,color:'#64748b',display:'block',marginBottom:6,textTransform:'uppercase',letterSpacing:'.06em'}},'Email'),
-          e('input',{type:'email',value:loginEmail,onChange:(ev)=>this.setState({loginEmail:ev.target.value}),placeholder:'your@email.com',onKeyDown:(ev)=>ev.key==='Enter'&&this.doLogin(),style:{width:'100%',padding:'10px 14px',border:'1px solid #e2e8f0',borderRadius:10,fontSize:14,outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",boxSizing:'border-box'}})
-        ),
-        e('div',{style:{marginBottom:22}},
-          e('label',{style:{fontSize:11,fontWeight:600,color:'#64748b',display:'block',marginBottom:6,textTransform:'uppercase',letterSpacing:'.06em'}},'Password'),
-          e('input',{type:'password',value:loginPassword,onChange:(ev)=>this.setState({loginPassword:ev.target.value}),placeholder:'••••••••',onKeyDown:(ev)=>ev.key==='Enter'&&this.doLogin(),style:{width:'100%',padding:'10px 14px',border:'1px solid #e2e8f0',borderRadius:10,fontSize:14,outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",boxSizing:'border-box'}})
-        ),
-        e('button',{onClick:()=>this.doLogin(),disabled:loginLoading,style:{width:'100%',padding:'12px',background:'linear-gradient(135deg,#1e40af,#3b82f6)',color:'#fff',border:'none',borderRadius:10,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif",opacity:loginLoading?.7:1}},loginLoading?'Signing in…':'Sign In')
+        e('div',{style:{background:'#fff',borderRadius:16,padding:'36px 40px',boxShadow:'0 4px 24px rgba(0,0,0,.08)'}},
+          e('div',{style:{fontSize:17,fontWeight:700,color:'#1d2d3e',marginBottom:24}},'Sign In'),
+          loginError?e('div',{style:{background:'#fff0f0',border:'1px solid #ffd0d0',borderRadius:8,padding:'10px 14px',fontSize:12,color:'#c9190b',marginBottom:16}},loginError):null,
+          e('div',{style:{marginBottom:16}},
+            e('label',{style:{fontSize:12,fontWeight:600,color:'#6b7c8d',display:'block',marginBottom:6}},'Email'),
+            e('input',{type:'email',value:loginEmail,onChange:(ev)=>this.setState({loginEmail:ev.target.value}),placeholder:'your@email.com',onKeyDown:(ev)=>ev.key==='Enter'&&this.doLogin(),style:{width:'100%',padding:'10px 13px',border:'1px solid #d1d9e0',borderRadius:8,fontSize:14,outline:'none',fontFamily:"'72','Segoe UI','Kanit',sans-serif",boxSizing:'border-box',color:'#1d2d3e'}})
+          ),
+          e('div',{style:{marginBottom:8}},
+            e('label',{style:{fontSize:12,fontWeight:600,color:'#6b7c8d',display:'block',marginBottom:6}},'Password'),
+            e('input',{type:'password',value:loginPassword,onChange:(ev)=>this.setState({loginPassword:ev.target.value}),placeholder:'••••••••',onKeyDown:(ev)=>ev.key==='Enter'&&this.doLogin(),style:{width:'100%',padding:'10px 13px',border:'1px solid #d1d9e0',borderRadius:8,fontSize:14,outline:'none',fontFamily:"'72','Segoe UI','Kanit',sans-serif",boxSizing:'border-box',color:'#1d2d3e'}})
+          ),
+          e('button',{onClick:()=>this.doLogin(),disabled:loginLoading,style:{width:'100%',padding:'11px',background:loginLoading?'#a8c8f8':'#0070f2',color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:"'72','Segoe UI','Kanit',sans-serif",marginTop:8}},loginLoading?'Signing in…':'Sign In')
+        )
       )
     ):null;
     const { tab, tip, sidebarOpen } = this.state;
