@@ -365,6 +365,11 @@ class Component extends DCLogic {
     };
     this._clockTick();
     this._clockInterval = setInterval(this._clockTick, 1000);
+    // Load custom types from localStorage
+    try {
+      const ct = JSON.parse(localStorage.getItem('it_custom_types') || '[]');
+      if (ct.length) this.setState({ customTypes: ct });
+    } catch(_) {}
     // Save immediately when user switches tab or closes window
     this._saveNow = () => {
       try {
@@ -438,7 +443,12 @@ class Component extends DCLogic {
       const raw = localStorage.getItem(key);
       if (!raw) return;
       const saved = JSON.parse(raw);
-      this.setState({ ...saved, saveStatus: '📂 Restored from local draft' });
+      // Sync custom types from loaded projects
+      const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
+      const usedTypes = (saved.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
+      const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
+      this.setState({ ...saved, customTypes: mergedCT, saveStatus: '📂 Restored from local draft' });
+      try { localStorage.setItem('it_custom_types', JSON.stringify(mergedCT)); } catch(_) {}
       setTimeout(() => this.setState({ saveStatus: '' }), 3000);
     } catch(_) {}
   }
@@ -612,7 +622,7 @@ class Component extends DCLogic {
     const avatarGrads = ['linear-gradient(135deg,#6366f1,#8b5cf6)','linear-gradient(135deg,#14b8a6,#0891b2)','linear-gradient(135deg,#f97316,#ef4444)','linear-gradient(135deg,#22c55e,#16a34a)','linear-gradient(135deg,#f59e0b,#ea580c)','linear-gradient(135deg,#ec4899,#8b5cf6)','linear-gradient(135deg,#38bdf8,#6366f1)'];
     const getInitials = (name) => name.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
     const cycleStatus = (cur) => { const ord = ['on-track','at-risk','delayed','on-hold','completed']; return ord[(ord.indexOf(cur)+1)%ord.length]; };
-    const COL_P = '36px minmax(100px,1fr) 100px 95px 65px 115px 150px 105px 105px 160px 36px';
+    const COL_P = '36px minmax(100px,1fr) 100px 110px 65px 110px 145px 100px 100px 155px 36px';
     const GANTT_COLORS = { 'Infra':'#2563eb','ERP/App':'#f59e0b','Security':'#8b5cf6','Cloud':'#0ea5e9','Continuity':'#10b981','Asset':'#84cc16','Other':'#94a3b8' };
     // Parse "Apr 2026" → month index 1-12
     const parseMonth = (s) => { const m = DUE_MONTHS.indexOf((s||'').split(' ')[0]); return m>=0 ? m+1 : 1; };
@@ -744,10 +754,7 @@ class Component extends DCLogic {
               )
             )
           ),
-          this.tdCell(e('div', { style:{ display:'flex', alignItems:'center', gap:8 } },
-            e('div', { style:{ width:28, height:28, borderRadius:'50%', background:'#e5e7eb', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:10, fontWeight:700, color:'#6b7280' } }, getInitials(p.lead||'?')),
-            e('input', { type:'text', value:p.lead, onChange:(ev)=>this.updateProject(idx,'lead',ev.target.value), style:{ fontSize:13, color:'#374151', border:'1px solid #e5e7eb', borderRadius:8, padding:'5px 8px', background:'#f8fafc', outline:'none', flex:1, fontFamily:"'72','Inter','Kanit',sans-serif" } })
-          )),
+          this.tdCell(e('input', { type:'text', value:p.lead, onChange:(ev)=>this.updateProject(idx,'lead',ev.target.value), placeholder:'Lead name', style:{ fontSize:13, color:'#374151', border:'1px solid #e5e7eb', borderRadius:8, padding:'5px 8px', background:'#f8fafc', outline:'none', width:'100%', fontFamily:"'72','Inter','Kanit',sans-serif" } })),
           this.tdCell(
             e('input', { type:'text', value: p.dept||'', onChange:(ev)=>this.updateProject(idx,'dept',ev.target.value), placeholder:'Dept', style:{ fontSize:12, fontWeight:600, color:'#374151', border:'1px solid #e5e7eb', borderRadius:8, padding:'5px 8px', background:'#f8fafc', outline:'none', width:'100%', fontFamily:"'72','Inter','Kanit',sans-serif" } })
           ),
@@ -2224,12 +2231,29 @@ class Component extends DCLogic {
       },
         // Header
         e('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 } },
-          e('div', { style:{ fontSize:16, fontWeight:700, color:'#111827' } }, 'Add New Type'),
+          e('div', { style:{ fontSize:16, fontWeight:700, color:'#111827' } }, 'Manage Types'),
           e('button', { onClick:()=>this.setState({addTypePopup:null}), style:{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:18, lineHeight:1, padding:4 } }, '×')
         ),
+        // Existing custom types list with delete
+        this.state.customTypes.length > 0 ? e('div', { style:{ marginBottom:16 } },
+          e('div', { style:{ fontSize:11, fontWeight:600, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:8 } }, 'Custom Types'),
+          e('div', { style:{ display:'flex', flexWrap:'wrap', gap:6 } },
+            ...this.state.customTypes.map(t => e('div', { key:t, style:{ display:'flex', alignItems:'center', gap:4, background:'#f1f5f9', borderRadius:20, padding:'4px 10px' } },
+              e('span', { style:{ fontSize:12, fontWeight:600, color:'#374151' } }, t),
+              e('button', {
+                onClick: () => {
+                  const newCT = this.state.customTypes.filter(x=>x!==t);
+                  this.setState({ customTypes: newCT });
+                  try { localStorage.setItem('it_custom_types', JSON.stringify(newCT)); } catch(_) {}
+                },
+                style:{ background:'none', border:'none', cursor:'pointer', color:'#ef4444', fontSize:14, lineHeight:1, padding:'0 2px', display:'flex', alignItems:'center' }
+              }, '×')
+            ))
+          )
+        ) : null,
         // Input
         e('div', { style:{ marginBottom:20 } },
-          e('label', { style:{ display:'block', fontSize:11, fontWeight:600, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:6 } }, 'Type Name'),
+          e('label', { style:{ display:'block', fontSize:11, fontWeight:600, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:6 } }, 'Add New Type'),
           e('input', {
             type:'text',
             value: newTypeName,
@@ -2239,7 +2263,9 @@ class Component extends DCLogic {
             onKeyDown: ev => {
               if(ev.key === 'Enter' && newTypeName.trim()) {
                 const t = newTypeName.trim();
-                this.setState({ customTypes:[...this.state.customTypes.filter(x=>x!==t),t], addTypePopup:null, newTypeName:'' });
+                const newCT = [...this.state.customTypes.filter(x=>x!==t), t];
+                this.setState({ customTypes: newCT, addTypePopup:null, newTypeName:'' });
+                try { localStorage.setItem('it_custom_types', JSON.stringify(newCT)); } catch(_) {}
                 this.updateProject(addTypePopup,'type',t);
               }
               if(ev.key === 'Escape') this.setState({ addTypePopup:null });
@@ -2257,7 +2283,9 @@ class Component extends DCLogic {
             onClick: () => {
               if(newTypeName.trim()) {
                 const t = newTypeName.trim();
-                this.setState({ customTypes:[...this.state.customTypes.filter(x=>x!==t),t], addTypePopup:null, newTypeName:'' });
+                const newCT = [...this.state.customTypes.filter(x=>x!==t), t];
+                this.setState({ customTypes: newCT, addTypePopup:null, newTypeName:'' });
+                try { localStorage.setItem('it_custom_types', JSON.stringify(newCT)); } catch(_) {}
                 this.updateProject(addTypePopup,'type',t);
               }
             },
