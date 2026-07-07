@@ -393,6 +393,15 @@ class Component extends DCLogic {
 
   async _loadFromSupabase() {
     if (!this._sb || !this.state.session) return;
+    // If a local draft already exists for this period, don't overwrite it with DB data
+    try {
+      const { period } = this.state;
+      const key = 'it_report_' + period.year + '_' + String(period.month).padStart(2,'0');
+      if (localStorage.getItem(key)) {
+        this.setState({ loadingData: false });
+        return; // Local draft takes priority until user submits
+      }
+    } catch(_) {}
     this.setState({ loadingData: true });
     const { period } = this.state;
     const { data } = await this._sb.from('it_reports').select('data').eq('period_year', period.year).eq('period_month', period.month).single();
