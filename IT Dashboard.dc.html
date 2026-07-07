@@ -518,9 +518,12 @@ class Component extends DCLogic {
     const tBg = bud.reduce((s, b) => s + b.bg, 0);
     const tSp = bud.reduce((s, b) => s + b.sp, 0);
     const _savedProjects = this._savedData && this._savedData.projects;
+    const _savedInhouse = (this._savedData && this._savedData.inhouse && this._savedData.inhouse.length) ? this._savedData.inhouse : null;
+    const _ihStatusMap = { 'COMPLETED':'on-track','ON-PLAN':'on-track','ON-HOLD':'at-risk','DELAYED':'delayed','NOT STARTED':'on-track' };
     const _ganttColors = { 'Infra':'#2563eb','ERP/App':'#f59e0b','Security':'#8b5cf6','Cloud':'#0ea5e9','Continuity':'#10b981','Asset':'#84cc16','Other':'#94a3b8' };
     const _parseM = (s) => { const MNAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const i=MNAMES.indexOf((s||'').split(' ')[0]); return i>=0?i+1:1; };
-    const _prjBase = _savedProjects ? _savedProjects.map(p=>({ n:p.name, p:p.progress, st:p.status, due:p.due, ld:p.lead })) : [
+    const _prjBase = (_savedProjects && _savedProjects.length) ? _savedProjects.map(p=>({ n:p.name, p:p.progress, st:p.status, due:p.due, ld:p.lead }))
+      : _savedInhouse ? _savedInhouse.map(p=>({ n:p.name, p:p.progress||0, st:_ihStatusMap[p.status]||'on-track', due:p.due||'', ld:p.lead||'' })) : [
       { n: 'Network Infrastructure Upgrade',  p: 75, st: 'on-track', due: 'Sep 2026', ld: 'K. Wattana'     },
       { n: 'ERP Migration Phase 2',           p: 40, st: 'at-risk',  due: 'Oct 2026', ld: 'P. Suksan'      },
       { n: 'Security Awareness Program',      p: 90, st: 'on-track', due: 'Aug 2026', ld: 'S. Charoenporn' },
@@ -577,13 +580,18 @@ class Component extends DCLogic {
       { n: 'Fiber Expansion – Plant B',      type: 'Infra',      ld: 'C. Nirattisai',  st: 'delayed',  p: 55, s: 4,  e: 8,  ms: [7],     c: '#ef4444' },
       { n: 'IT Asset Refresh',               type: 'Asset',      ld: 'N. Sombat',      st: 'on-track', p: 85, s: 5,  e: 7,  ms: [7],     c: '#10b981' },
     ];
-    const _prjGanttBase = _savedProjects && _savedProjects.length ? _savedProjects.map(p => ({
+    const _deptColors = ['#2563eb','#10b981','#8b5cf6','#f59e0b','#0ea5e9','#ef4444','#f97316','#84cc16','#94a3b8'];
+    const _prjGanttBase = (_savedProjects && _savedProjects.length) ? _savedProjects.map(p => ({
       n: p.name, type: p.type||'Other', ld: p.lead, st: p.status,
       p: p.progress||0,
       s: p.startDate ? _parseM(p.startDate) : 4,
       e: p.due ? _parseM(p.due) : 9,
       ms: p.milestones ? p.milestones.split(',').map(m=>{ const MNAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const i=MNAMES.indexOf(m.trim()); return i>=0?i+1:null; }).filter(Boolean) : [],
       c: _ganttColors[p.type] || '#94a3b8'
+    })) : _savedInhouse ? _savedInhouse.map((p, i) => ({
+      n: p.name, type: p.dept||'Other', ld: p.lead||'', st: _ihStatusMap[p.status]||'on-track',
+      p: p.progress||0, s: 1, e: p.due ? _parseM(p.due) : 12, ms: [],
+      c: _deptColors[i % _deptColors.length]
     })) : _prjGanttFallback;
     const prjGantt = _prjGanttBase.map((p2, i) => Object.assign({}, p2, { p: M.prog(p2.p, i+10) }));
 
@@ -653,14 +661,27 @@ class Component extends DCLogic {
       // Department breakdown table
       e('div', { style: { background: '#f8fafc', borderRadius: 8, padding: '8px', marginBottom: 6 } },
         e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b', letterSpacing: '.01em', marginBottom: 6 } }, 'Programs by Dept · Total / Finish'),
-        e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 4 } },
-          ...[
+        (() => {
+          const DC = ['#2563eb','#10b981','#8b5cf6','#f59e0b','#0ea5e9','#ef4444','#f97316','#84cc16'];
+          const depts = _savedInhouse && _savedInhouse.length ? (() => {
+            const m = {};
+            _savedInhouse.forEach(p => {
+              const d = p.dept || 'Other';
+              if (!m[d]) m[d] = { d, total:0, finish:0, pSum:0, c: DC[Object.keys(m).length % DC.length] };
+              m[d].total++;
+              if (p.status==='COMPLETED'||(p.progress||0)>=85) m[d].finish++;
+              m[d].pSum += p.progress||0;
+            });
+            return Object.values(m).map(x=>({...x, avgPct:Math.round(x.pSum/x.total)}));
+          })() : [
             { d: 'Tech', total: 5, finish: 2, avgPct: 72, c: '#2563eb' },
             { d: 'Sale', total: 3, finish: 1, avgPct: 58, c: '#10b981' },
             { d: 'Acc',  total: 4, finish: 2, avgPct: 65, c: '#8b5cf6' },
             { d: 'Prod', total: 3, finish: 1, avgPct: 55, c: '#f59e0b' },
             { d: 'QA',   total: 4, finish: 2, avgPct: 61, c: '#0ea5e9' },
-          ].map(dept => e('div', { key: dept.d, style: { background: '#fff', borderRadius: 8, padding: '8px 6px', textAlign: 'center', border: '1px solid ' + dept.c + '30' } },
+          ];
+          return e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat('+Math.min(depts.length,8)+',1fr)', gap: 4 } },
+          ...depts.map(dept => e('div', { key: dept.d, style: { background: '#fff', borderRadius: 8, padding: '8px 6px', textAlign: 'center', border: '1px solid ' + dept.c + '30' } },
             // Dept label
             e('div', { style: { fontSize: 13, fontWeight: 600, color: dept.c, marginBottom: 4 } }, dept.d),
             // Total — bold
@@ -673,12 +694,13 @@ class Component extends DCLogic {
             e('div', { style: { fontSize: 16, fontWeight: 700, color: dept.c, marginBottom: 3 } }, dept.finish + ' ✓'),
 
           ))
-        )
+          );
+        })()
       ),
       // Avg Progress
       e('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' } },
         e('span', { style: { fontSize: 15, color: '#64748b' } }, 'Avg Progress'),
-        e('span', { style: { fontSize: 28, fontWeight: 700, color: '#2563eb' } }, Math.round(prj.reduce((s,p2)=>s+p2.p,0)/prj.length) + '%')
+        e('span', { style: { fontSize: 28, fontWeight: 700, color: '#2563eb' } }, (prj.length > 0 ? Math.round(prj.reduce((s,p2)=>s+p2.p,0)/prj.length) : 0) + '%')
       ),
       // Divider
       e('div', { style: { height: 1, background: '#e2e8f0', margin: '8px 0' } }),
@@ -932,7 +954,7 @@ class Component extends DCLogic {
     );
 
     // ── Panel 4: Project Pipeline Gantt ──────────────────────────
-    const avgPct      = Math.round(prj.reduce((s, p) => s + p.p, 0) / prj.length);
+    const avgPct      = prj.length > 0 ? Math.round(prj.reduce((s, p) => s + p.p, 0) / prj.length) : 0;
     const activeCount = prjGantt.length;
     const onPlanCount = prjGantt.filter(p2 => p2.st === 'on-track').length;
     const waitCount   = prjGantt.filter(p2 => p2.p < 30).length;
@@ -1331,13 +1353,14 @@ class Component extends DCLogic {
     );
 
     // KPI Summary bar data
-    const totalPrgAll = 19;
-    const finishAll   = 8;
-    const wipAll      = 8;
-    const waitAll     = 3;
-    const pipelinePct = 61;
-    const readyRate   = 88;
-    const notReadyRate= 12;
+    const _kpiSrc = _savedInhouse || ((_savedProjects && _savedProjects.length) ? _savedProjects.map(p=>({ status:p.status==='on-track'?'ON-PLAN':p.status==='delayed'?'DELAYED':p.status==='at-risk'?'ON-HOLD':'ON-PLAN', progress:p.progress||0 })) : null);
+    const totalPrgAll = _kpiSrc ? _kpiSrc.length : 19;
+    const finishAll   = _kpiSrc ? _kpiSrc.filter(p=>p.status==='COMPLETED'||(p.progress||0)>=85).length : 8;
+    const wipAll      = _kpiSrc ? _kpiSrc.filter(p=>p.status==='ON-PLAN'&&(p.progress||0)<85).length : 8;
+    const waitAll     = _kpiSrc ? _kpiSrc.filter(p=>p.status==='NOT STARTED').length : 3;
+    const pipelinePct = (_kpiSrc && _kpiSrc.length) ? Math.round(_kpiSrc.reduce((s,p)=>s+(p.progress||0),0)/_kpiSrc.length) : 61;
+    const readyRate   = (_kpiSrc && _kpiSrc.length) ? Math.round(_kpiSrc.filter(p=>p.status!=='DELAYED'&&p.status!=='ON-HOLD').length/_kpiSrc.length*100) : 88;
+    const notReadyRate= 100 - readyRate;
     const totalBudgetM= tBg;
     const budgetUsedPct = Math.round((tSp/tBg)*100);
 
