@@ -530,7 +530,8 @@ class Component extends DCLogic {
       { n: 'IT Asset Refresh',                p: 85, st: 'on-track', due: 'Jul 2026', ld: 'N. Sombat'      },
     ];
     const prj = _prjBase.map((p2, i) => Object.assign({}, p2, { p: M.prog(p2.p, i) }));
-    const chg = [
+    const _sdCR = this._savedData && this._savedData.changeRequests;
+    const chg = (_sdCR && _sdCR.length) ? _sdCR.map(r=>({ id:r.id||r.crId||'CHG-???', t:r.title||r.name||r.t||'', ty:r.type||r.ty||'Normal', st:r.status||r.st||'Scheduled', d:r.date||r.d||'' })) : [
       { id: 'CHG-0292', t: 'Firewall rule set update',       ty: 'Emergency', st: 'Completed', d: 'Jul 24' },
       { id: 'CHG-0291', t: 'Core switch firmware upgrade',   ty: 'Standard',  st: 'Completed', d: 'Jul 22' },
       { id: 'CHG-0289', t: 'ERP patch deployment v12.4',     ty: 'Normal',    st: 'Completed', d: 'Jul 18' },
@@ -1869,12 +1870,22 @@ class Component extends DCLogic {
       { lbl: 'Firewall Policy Review',  sub: 'Review completed',        v: 'Done',    ic: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', c: '#10b981' },
       { lbl: 'User Access Review',      sub: 'Review completed',        v: 'Done',    ic: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0', c: '#10b981' },
     ];
-    const bizServices = [
-      { n: 'SAP ERP',        ic: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z', c: '#0070f3' },
-      { n: 'CRM',            ic: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0', c: '#00a1e0' },
-      { n: 'Microsoft 365',  ic: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z', c: '#d83b01' },
-      { n: 'IoT / Production',ic: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18', c: '#f97316' },
-      { n: 'HR System',      ic: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', c: '#8b5cf6' },
+    const _sdBizSvcs = this._savedData && this._savedData.bizServices;
+    const _bizColors = ['#0070f3','#00a1e0','#d83b01','#f97316','#8b5cf6','#10b981','#e11d48','#0ea5e9'];
+    const _bizDefaultIc = 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18';
+    const bizServices = (_sdBizSvcs && _sdBizSvcs.length) ? _sdBizSvcs.map((s,i)=>({
+      n: s.name||s.n||'Service',
+      availability: s.availability,
+      status: s.status,
+      impact: s.impact,
+      ic: s.ic || _bizDefaultIc,
+      c: _bizColors[i % _bizColors.length]
+    })) : [
+      { n: 'SAP ERP',         ic: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z', c: '#0070f3', availability:100, status:'Normal', impact:'High' },
+      { n: 'CRM',             ic: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0', c: '#00a1e0', availability:100, status:'Normal', impact:'High' },
+      { n: 'Microsoft 365',   ic: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z', c: '#d83b01', availability:100, status:'Normal', impact:'High' },
+      { n: 'IoT / Production', ic: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18', c: '#f97316', availability:99.9, status:'Normal', impact:'Medium' },
+      { n: 'HR System',       ic: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', c: '#8b5cf6', availability:100, status:'Normal', impact:'Medium' },
     ];
     const topRisks = [
       { r: 'Phishing / Spam Attempts',  st: 'ต่ำ (Low)', imp: 'No Impact' },
@@ -2567,14 +2578,31 @@ class Component extends DCLogic {
 
 
     // ── PROJECTS ─────────────────────────────────────────────────
-    const prjDetail = [
+    const _stMap = { 'on-track':'ON-PLAN','at-risk':'ON-HOLD','delayed':'DELAYED','completed':'COMPLETED','on-hold':'ON-HOLD','not-started':'NOT STARTED' };
+    const _prjColors = ['#2563eb','#f97316','#10b981','#0ea5e9','#8b5cf6','#ef4444','#d97706','#84cc16'];
+    const _prjIcons = ['M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2','M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7','M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944','M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999','M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9','M13 10V3L4 14h7v7l9-11h-7z','M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18'];
+    const prjDetail = (_savedProjects && _savedProjects.length) ? _savedProjects.map((p,i)=>({
+      n: p.name,
+      shortN: (p.name||'').toUpperCase().replace(/(.{8})/g,'$1\n').trim(),
+      type: p.type||'Other',
+      c: _prjColors[i%_prjColors.length],
+      ic: _prjIcons[i%_prjIcons.length],
+      st: _stMap[(p.status||'on-track').toLowerCase()]||'ON-PLAN',
+      p: p.progress||0,
+      stSub: p.note||'',
+      details: p.details||[],
+      conc: _stMap[(p.status||'on-track').toLowerCase()]||'ON-PLAN',
+      concNote: p.note||'',
+      next: p.next||p.due||''
+    })) : [
       { n: 'Network Infrastructure Upgrade', shortN: 'NETWORK\nINFRA UPGRADE', type: 'Infrastructure', c: '#2563eb', ic: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01', st: 'ON-PLAN', p: 75, stSub: 'ดำเนินการตามแผน', details: ['Core switch firmware upgraded (Jul 22)', 'WAN link redundancy testing complete', 'Fiber routing to Plant B in progress', 'Phase 2: Data center cabling pending'], conc: 'ON-PLAN', concNote: 'งานเป็นไปตามแผน\nพร้อมเข้าสู่ Phase 2', next: 'เริ่ม Phase 2 Data Center\nCabling และ Testing' },
       { n: 'ERP Migration Phase 2',          shortN: 'ERP\nMIGRATION PH.2', type: 'ERP/App',        c: '#f97316', ic: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4', st: 'ON-HOLD', p: 40, stSub: 'รอการพิจารณา/ตัดสินใจ', details: ['Data migration script v1 complete', 'UAT session 1 — 23 issues found', 'Business sign-off pending (Finance)', 'Go-live postponed to Oct 2026'], conc: 'ON-HOLD', concNote: 'รอ Business sign-off\nก่อนดำเนินการต่อ', next: 'นัด Steering Committee\nทบทวนและอนุมัติ Go-live' },
       { n: 'Security Awareness Program',     shortN: 'SECURITY\nAWARENESS', type: 'Security',       c: '#10b981', ic: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', st: 'ON-PLAN', p: 90, stSub: 'ดำเนินการตามแผน', details: ['Training module 1-4 delivered (312 staff)', 'Phishing simulation — 94% detection rate', 'Security policy v3 published Jul 2026', 'Final assessment scheduled Aug 2026'], conc: 'ON-PLAN', concNote: 'ใกล้เสร็จสมบูรณ์\nผลลัพธ์เกินเป้าหมาย', next: 'Final Assessment และ\nออก Certificate ผู้เข้าร่วม' },
       { n: 'Cloud Migration Pilot',          shortN: 'CLOUD\nMIGRATION PILOT', type: 'Cloud',       c: '#0ea5e9', ic: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z', st: 'ON-PLAN', p: 25, stSub: 'ดำเนินการตามแผน', details: ['Cloud vendor selected (Azure)', 'Pilot scope: 3 non-critical workloads', 'Network connectivity provisioned', 'Security baseline assessment ongoing'], conc: 'ON-PLAN', concNote: 'Pilot ดำเนินไปได้ดี\nพร้อม expand scope', next: 'เริ่ม Workload Migration\nรอบ 1 (Non-critical)' },
       { n: 'DR/BC Plan Update',              shortN: 'DR/BC\nPLAN UPDATE',    type: 'Continuity',   c: '#8b5cf6', ic: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', st: 'ON-PLAN', p: 60, stSub: 'ดำเนินการตามแผน', details: ['BIA (Business Impact Analysis) complete', 'RTO/RPO targets approved by management', 'DR runbook v2 drafted and reviewed', 'Tabletop exercise planned Sep 2026'], conc: 'ON-PLAN', concNote: 'เอกสาร DR/BC ครบถ้วน\nพร้อม Testing phase', next: 'จัด Tabletop Exercise\nและ DR Drill กับทุก BU' },
       { n: 'Fiber Expansion – Plant B',      shortN: 'FIBER EXP.\nPLANT B',       type: 'Infra',    c: '#ef4444', ic: 'M13 10V3L4 14h7v7l9-11h-7z', st: 'DELAYED', p: 55, stSub: 'ล่าช้ากว่าแผน', details: ['Trench excavation 55% complete', 'Contractor delayed — material shortage', 'Original deadline Jul 2026 missed', 'New target date: Aug 15, 2026'], conc: 'DELAYED', concNote: 'ต้องเร่งรัด Contractor\nและทบทวนแผนงาน', next: 'ประชุม Contractor Review\nและ Re-baseline แผน' },
-      { n: 'IT Asset Refresh',               shortN: 'IT ASSET\nREFRESH',         type: 'Asset',    c: '#10b981', ic: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18', st: 'COMPLETED', p: 85, stSub: 'เสร็จสมบูรณ์', details: ['187 endpoint devices refreshed', 'Windows 11 deployment complete', 'Asset database updated in CMDB', 'Warranty registration complete'], conc: 'COMPLETED', concNote: 'โครงการสำเร็จตามเป้า\nพร้อม Handover', next: 'Handover Documentation\nและ Close Project' },
+      { n: 'IT Asset Refresh',               shortN: 'IT ASSET\nREFRESH',         type: 'Asset',    c: '#10b981', ic: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18', st: 'COMPLETED', p: 85, stSub: 'เสร็จสมบูรณ์', details: ['187 endpoint devices refreshed','Windows 11 deployment complete','Asset database updated in CMDB','Warranty registration complete'], conc: 'COMPLETED', concNote: 'โครงการสำเร็จตามเป้า\nพร้อม Handover', next: 'Handover Documentation\nและ Close Project' },
+    ]; 0 01-2-2V9m0 0h18', st: 'COMPLETED', p: 85, stSub: 'เสร็จสมบูรณ์', details: ['187 endpoint devices refreshed', 'Windows 11 deployment complete', 'Asset database updated in CMDB', 'Warranty registration complete'], conc: 'COMPLETED', concNote: 'โครงการสำเร็จตามเป้า\nพร้อม Handover', next: 'Handover Documentation\nและ Close Project' },
     ];
     const stCfg2 = {
       'COMPLETED':   { c: '#10b981', bg: '#f0fdf4', ic: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',   lbl: 'ดำเนินการเสร็จสิ้น' },
