@@ -305,7 +305,7 @@ class Component extends DCLogic {
   }
 
   thCell(txt) { return this.e('div', { style: { fontSize: 10.5, fontWeight: 600, color: '#9ca3af', padding: '10px 12px', background: 'transparent', borderBottom: '1px solid #f3f4f6', textTransform: 'uppercase', letterSpacing: '.07em' } }, txt); }
-  tdCell(content) { return this.e('div', { style: { padding: '13px 12px', display: 'flex', alignItems: 'center', minHeight: 60 } }, content); }
+  tdCell(content) { return this.e('div', { style: { padding: '8px 10px', display: 'flex', alignItems: 'center', minHeight: 44 } }, content); }
 
   updateProject(idx, field, val) {
     const projects = this.state.projects.map((p, i) => i === idx ? Object.assign({}, p, { [field]: val }) : p);
@@ -828,7 +828,7 @@ class Component extends DCLogic {
             // Trigger button
             e('button', {
               onClick:(ev)=>{ ev.stopPropagation(); this.setState({ duePicker: this.state.duePicker===idx ? null : idx }); },
-              style:{ display:'flex', alignItems:'center', gap:6, background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:'5px 10px', cursor:'pointer', fontSize:12, color:'#374151', fontFamily:"'72','Inter','Kanit',sans-serif", fontWeight:500 }
+              style:{ display:'flex', alignItems:'center', gap:6, background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:'5px 10px', cursor:'pointer', fontSize:12, color:'#374151', fontFamily:"'72','Inter','Kanit',sans-serif", fontWeight:500, whiteSpace:'nowrap' }
             },
               e('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'})),
               p.due || 'Select date'
@@ -869,13 +869,12 @@ class Component extends DCLogic {
               )
             ) : null
           )),
-          // Milestones
-          this.tdCell(e('div',{style:{display:'flex',flexDirection:'row',alignItems:'center',gap:4,flexWrap:'wrap'}},
-            e('input',{type:'text',value:p.milestones||'',onChange:(ev)=>this.updateProject(idx,'milestones',ev.target.value),placeholder:'Jun,Sep',style:{fontSize:12,color:'#374151',border:'1px solid #e5e7eb',borderRadius:8,padding:'4px 7px',background:'#f8fafc',outline:'none',width:72,fontFamily:"'72','Inter','Kanit',sans-serif"}}),
-            parseMilestones(p.milestones).length > 0 ? e('span',{style:{color:'#d1d5db',fontSize:12,margin:'0 2px'}},'|') : null,
-            e('div',{style:{display:'flex',gap:3,flexWrap:'wrap'}},
+          this.tdCell(e('div',{style:{display:'flex',flexDirection:'row',alignItems:'center',gap:4,flexWrap:'nowrap',overflow:'hidden'}},
+            e('input',{type:'text',value:p.milestones||'',onChange:(ev)=>this.updateProject(idx,'milestones',ev.target.value),placeholder:'Jun,Sep',style:{fontSize:12,color:'#374151',border:'1px solid #e5e7eb',borderRadius:8,padding:'4px 7px',background:'#f8fafc',outline:'none',width:68,flexShrink:0,fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+            parseMilestones(p.milestones).length > 0 ? e('span',{style:{color:'#d1d5db',fontSize:12,margin:'0 1px',flexShrink:0}},'|') : null,
+            e('div',{style:{display:'flex',gap:3,flexWrap:'nowrap',overflow:'hidden'}},
               ...parseMilestones(p.milestones).map(m=>
-                e('div',{key:m,style:{fontSize:10,fontWeight:700,color:'#fff',background:GANTT_COLORS[p.type]||'#94a3b8',borderRadius:10,padding:'2px 6px'}},DUE_MONTHS[m-1])
+                e('div',{key:m,style:{fontSize:10,fontWeight:700,color:'#fff',background:GANTT_COLORS[p.type]||'#94a3b8',borderRadius:10,padding:'2px 6px',flexShrink:0}},DUE_MONTHS[m-1])
               )
             )
           )),
