@@ -64,7 +64,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { tab: 'overview', tip: null, sidebarOpen: false, filterMonth: 7, filterYear: 2026, filterOpen: false, showAppMenu: false,
+  state = { tab: 'overview', tip: null, sidebarOpen: false, filterMonth: new Date().getMonth() + 1, filterYear: new Date().getFullYear(), filterOpen: false, showAppMenu: false,
     session: null, user: null, userRole: null, userName: '',
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     supabaseData: null, loadingData: false };
@@ -346,7 +346,7 @@ class Component extends DCLogic {
     const M = this.getPeriodMods(filterMonth, filterYear);
     const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const MONTH_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const CUR_YEAR = 2026; const CUR_MONTH = 7;
+    const CUR_YEAR = new Date().getFullYear(); const CUR_MONTH = new Date().getMonth() + 1;
     const years = [CUR_YEAR, CUR_YEAR-1, CUR_YEAR-2, CUR_YEAR-3];
 
     const isFuture = (m, y) => y > CUR_YEAR || (y === CUR_YEAR && m > CUR_MONTH);
