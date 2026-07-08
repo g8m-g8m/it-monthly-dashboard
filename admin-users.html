@@ -213,9 +213,9 @@
     <div id="invite-error" class="modal-error"></div>
     <div id="invite-success" style="background:#e8f9f0;border:1px solid #a3e6c0;border-radius:8px;padding:10px 14px;font-size:12px;color:#0a6640;margin-bottom:16px;display:none"></div>
     <div id="svc-key-section" style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#5d4037">
-      <div style="font-weight:700;margin-bottom:4px">⚠️ ต้องใช้ Service Role Key (ครั้งแรกเท่านั้น)</div>
-      <div style="margin-bottom:8px;font-size:11px">Supabase Dashboard → Settings → API → Secret keys → sb_secret_...</div>
-      <input type="password" id="svc-key-input" placeholder="sb_secret_..." style="width:100%;padding:8px 10px;border:1px solid #ffe082;border-radius:6px;font-size:12px;font-family:monospace;outline:none;background:#fff">
+      <div style="font-weight:700;margin-bottom:4px">⚠️ ต้องใช้ Legacy service_role key</div>
+      <div style="margin-bottom:8px;font-size:11px">Supabase Dashboard → Settings → API → Tab: <strong>"Legacy anon, service_role API keys"</strong> → copy <strong>service_role</strong> key (format: eyJh...)</div>
+      <input type="password" id="svc-key-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="width:100%;padding:8px 10px;border:1px solid #ffe082;border-radius:6px;font-size:11px;font-family:monospace;outline:none;background:#fff">
       <button onclick="saveSvcKey()" style="margin-top:8px;padding:5px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">บันทึก Key</button>
     </div>
     <div class="field"><label>Full Name</label><input type="text" id="inv-name" placeholder="ชื่อ-นามสกุล"></div>
