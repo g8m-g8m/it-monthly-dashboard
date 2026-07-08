@@ -208,10 +208,16 @@
 <!-- Invite Modal -->
 <div class="overlay" id="invite-modal">
   <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-title">Invite New User</div>
-    <div class="modal-sub">ส่ง invitation email ผ่าน Supabase Auth</div>
+    <div class="modal-title">สร้าง User ใหม่</div>
+    <div class="modal-sub">สร้างผู้ใช้ใหม่ใน Supabase Auth โดยตรง</div>
     <div id="invite-error" class="modal-error"></div>
     <div id="invite-success" style="background:#e8f9f0;border:1px solid #a3e6c0;border-radius:8px;padding:10px 14px;font-size:12px;color:#0a6640;margin-bottom:16px;display:none"></div>
+    <div id="svc-key-section" style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#5d4037">
+      <div style="font-weight:700;margin-bottom:4px">⚠️ ต้องใช้ Service Role Key (ครั้งแรกเท่านั้น)</div>
+      <div style="margin-bottom:8px;font-size:11px">Supabase Dashboard → Settings → API → Secret keys → sb_secret_...</div>
+      <input type="password" id="svc-key-input" placeholder="sb_secret_..." style="width:100%;padding:8px 10px;border:1px solid #ffe082;border-radius:6px;font-size:12px;font-family:monospace;outline:none;background:#fff">
+      <button onclick="saveSvcKey()" style="margin-top:8px;padding:5px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">บันทึก Key</button>
+    </div>
     <div class="field"><label>Full Name</label><input type="text" id="inv-name" placeholder="ชื่อ-นามสกุล"></div>
     <div class="field"><label>Email</label><input type="email" id="inv-email" placeholder="user@pacificpipe.co.th"></div>
     <div class="field">
@@ -222,7 +228,7 @@
         <option value="admin">Admin — จัดการระบบได้ทั้งหมด</option>
       </select>
     </div>
-    <div class="field"><label>Temporary Password</label><input type="text" id="inv-pass" placeholder="อย่างน้อย 8 ตัวอักษร" value="TempPass@2025"></div>
+    <div class="field"><label>Temporary Password</label><input type="text" id="inv-pass" placeholder="อย่างน้อย 8 ตัวอักษร" value="TempPass@2026"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('invite-modal')">Cancel</button>
       <button class="btn btn-primary" id="inv-btn" onclick="inviteUser()">Create User</button>
@@ -259,7 +265,7 @@
     <div class="modal-title">Remove User</div>
     <div class="modal-sub" id="delete-modal-sub">ยืนยันการลบผู้ใช้งานออกจากระบบ</div>
     <div style="background:#fff0f0;border:1px solid #ffd0d0;border-radius:10px;padding:14px;font-size:13px;color:#c9190b;margin-bottom:8px">
-      ⚠️ การลบ profile จะทำให้ผู้ใช้ไม่สามารถเข้าสู่ระบบได้ แต่ไม่ได้ลบ Supabase Auth account
+      ⚠️ การลบจะลบ account ออกจากทั้ง profiles และ Supabase Auth — ผู้ใช้จะไม่สามารถเข้าสู่ระบบได้อีก
     </div>
     <input type="hidden" id="delete-uid">
     <div class="modal-actions">
@@ -361,51 +367,105 @@ async function loadUsers() {
   </table>`;
 }
 
+function saveSvcKey() {
+  const k = document.getElementById('svc-key-input').value.trim();
+  if (!k) return;
+  localStorage.setItem('sb_svc_key', k);
+  document.getElementById('svc-key-section').style.display = 'none';
+  const suc = document.getElementById('invite-success');
+  suc.textContent = '✓ Service Role Key บันทึกแล้ว';
+  suc.style.display = 'block';
+  setTimeout(() => { suc.style.display = 'none'; }, 2000);
+}
+
 function openInviteModal() {
   document.getElementById('invite-error').style.display = 'none';
   document.getElementById('invite-success').style.display = 'none';
   document.getElementById('inv-name').value = '';
   document.getElementById('inv-email').value = '';
   document.getElementById('inv-role').value = 'viewer';
+  // Show svc key section only if not saved
+  const hasSvcKey = !!localStorage.getItem('sb_svc_key');
+  document.getElementById('svc-key-section').style.display = hasSvcKey ? 'none' : 'block';
   document.getElementById('invite-modal').classList.add('open');
 }
 
 async function inviteUser() {
-  const name = document.getElementById('inv-name').value.trim();
-  const email = document.getElementById('inv-email').value.trim();
-  const role = document.getElementById('inv-role').value;
-  const pass = document.getElementById('inv-pass').value;
-  const errEl = document.getElementById('invite-error');
-  const sucEl = document.getElementById('invite-success');
-  const btn = document.getElementById('inv-btn');
+  const name    = document.getElementById('inv-name').value.trim();
+  const email   = document.getElementById('inv-email').value.trim();
+  const role    = document.getElementById('inv-role').value;
+  const pass    = document.getElementById('inv-pass').value;
+  const svcKey  = localStorage.getItem('sb_svc_key') || document.getElementById('svc-key-input').value.trim();
+  const errEl   = document.getElementById('invite-error');
+  const sucEl   = document.getElementById('invite-success');
+  const btn     = document.getElementById('inv-btn');
 
   errEl.style.display = 'none'; sucEl.style.display = 'none';
-  if (!email || !pass) { errEl.textContent = 'กรุณากรอก Email และ Password'; errEl.style.display = 'block'; return; }
-
-  btn.textContent = 'Creating…'; btn.disabled = true;
-
-  // Create user via Supabase Admin API (requires service_role key — done via edge function or direct insert)
-  // Fallback: upsert profile directly after auth signup
-  const { data, error } = await sb.auth.admin?.createUser({
-    email, password: pass,
-    user_metadata: { full_name: name },
-    email_confirm: true
-  }).catch(() => ({ data: null, error: { message: 'Admin API not available from client' } })) || { data: null, error: null };
-
-  if (error || !data?.user) {
-    // Fallback: insert profile row only (user must sign up themselves)
-    sucEl.innerHTML = `✓ สร้าง profile สำเร็จ กรุณาแจ้งให้ <strong>${email}</strong> สมัคร account ใน Supabase Auth แล้วจะได้ role <strong>${role}</strong> อัตโนมัติ`;
-    sucEl.style.display = 'block';
-    btn.textContent = 'Create User'; btn.disabled = false;
+  if (!email) { errEl.textContent = 'กรุณากรอก Email'; errEl.style.display = 'block'; return; }
+  if (!pass || pass.length < 8) { errEl.textContent = 'Password ต้องมีอย่างน้อย 8 ตัวอักษร'; errEl.style.display = 'block'; return; }
+  if (!svcKey) {
+    errEl.textContent = 'กรุณาใส่ Service Role Key ก่อน';
+    errEl.style.display = 'block';
+    document.getElementById('svc-key-section').style.display = 'block';
     return;
   }
 
-  // Update profile role
-  await sb.from('profiles').upsert({ id: data.user.id, email, full_name: name, role });
-  sucEl.innerHTML = `✓ สร้างผู้ใช้ <strong>${name || email}</strong> (${role}) สำเร็จแล้ว`;
-  sucEl.style.display = 'block';
+  btn.textContent = 'Creating…'; btn.disabled = true;
+
+  try {
+    // Get Supabase URL
+    const sbUrl = (sb.supabaseUrl || '').replace(/\/$/, '');
+    if (!sbUrl) throw new Error('ไม่พบ Supabase URL — ตรวจสอบ supabase-config.js');
+
+    // Call Admin REST API
+    const resp = await fetch(sbUrl + '/auth/v1/admin/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + svcKey,
+        'apikey': svcKey
+      },
+      body: JSON.stringify({
+        email,
+        password: pass,
+        email_confirm: true,
+        user_metadata: { full_name: name }
+      })
+    });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result.msg || result.message || result.error_description || JSON.stringify(result));
+
+    const userId = result.id;
+    // Upsert profile with role
+    const { error: profErr } = await sb.from('profiles').upsert({
+      id: userId, email, full_name: name, role,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    if (profErr) throw new Error('Auth OK แต่บันทึก profile ไม่สำเร็จ: ' + profErr.message);
+
+    // Send password reset email so user can set their own password
+    try {
+      await fetch(sbUrl + '/auth/v1/recover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': sb.supabaseKey || svcKey },
+        body: JSON.stringify({ email })
+      });
+    } catch(_) {}
+
+    // Save key for session
+    localStorage.setItem('sb_svc_key', svcKey);
+    document.getElementById('svc-key-section').style.display = 'none';
+
+    sucEl.innerHTML = '✓ สร้างผู้ใช้ <strong>' + (name||email) + '</strong> (Role: ' + role + ') สำเร็จ<br>'
+      + '<small style="color:#064e3b">📧 ส่ง email ตั้ง password ไปที่ ' + email + ' แล้ว</small>';
+    sucEl.style.display = 'block';
+    await loadUsers();
+  } catch(err) {
+    errEl.textContent = '❌ ' + err.message;
+    errEl.style.display = 'block';
+  }
   btn.textContent = 'Create User'; btn.disabled = false;
-  await loadUsers();
 }
 
 function openEditModal(profile) {
@@ -444,7 +504,20 @@ function openDeleteModal(id, name) {
 async function confirmDelete() {
   const id = document.getElementById('delete-uid').value;
   const btn = document.getElementById('del-btn');
+  const svcKey = localStorage.getItem('sb_svc_key');
   btn.textContent = 'Removing…'; btn.disabled = true;
+
+  // Delete from Supabase Auth (requires service_role key)
+  if (svcKey) {
+    try {
+      const sbUrl = (sb.supabaseUrl || '').replace(/\/$/, '');
+      await fetch(sbUrl + '/auth/v1/admin/users/' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + svcKey, 'apikey': svcKey }
+      });
+    } catch(_) {}
+  }
+  // Delete profile row
   await sb.from('profiles').delete().eq('id', id);
   btn.textContent = 'Remove User'; btn.disabled = false;
   closeModal('delete-modal');
