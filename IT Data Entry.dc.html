@@ -77,7 +77,7 @@
   <div style="background:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-top:1px solid #e5e7eb">
     <div style="font-size:12px;color:#94a3b8">{{ saveStatus }}</div>
     <div style="display:flex;gap:8px;align-items:center">
-      {{ resetBtn }}
+      {{ loadLatestBtn }}
       {{ submitBtn }}
     </div>
   </div>
@@ -340,6 +340,8 @@ class Component extends DCLogic {
     const DATA_KEYS = ['period','projects','inhouse','budget','capexProjects','maData','security','vulns','securityEvents','network','networkKpis','networkKpiDefs','bizServices','statusKpis','uptime','uptimeItems','stabilityKpiDefs','changeRequests'];
     const changed = DATA_KEYS.some(k => prevState[k] !== this.state[k]);
     if (!changed) return;
+    // Don't auto-save when only the period changed (switching periods — we're loading, not editing)
+    if (prevState.period !== this.state.period) return;
     if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
     this._autoSaveTimer = setTimeout(() => {
       try {
@@ -431,6 +433,36 @@ class Component extends DCLogic {
     this._subscribeRealtime();
   }
 
+  async _loadLatestFromDB() {
+    if (!this._sb || !this.state.session) { this.setState({ saveStatus: '⚠️ ยังไม่ได้เชื่อมต่อ' }); return; }
+    this.setState({ saveStatus: '⏳ กำลังค้นหาข้อมูลล่าสุด…' });
+    try {
+      const { data: rows } = await this._sb.from('it_reports')
+        .select('period_year,period_month,data')
+        .order('period_year',{ascending:false}).order('period_month',{ascending:false}).limit(1);
+      if (rows && rows[0]) {
+        const period = { year: rows[0].period_year, month: rows[0].period_month };
+        try { localStorage.setItem('it_active_period', JSON.stringify(period)); } catch(_) {}
+        const d = rows[0].data;
+        if (d) {
+          const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
+          const usedTypes = (d.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
+          const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
+          this.setState({ ...d, period, customTypes: mergedCT, noDataForPeriod: false, saveStatus: '✓ โหลดเดือนล่าสุด ' + period.month + '/' + period.year });
+        } else {
+          this.setState({ period, noDataForPeriod: false, saveStatus: '✓ Period: ' + period.month + '/' + period.year });
+        }
+        setTimeout(() => this.setState({ saveStatus: '' }), 2500);
+      } else {
+        this.setState({ saveStatus: 'ℹ️ ยังไม่มีข้อมูลใน DB' });
+        setTimeout(() => this.setState({ saveStatus: '' }), 2500);
+      }
+    } catch(err) {
+      this.setState({ saveStatus: '❌ Error: ' + err.message });
+      setTimeout(() => this.setState({ saveStatus: '' }), 3000);
+    }
+  }
+
   async _loadFromSupabase() {
     if (!this._sb || !this.state.session) return;
     // If a local draft already exists for this period, don't overwrite it with DB data
@@ -456,18 +488,24 @@ class Component extends DCLogic {
 
   _loadPeriodData(overridePeriod) {
     const period = overridePeriod || this.state.period;
-    // Try localStorage first
+    // Try localStorage first — validate period matches to avoid loading stale data
     try {
       const key = 'it_report_' + period.year + '_' + String(period.month).padStart(2,'0');
       const raw = localStorage.getItem(key);
       if (raw) {
         const saved = JSON.parse(raw);
-        const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
-        const usedTypes = (saved.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
-        const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
-        this.setState({ ...saved, period, customTypes: mergedCT, noDataForPeriod: false, saveStatus: '📂 โหลดข้อมูล ' + period.month + '/' + period.year + ' จาก draft' });
-        setTimeout(() => this.setState({ saveStatus: '' }), 2000);
-        return;
+        // Guard: only load if period in saved data matches the requested period
+        const sp = saved.period;
+        if (sp && (sp.month !== period.month || sp.year !== period.year)) {
+          localStorage.removeItem(key); // remove stale/mismatched entry
+        } else {
+          const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
+          const usedTypes = (saved.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
+          const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
+          this.setState({ ...saved, period, customTypes: mergedCT, noDataForPeriod: false, saveStatus: '📂 โหลดข้อมูล ' + period.month + '/' + period.year + ' จาก draft' });
+          setTimeout(() => this.setState({ saveStatus: '' }), 2000);
+          return;
+        }
       }
     } catch(_) {}
     // Try Supabase
@@ -2509,40 +2547,7 @@ class Component extends DCLogic {
     }, e('svg',{width:15,height:15,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:icon})));
     const saveBtn = iconBtn('M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4', 'Save Draft', () => this.handleSave(), '#e0f2fe', '#0369a1');
 
-    const resetBtn = iconBtn('M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', 'Reset to defaults', () => {
-        if (!window.confirm('Reset all data to default values?')) return;
-        this.setState({
-          saveStatus: '↺ Reset to defaults',
-          projects: [
-            { id: 1, name: 'Network Infrastructure Upgrade', type: 'Infra',      lead: 'K. Wattana',     status: 'on-track', progress: 75, due: 'Sep 2026' },
-            { id: 2, name: 'ERP Migration Phase 2',          type: 'ERP/App',    lead: 'P. Suksan',      status: 'at-risk',  progress: 40, due: 'Oct 2026' },
-            { id: 3, name: 'Security Awareness Program',     type: 'Security',   lead: 'S. Charoenporn', status: 'on-track', progress: 90, due: 'Aug 2026' },
-            { id: 4, name: 'Cloud Migration Pilot',          type: 'Cloud',      lead: 'T. Boonmee',     status: 'on-track', progress: 25, due: 'Dec 2026' },
-            { id: 5, name: 'DR/BC Plan Update',              type: 'Continuity', lead: 'A. Phongphan',   status: 'on-track', progress: 60, due: 'Sep 2026' },
-            { id: 6, name: 'Fiber Expansion – Plant B',      type: 'Infra',      lead: 'C. Nirattisai',  status: 'delayed',  progress: 55, due: 'Aug 2026' },
-            { id: 7, name: 'IT Asset Refresh',               type: 'Asset',      lead: 'N. Sombat',      status: 'on-track', progress: 85, due: 'Jul 2026' },
-          ],
-          budget: [
-            { id: 1, category: 'Infrastructure',        type: 'CapEx', budget: 5.8, actual: 4.2, monthBudget: 0.48, monthActual: 0.38 },
-            { id: 2, category: 'Software Licenses',     type: 'CapEx', budget: 4.5, actual: 3.1, monthBudget: 0.38, monthActual: 0.25 },
-            { id: 3, category: 'Security',              type: 'OpEx',  budget: 2.4, actual: 1.8, monthBudget: 0.20, monthActual: 0.20 },
-            { id: 4, category: 'Support & Maintenance', type: 'OpEx',  budget: 3.2, actual: 2.1, monthBudget: 0.27, monthActual: 0.31 },
-            { id: 5, category: 'Projects',              type: 'OpEx',  budget: 2.3, actual: 1.2, monthBudget: 0.19, monthActual: 0.06 },
-          ],
-          security: { criticalIncidents: 0, allIncidents: 9, endpointProtection: 100, patchOS: 100, patchApps: 100, criticalVulns: 0, highVulns: 0, phishingBlocked: 2061 },
-          vulns: { medium: 12, low: 28, informational: 45 },
-          network: [
-            { plant: 'PL',  latency: 18, packetLoss: 0.10 }, { plant: 'PP',  latency: 22, packetLoss: 0.15 },
-            { plant: 'PM1', latency: 24, packetLoss: 0.20 }, { plant: 'PM2', latency: 20, packetLoss: 0.12 },
-            { plant: 'PM3', latency: 26, packetLoss: 0.18 }, { plant: 'PB',  latency: 31, packetLoss: 0.28 },
-            { plant: 'PK',  latency: 19, packetLoss: 0.11 },
-          ],
-          uptime: { datacenter: 100, database: 100, networkLink: 100, internet: 100, security: 100 },
-          networkKpis: { firewallBlocks: 4872, activeSessions: 1243, dnsQueriesPerSec: 342, bandwidthUtil: 73, activeConnections: 856 },
-          statusKpis: { availabilityPct: 99.5, capacityUtil: 72, p1: 0, p2: 0, p3: 0, wanLatency: 24, packetLoss: 0.2, openVulns: 43 },
-        });
-        setTimeout(() => this.setState({ saveStatus: '' }), 3000);
-      }, '#f1f5f9', '#64748b');
+    const loadLatestBtn = iconBtn('M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', 'Load Latest', () => this._loadLatestFromDB(), '#f0fdf4', '#166534');
     // ── Auth UI ───────────────────────────────────────────────────
     const { session, userRole, userName, loginEmail, loginPassword, loginLoading, loginError, realtimeNotice, showHistory, historyVersions } = this.state;
 
@@ -2662,7 +2667,7 @@ class Component extends DCLogic {
 
     const clockDisplay = e('div', { style: { fontSize: 12, color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap', letterSpacing: '.01em' } }, this.state.clockStr);
 
-    return { periodBadge, tabNav, formContent, saveBtn, resetBtn, submitBtn, saveStatus: saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report', authOverlay, historyPanel, realtimeBanner, userBadge, appMenuBtn, clockDisplay, addTypeModal, addDeptModal };
+    return { periodBadge, tabNav, formContent, saveBtn, loadLatestBtn, submitBtn, saveStatus: saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report', authOverlay, historyPanel, realtimeBanner, userBadge, appMenuBtn, clockDisplay, addTypeModal, addDeptModal };
   }
 }
 
