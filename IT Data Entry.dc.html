@@ -418,18 +418,29 @@ class Component extends DCLogic {
   async _onSignIn(session) {
     const { data: profile } = await this._sb.from('profiles').select('*').eq('id', session.user.id).single();
     this.setState({ session, user: session.user, userRole: profile?.role || 'viewer', userName: profile?.full_name || session.user.email, loginError: '' });
-    // Read shared period from localStorage first, then fall back to latest DB record
-    let activePeriod = null;
-    try { activePeriod = JSON.parse(localStorage.getItem('it_active_period')); } catch(_) {}
-    if (activePeriod?.month && activePeriod?.year) {
-      this.setState({ period: { month: activePeriod.month, year: activePeriod.year } });
-    } else {
-      const { data: latest } = await this._sb.from('it_reports').select('period_year,period_month').order('period_year',{ascending:false}).order('period_month',{ascending:false}).limit(1);
-      if (latest && latest[0]) {
-        this.setState({ period: { year: latest[0].period_year, month: latest[0].period_month } });
+    // Always load latest period + data from DB on sign-in
+    try {
+      const { data: rows } = await this._sb.from('it_reports')
+        .select('period_year,period_month,data')
+        .order('period_year',{ascending:false}).order('period_month',{ascending:false}).limit(1);
+      if (rows && rows[0]) {
+        const period = { year: rows[0].period_year, month: rows[0].period_month };
+        try { localStorage.setItem('it_active_period', JSON.stringify(period)); } catch(_) {}
+        const d = rows[0].data;
+        if (d) {
+          const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
+          const usedTypes = (d.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
+          const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
+          this.setState({ ...d, period, customTypes: mergedCT, noDataForPeriod: false, saveStatus: '✓ โหลดเดือนล่าสุด ' + period.month + '/' + period.year });
+        } else {
+          this.setState({ period, noDataForPeriod: false });
+        }
+        setTimeout(() => this.setState({ saveStatus: '' }), 2500);
+      } else {
+        this.setState({ saveStatus: 'ℹ️ ยังไม่มีข้อมูลใน DB' });
+        setTimeout(() => this.setState({ saveStatus: '' }), 2500);
       }
-    }
-    await this._loadFromSupabase();
+    } catch(_) {}
     this._subscribeRealtime();
   }
 
