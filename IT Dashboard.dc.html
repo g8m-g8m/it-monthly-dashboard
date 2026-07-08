@@ -27,6 +27,7 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     @keyframes ping { 0% { transform: scale(1); opacity: .6; } 70% { transform: scale(2); opacity: 0; } 100% { transform: scale(2); opacity: 0; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
     h1, h2, h3, b, strong { font-family: '72', 'Kanit', sans-serif; font-weight: 600; }
   </style>
 </helmet>
@@ -97,6 +98,8 @@ class Component extends DCLogic {
     if (this.state.session && (prevState.filterMonth !== this.state.filterMonth || prevState.filterYear !== this.state.filterYear)) {
       // Persist shared period so Data Entry stays in sync
       try { localStorage.setItem('it_active_period', JSON.stringify({ month: this.state.filterMonth, year: this.state.filterYear })); } catch(_) {}
+      // Clear stale data immediately so old month doesn't flash
+      this.setState({ supabaseData: null });
       await this._loadData();
     }
   }
@@ -259,7 +262,15 @@ class Component extends DCLogic {
     try {
       const key = 'it_report_' + (this.state.filterYear||2026) + '_' + String(this.state.filterMonth||7).padStart(2,'0');
       const local = localStorage.getItem(key);
+      // Only use data that belongs to the currently-selected period
       this._savedData = this.state.supabaseData || (local ? JSON.parse(local) : null);
+      // Validate period matches (guard against stale supabaseData)
+      if (this._savedData && this._savedData.period) {
+        const dp = this._savedData.period;
+        if (dp.month !== this.state.filterMonth || dp.year !== this.state.filterYear) {
+          this._savedData = null;
+        }
+      }
     } catch(_) { this._savedData = null; }
 
     // ── Auth overlay ─────────────────────────────────────────────
@@ -3038,7 +3049,22 @@ class Component extends DCLogic {
       headerTitle: titles[tab] || 'Dashboard Overview',
       headerSubtitle,
       periodFilter,
-      mainContent: map[tab] || overviewEl,
+      mainContent: this.state.loadingData
+        ? e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 16 } },
+            e('div', { style: { width: 36, height: 36, border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 0.8s linear infinite' } }),
+            e('div', { style: { fontSize: 14, color: '#94a3b8' } }, 'กำลังโหลดข้อมูล…')
+          )
+        : !this._savedData
+          ? e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 12 } },
+              e('svg', { width: 48, height: 48, viewBox: '0 0 24 24', fill: 'none', stroke: '#cbd5e1', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' },
+                e('path', { d: 'M9 17H5a2 2 0 00-2 2v0a2 2 0 002 2h14a2 2 0 002-2v0a2 2 0 00-2-2h-4' }),
+                e('path', { d: 'M12 3v14' }),
+                e('path', { d: 'M8 7l4-4 4 4' })
+              ),
+              e('div', { style: { fontSize: 16, fontWeight: 600, color: '#64748b' } }, 'ไม่มีข้อมูลสำหรับ ' + MONTH_FULL[filterMonth-1] + ' ' + filterYear),
+              e('div', { style: { fontSize: 13, color: '#94a3b8' } }, 'กรุณากรอกข้อมูลใน Data Entry ก่อน')
+            )
+          : (map[tab] || overviewEl),
       printFn: () => window.print(),
       appMenuBtn: (() => {
         const { showAppMenu } = this.state;
