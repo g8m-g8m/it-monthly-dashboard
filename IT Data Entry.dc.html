@@ -516,12 +516,24 @@ class Component extends DCLogic {
           this.setState({ ...data.data, period, loadingData: false, noDataForPeriod: false, saveStatus: '✓ โหลดข้อมูล ' + period.month + '/' + period.year + ' จาก DB' });
           setTimeout(() => this.setState({ saveStatus: '' }), 2000);
         } else {
-          this.setState({ loadingData: false, noDataForPeriod: true, saveStatus: '' });
+          this.setState({ ...this._getBlankFormState(), period, loadingData: false, noDataForPeriod: true, saveStatus: '' });
         }
       });
     } else {
-      this.setState({ noDataForPeriod: true });
+      this.setState({ ...this._getBlankFormState(), period, noDataForPeriod: true });
     }
+  }
+
+  _getBlankFormState() {
+    return {
+      projects: [], inhouse: [], budget: [], capexProjects: [], changeRequests: [],
+      vulns: { medium: 0, low: 0, informational: 0 },
+      securityEvents: [], bizServices: [], statusKpis: {}, networkKpis: {}, networkKpiDefs: [], uptimeItems: [], stabilityKpiDefs: [],
+      maData: { maSub: [], maDet: [] },
+      security: { criticalIncidents: 0, allIncidents: 0, endpointProtection: 0, patchOS: 0, patchApps: 0, criticalVulns: 0, highVulns: 0, phishingBlocked: 0 },
+      uptime: { datacenter: 0, database: 0, networkLink: 0, internet: 0, security: 0 },
+      network: [],
+    };
   }
 
   _copyPeriodData(fromMonth, fromYear, toPeriod) {
