@@ -499,58 +499,26 @@ class Component extends DCLogic {
 
   _loadPeriodData(overridePeriod) {
     const period = overridePeriod || this.state.period;
-    // Always check DB first (source of truth)
+    // DB only — localStorage drafts are not trusted for period switching
+    // Clear stale localStorage for this period key to prevent future issues
+    try { localStorage.removeItem('it_report_' + period.year + '_' + String(period.month).padStart(2,'0')); } catch(_) {}
     if (this._sb && this.state.session) {
       this.setState({ loadingData: true, noDataForPeriod: false });
       this._sb.from('it_reports').select('data').eq('period_year', period.year).eq('period_month', period.month).single().then(({ data }) => {
         if (data?.data) {
-          // DB has data — load it
           const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
           const usedTypes = (data.data.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
           const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
           this.setState({ ...data.data, period, customTypes: mergedCT, loadingData: false, noDataForPeriod: false, saveStatus: '✓ โหลดข้อมูล ' + period.month + '/' + period.year + ' จาก DB' });
           setTimeout(() => this.setState({ saveStatus: '' }), 2000);
         } else {
-          // No DB data — check for local draft with matching period
-          try {
-            const key = 'it_report_' + period.year + '_' + String(period.month).padStart(2,'0');
-            const raw = localStorage.getItem(key);
-            if (raw) {
-              const saved = JSON.parse(raw);
-              const sp = saved.period;
-              if (sp && sp.month === period.month && sp.year === period.year) {
-                const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
-                const usedTypes = (saved.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
-                const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
-                this.setState({ ...saved, period, customTypes: mergedCT, loadingData: false, noDataForPeriod: false, saveStatus: '📂 draft ' + period.month + '/' + period.year });
-                setTimeout(() => this.setState({ saveStatus: '' }), 2000);
-                return;
-              } else {
-                localStorage.removeItem(key); // remove stale entry
-              }
-            }
-          } catch(_) {}
-          // Truly no data — clear form
+          // No DB data — clear form
           this.setState({ ...this._getBlankFormState(), period, loadingData: false, noDataForPeriod: true, saveStatus: '' });
         }
+      }).catch(() => {
+        this.setState({ ...this._getBlankFormState(), period, loadingData: false, noDataForPeriod: true, saveStatus: '' });
       });
     } else {
-      // No Supabase — try localStorage draft only
-      try {
-        const key = 'it_report_' + period.year + '_' + String(period.month).padStart(2,'0');
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const saved = JSON.parse(raw);
-          const sp = saved.period;
-          if (sp && sp.month === period.month && sp.year === period.year) {
-            const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
-            const usedTypes = (saved.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
-            const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
-            this.setState({ ...saved, period, customTypes: mergedCT, noDataForPeriod: false, saveStatus: '📂 draft' });
-            return;
-          }
-        }
-      } catch(_) {}
       this.setState({ ...this._getBlankFormState(), period, noDataForPeriod: true });
     }
   }
