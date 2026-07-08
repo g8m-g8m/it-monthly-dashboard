@@ -99,7 +99,6 @@ class Component extends DCLogic {
       // Persist shared period so Data Entry stays in sync
       try { localStorage.setItem('it_active_period', JSON.stringify({ month: this.state.filterMonth, year: this.state.filterYear })); } catch(_) {}
       // Clear stale data immediately so old month doesn't flash
-      this.setState({ supabaseData: null });
       await this._loadData();
     }
   }
@@ -125,7 +124,8 @@ class Component extends DCLogic {
 
   async _loadData() {
     if (!this._sb) return;
-    this.setState({ loadingData: true });
+    // Clear old data and set loading atomically in one render
+    this.setState({ loadingData: true, supabaseData: null });
     const { filterMonth, filterYear } = this.state;
     const { data } = await this._sb.from('it_reports').select('data').eq('period_year', filterYear).eq('period_month', filterMonth).single();
     this.setState({ supabaseData: data?.data || null, loadingData: false });
