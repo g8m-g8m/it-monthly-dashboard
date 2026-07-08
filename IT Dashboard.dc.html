@@ -95,12 +95,7 @@ class Component extends DCLogic {
   }
 
   async componentDidUpdate(prevProps, prevState) {
-    if (this.state.session && (prevState.filterMonth !== this.state.filterMonth || prevState.filterYear !== this.state.filterYear)) {
-      // Skip if _onSignIn already loaded data for this period
-      if (this._skipPeriodReload) { this._skipPeriodReload = false; return; }
-      try { localStorage.setItem('it_active_period', JSON.stringify({ month: this.state.filterMonth, year: this.state.filterYear })); } catch(_) {}
-      await this._loadData();
-    }
+    // Period changes are handled directly in the picker onClick — no action needed here
   }
 
   async _onSignIn(session) {
@@ -124,13 +119,12 @@ class Component extends DCLogic {
   }
 
   async _loadData() {
-    if (!this._sb) return;
-    // Sequence counter — only apply result of the latest call
+    if (!this._sb || !this.state.session) return;
     this._loadSeq = (this._loadSeq || 0) + 1;
     const seq = this._loadSeq;
-    this.setState({ loadingData: true, supabaseData: null });
     const fm = this.state.filterMonth;
     const fy = this.state.filterYear;
+    this.setState({ loadingData: true });
     try {
       const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000));
       const query = this._sb.from('it_reports').select('data').eq('period_year', fy).eq('period_month', fm).maybeSingle();
@@ -412,9 +406,9 @@ class Component extends DCLogic {
       },
         // Year selector
         e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 } },
-          e('button', { onClick: () => { const ny = filterYear - 1; if (ny >= CUR_YEAR-3) this.setState({ filterYear: ny, supabaseData: null, loadingData: true }); }, style: { background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#64748b' } }, '‹'),
+          e('button', { onClick: () => { const ny = filterYear - 1; if (ny >= CUR_YEAR-3) { try{localStorage.setItem('it_active_period',JSON.stringify({month:filterMonth,year:ny}));}catch(_){} this.setState({ filterYear: ny, supabaseData: null }); setTimeout(()=>this._loadData(),0); } }, style: { background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#64748b' } }, '‹'),
           e('span', { style: { fontSize: 14, fontWeight: 700, color: '#0f172a' } }, filterYear),
-          e('button', { onClick: () => { const ny = filterYear + 1; if (ny <= CUR_YEAR) this.setState({ filterYear: ny, supabaseData: null, loadingData: true }); }, style: { background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#64748b' } }, '›')
+          e('button', { onClick: () => { const ny = filterYear + 1; if (ny <= CUR_YEAR) { try{localStorage.setItem('it_active_period',JSON.stringify({month:filterMonth,year:ny}));}catch(_){} this.setState({ filterYear: ny, supabaseData: null }); setTimeout(()=>this._loadData(),0); } }, style: { background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#64748b' } }, '›')
         ),
         // Month grid
         e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 } },
@@ -426,7 +420,7 @@ class Component extends DCLogic {
             return e('button', {
               key: mn,
               disabled,
-              onClick: () => { if (!disabled) this.setState({ filterMonth: mn, filterOpen: false, supabaseData: null, loadingData: true }); },
+              onClick: () => { if (!disabled) { const m=mn,yr=filterYear; try{localStorage.setItem('it_active_period',JSON.stringify({month:m,year:yr}));}catch(_){} this.setState({ filterMonth: m, filterOpen: false, supabaseData: null }); setTimeout(()=>this._loadData(),0); } },
               style: {
                 padding: '6px 4px', borderRadius: 6, fontSize: 12, fontWeight: isActive ? 700 : 400, cursor: disabled ? 'not-allowed' : 'pointer',
                 background: isActive ? '#2563eb' : 'transparent',
