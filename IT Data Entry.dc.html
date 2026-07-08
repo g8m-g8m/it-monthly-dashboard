@@ -96,6 +96,10 @@ class Component extends DCLogic {
     clockStr: '',
     projView: 'projects',
     periodPickerOpen: false,
+    noDataForPeriod: false,
+    copyFromMonth: new Date().getMonth() === 0 ? 12 : new Date().getMonth(),
+    copyFromYear: new Date().getMonth() === 0 ? new Date().getFullYear()-1 : new Date().getFullYear(),
+    copyStatus: '',
     showAppMenu: false,
     session: null, user: null, userRole: null, userName: '',
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
@@ -452,7 +456,7 @@ class Component extends DCLogic {
 
   _loadPeriodData(overridePeriod) {
     const period = overridePeriod || this.state.period;
-    // Try localStorage first, then Supabase
+    // Try localStorage first
     try {
       const key = 'it_report_' + period.year + '_' + String(period.month).padStart(2,'0');
       const raw = localStorage.getItem(key);
@@ -461,23 +465,65 @@ class Component extends DCLogic {
         const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
         const usedTypes = (saved.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
         const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
-        this.setState({ ...saved, period, customTypes: mergedCT, saveStatus: '📂 ' + period.month + '/' + period.year + ' loaded from draft' });
+        this.setState({ ...saved, period, customTypes: mergedCT, noDataForPeriod: false, saveStatus: '📂 โหลดข้อมูล ' + period.month + '/' + period.year + ' จาก draft' });
         setTimeout(() => this.setState({ saveStatus: '' }), 2000);
         return;
       }
     } catch(_) {}
     // Try Supabase
     if (this._sb && this.state.session) {
-      this.setState({ loadingData: true });
+      this.setState({ loadingData: true, noDataForPeriod: false });
       this._sb.from('it_reports').select('data').eq('period_year', period.year).eq('period_month', period.month).single().then(({ data }) => {
         if (data?.data) {
-          this.setState({ ...data.data, period, loadingData: false, saveStatus: '✓ ' + period.month + '/' + period.year + ' loaded from DB' });
+          this.setState({ ...data.data, period, loadingData: false, noDataForPeriod: false, saveStatus: '✓ โหลดข้อมูล ' + period.month + '/' + period.year + ' จาก DB' });
           setTimeout(() => this.setState({ saveStatus: '' }), 2000);
         } else {
-          this.setState({ loadingData: false, saveStatus: 'ℹ No data for ' + period.month + '/' + period.year });
-          setTimeout(() => this.setState({ saveStatus: '' }), 2000);
+          this.setState({ loadingData: false, noDataForPeriod: true, saveStatus: '' });
         }
       });
+    } else {
+      this.setState({ noDataForPeriod: true });
+    }
+  }
+
+  _copyPeriodData(fromMonth, fromYear, toPeriod) {
+    const key = 'it_report_' + fromYear + '_' + String(fromMonth).padStart(2,'0');
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        const saved = JSON.parse(raw);
+        const newData = { ...saved, period: toPeriod };
+        const toKey = 'it_report_' + toPeriod.year + '_' + String(toPeriod.month).padStart(2,'0');
+        localStorage.setItem(toKey, JSON.stringify(newData));
+        const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
+        const usedTypes = (saved.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
+        const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
+        this.setState({ ...newData, period: toPeriod, customTypes: mergedCT, noDataForPeriod: false, copyStatus: '✓ คัดลอกข้อมูลจาก ' + fromMonth + '/' + fromYear + ' เรียบร้อย' });
+        setTimeout(() => this.setState({ copyStatus: '' }), 3000);
+        return true;
+      } catch(_) {}
+    }
+    // Try Supabase
+    if (this._sb && this.state.session) {
+      this.setState({ copyStatus: '⏳ กำลังโหลดข้อมูลต้นทาง…' });
+      this._sb.from('it_reports').select('data').eq('period_year', fromYear).eq('period_month', fromMonth).single().then(({ data }) => {
+        if (data?.data) {
+          const newData = { ...data.data, period: toPeriod };
+          const toKey = 'it_report_' + toPeriod.year + '_' + String(toPeriod.month).padStart(2,'0');
+          localStorage.setItem(toKey, JSON.stringify(newData));
+          const DEFAULT_TYPES = ['Infra','ERP/App','Security','Cloud','Continuity','Asset','Other'];
+          const usedTypes = (newData.projects||[]).map(p=>p.type).filter(t=>t&&!DEFAULT_TYPES.includes(t));
+          const mergedCT = [...new Set([...this.state.customTypes, ...usedTypes])];
+          this.setState({ ...newData, period: toPeriod, customTypes: mergedCT, noDataForPeriod: false, copyStatus: '✓ คัดลอกข้อมูลจาก ' + fromMonth + '/' + fromYear + ' เรียบร้อย' });
+          setTimeout(() => this.setState({ copyStatus: '' }), 3000);
+        } else {
+          this.setState({ copyStatus: '⚠️ ไม่พบข้อมูลเดือน ' + fromMonth + '/' + fromYear });
+          setTimeout(() => this.setState({ copyStatus: '' }), 3000);
+        }
+      });
+    } else {
+      this.setState({ copyStatus: '⚠️ ไม่พบข้อมูลเดือน ' + fromMonth + '/' + fromYear + ' ใน draft' });
+      setTimeout(() => this.setState({ copyStatus: '' }), 3000);
     }
   }
 
@@ -579,6 +625,8 @@ class Component extends DCLogic {
     // ── Period badge (interactive picker) ─────────────────────
     const { periodPickerOpen } = this.state;
     const MN_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const CUR_YEAR = new Date().getFullYear(); const CUR_MONTH = new Date().getMonth()+1;
+    const isFuturePick = (mn, yr) => yr > CUR_YEAR || (yr === CUR_YEAR && mn > CUR_MONTH);
     const periodBadge = e('div', { style:{ position:'relative' } },
       e('button', {
         onClick: ev => { ev.stopPropagation(); this.setState({ periodPickerOpen: !periodPickerOpen }); },
@@ -594,15 +642,16 @@ class Component extends DCLogic {
         e('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
           e('button',{onClick:()=>{ const np={...period,year:period.year-1}; try{localStorage.setItem('it_active_period',JSON.stringify({month:np.month,year:np.year}));}catch(_){} this.setState({period:np}); },style:{background:'none',border:'1px solid #e2e8f0',borderRadius:6,width:28,height:28,cursor:'pointer',fontSize:14,color:'#64748b'}},'‹'),
           e('span',{style:{fontSize:14,fontWeight:700,color:'#0f172a'}},period.year),
-          e('button',{onClick:()=>{ const np={...period,year:period.year+1}; try{localStorage.setItem('it_active_period',JSON.stringify({month:np.month,year:np.year}));}catch(_){} this.setState({period:np}); },style:{background:'none',border:'1px solid #e2e8f0',borderRadius:6,width:28,height:28,cursor:'pointer',fontSize:14,color:'#64748b'}},'›')
+          e('button',{onClick:()=>{ const ny=period.year+1; if(ny<=CUR_YEAR){ const np={...period,year:ny}; try{localStorage.setItem('it_active_period',JSON.stringify({month:np.month,year:ny}));}catch(_){} this.setState({period:np}); } },disabled:period.year>=CUR_YEAR,style:{background:'none',border:'1px solid #e2e8f0',borderRadius:6,width:28,height:28,cursor:period.year>=CUR_YEAR?'not-allowed':'pointer',fontSize:14,color:period.year>=CUR_YEAR?'#cbd5e1':'#64748b'}},'›')
         ),
         e('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}},
           MN_SHORT.map((m,i)=>{
-            const mn=i+1; const active=mn===period.month;
+            const mn=i+1; const active=mn===period.month; const disabled=isFuturePick(mn,period.year);
             return e('button',{
               key:mn,
-              onClick:()=>{ const np={...period,month:mn}; try{localStorage.setItem('it_active_period',JSON.stringify({month:np.month,year:np.year}));}catch(_){} this.setState({period:np,periodPickerOpen:false}); this._loadPeriodData(np); },
-              style:{padding:'6px 4px',borderRadius:6,fontSize:12,fontWeight:active?700:400,cursor:'pointer',background:active?'#2563eb':'transparent',color:active?'#fff':'#334155',border:active?'none':'1px solid transparent',fontFamily:"'72','Inter','Kanit',sans-serif"}
+              disabled,
+              onClick:()=>{ if(!disabled){ const np={...period,month:mn}; try{localStorage.setItem('it_active_period',JSON.stringify({month:np.month,year:np.year}));}catch(_){} this.setState({period:np,periodPickerOpen:false}); this._loadPeriodData(np); } },
+              style:{padding:'6px 4px',borderRadius:6,fontSize:12,fontWeight:active?700:400,cursor:disabled?'not-allowed':'pointer',background:active?'#2563eb':'transparent',color:disabled?'#cbd5e1':active?'#fff':'#334155',border:active?'none':'1px solid transparent',opacity:disabled?.4:1,fontFamily:"'72','Inter','Kanit',sans-serif"}
             },m);
           })
         ),
@@ -654,31 +703,84 @@ class Component extends DCLogic {
     );
 
     // ── 1. Period ─────────────────────────────────────────────────
-    const periodForm = this.card([
-      this.sectionHead('Report Period', 'เลือกเดือนและปีที่ต้องการบันทึกรายงาน'),
-      e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 } },
-        e('div', null,
-          this.label('Month', true),
-          this.sel(period.month, (v) => { const np={...period,month:parseInt(v)}; this.setState({period:np}); this._loadPeriodData(np); },
-            MONTHS.map((m, i) => [i+1, m])
+    const { noDataForPeriod, copyFromMonth, copyFromYear, copyStatus } = this.state;
+    const CUR_Y2 = new Date().getFullYear(); const CUR_M2 = new Date().getMonth()+1;
+    const YEAR_OPTS = [CUR_Y2, CUR_Y2-1, CUR_Y2-2, CUR_Y2-3].map(y=>[y,String(y)]);
+    const isFuturePeriod = (m,y) => y > CUR_Y2 || (y === CUR_Y2 && m > CUR_M2);
+
+    const periodForm = e('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+      this.card([
+        this.sectionHead('Report Period', 'เลือกเดือนและปีที่ต้องการบันทึกรายงาน'),
+        e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 } },
+          e('div', null,
+            this.label('Month', true),
+            this.sel(period.month, (v) => { const np={...period,month:parseInt(v)}; if(!isFuturePeriod(np.month,np.year)){ this.setState({period:np}); this._loadPeriodData(np); } },
+              MONTHS.map((m, i) => [i+1, m]).filter(([mn]) => !isFuturePeriod(mn, period.year))
+            )
+          ),
+          e('div', null,
+            this.label('Year', true),
+            this.sel(period.year, (v) => { const np={...period,year:parseInt(v)}; this.setState({period:np}); this._loadPeriodData(np); },
+              YEAR_OPTS
+            )
+          ),
+          e('div', null,
+            this.label('Report Type'),
+            this.sel('monthly', () => {}, [['monthly','Monthly Report'],['quarterly','Quarterly Report']])
           )
         ),
-        e('div', null,
-          this.label('Year', true),
-          this.sel(period.year, (v) => { const np={...period,year:parseInt(v)}; this.setState({period:np}); this._loadPeriodData(np); },
-            [[2026,'2026'],[2025,'2025'],[2024,'2024'],[2023,'2023']]
+        noDataForPeriod
+          ? e('div', { style: { marginTop: 16, padding: '14px 16px', background: '#fef9c3', borderRadius: 8, border: '1px solid #fde047', fontSize: 13, color: '#854d0e', display: 'flex', alignItems: 'center', gap: 10 } },
+              e('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: '#ca8a04', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+                e('path', { d: 'M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' })
+              ),
+              e('span', null, 'ไม่มีข้อมูลในระบบสำหรับ ', e('strong', null, MONTHS[period.month-1] + ' ' + period.year), ' — กรอกข้อมูลใหม่ หรือ Copy จากเดือนที่มีข้อมูลด้านล่าง')
+            )
+          : e('div', { style: { marginTop: 16, padding: '12px 16px', background: '#eff6ff', borderRadius: 8, border: '1px solid #bfdbfe', fontSize: 13, color: '#1e40af' } },
+              '📌 Report period: ', e('strong', null, MONTHS[period.month-1] + ' ' + period.year),
+              ' · กรุณากรอกข้อมูลทุก section ก่อน Submit'
+            )
+      ]),
+      this.card([
+        this.sectionHead('Copy Data', 'คัดลอกข้อมูลจากเดือนอื่นมาใช้เป็นต้นแบบสำหรับเดือนนี้'),
+        e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'flex-end' } },
+          e('div', null,
+            this.label('Copy from — Month'),
+            this.sel(copyFromMonth, (v) => this.setState({ copyFromMonth: parseInt(v) }),
+              MONTHS.map((m, i) => [i+1, m]).filter(([mn]) => !isFuturePeriod(mn, copyFromYear))
+            )
+          ),
+          e('div', null,
+            this.label('Copy from — Year'),
+            this.sel(copyFromYear, (v) => this.setState({ copyFromYear: parseInt(v) }), YEAR_OPTS)
+          ),
+          e('div', null,
+            e('button', {
+              onClick: () => {
+                if (copyFromMonth === period.month && copyFromYear === period.year) {
+                  this.setState({ copyStatus: '⚠️ ต้นทางและปลายทางเป็นเดือนเดียวกัน' });
+                  setTimeout(() => this.setState({ copyStatus: '' }), 2500);
+                  return;
+                }
+                this._copyPeriodData(copyFromMonth, copyFromYear, period);
+              },
+              style: { display: 'flex', alignItems: 'center', gap: 7, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'72','Inter','Kanit',sans-serif" }
+            },
+              e('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+                e('path', { d: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' })
+              ),
+              'Copy → ' + MONTHS[period.month-1].slice(0,3) + ' ' + period.year
+            )
           )
         ),
-        e('div', null,
-          this.label('Report Type'),
-          this.sel('monthly', () => {}, [['monthly','Monthly Report'],['quarterly','Quarterly Report']])
-        )
-      ),
-      e('div', { style: { marginTop: 16, padding: '12px 16px', background: '#eff6ff', borderRadius: 8, border: '1px solid #bfdbfe', fontSize: 13, color: '#1e40af' } },
-        '📌 Report period: ', e('strong', null, MONTHS[period.month-1] + ' ' + period.year),
-        ' · กรุณากรอกข้อมูลทุก section ก่อน Submit'
-      )
-    ]);
+        e('div', { style: { marginTop: 10, fontSize: 12, color: '#6b7280' } },
+          'คัดลอกจาก ', e('strong', null, MONTHS[copyFromMonth-1] + ' ' + copyFromYear),
+          ' → ', e('strong', null, MONTHS[period.month-1] + ' ' + period.year),
+          ' (ข้อมูลปัจจุบันจะถูกแทนที่)'
+        ),
+        copyStatus ? e('div', { style: { marginTop: 10, padding: '10px 14px', background: copyStatus.startsWith('✓') ? '#f0fdf4' : copyStatus.startsWith('⚠') ? '#fef9c3' : '#eff6ff', borderRadius: 8, fontSize: 13, color: copyStatus.startsWith('✓') ? '#166534' : copyStatus.startsWith('⚠') ? '#854d0e' : '#1e40af', border: '1px solid ' + (copyStatus.startsWith('✓') ? '#bbf7d0' : copyStatus.startsWith('⚠') ? '#fde047' : '#bfdbfe') } }, copyStatus) : null
+      ])
+    );
 
     // ── 2. Projects ───────────────────────────────────────────────
     const statusColors  = { 'on-track':'#16a34a','at-risk':'#d97706','delayed':'#e11d48','completed':'#2563eb','on-hold':'#6b7280' };
