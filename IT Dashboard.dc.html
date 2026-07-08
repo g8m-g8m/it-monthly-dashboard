@@ -683,56 +683,34 @@ class Component extends DCLogic {
     const totalPrj   = prj.length;
 
     const p1 = panelBox([
-      panelHead('Program Status Summary', 'IT Projects · ' + MONTH_FULL[filterMonth-1] + ' ' + filterYear + ' · Total ' + totalPrj + ' Programs'),
-      // Three big status boxes
-      e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 } },
-        [
-          { lbl: 'Finish',        v: prjFinish.length,  c: '#10b981', bg: '#f0fdf4',  sub: '≥ 85% complete' },
-          { lbl: 'On Plan',      v: prjOnPlan.length,  c: '#2563eb', bg: '#eff6ff',  sub: 'In progress' },
-          { lbl: 'Wait / Start', v: prjWait.length,    c: '#f59e0b', bg: '#fffbeb',  sub: '< 30% progress' },
-        ].map(b => e('div', { key: b.lbl, style: { background: b.bg, borderRadius: 8, padding: '8px 6px', textAlign: 'center' } },
-          e('div', { style: { fontSize: 42, fontWeight: 700, color: b.c, lineHeight: 1 } }, b.v),
-          e('div', { style: { fontSize: 13, fontWeight: 700, color: b.c, marginTop: 3 } }, b.lbl),
-          e('div', { style: { fontSize: 13, color: '#94a3b8', marginTop: 2 } }, b.sub)
-        ))
-      ),
-      // Department breakdown table
+      panelHead('Programs Dept Summary', 'IT Projects · ' + MONTH_FULL[filterMonth-1] + ' ' + filterYear + ' · Total ' + totalPrj + ' Programs'),
+      // Department breakdown only (removed Finish/On Plan/Wait cards)
       e('div', { style: { background: '#f8fafc', borderRadius: 8, padding: '8px', marginBottom: 6 } },
         e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b', letterSpacing: '.01em', marginBottom: 6 } }, 'Programs by Dept · Total / Finish'),
         (() => {
           const DC = ['#2563eb','#10b981','#8b5cf6','#f59e0b','#0ea5e9','#ef4444','#f97316','#84cc16'];
-          const depts = _savedInhouse && _savedInhouse.length ? (() => {
+          const src = _savedProjects && _savedProjects.length ? _savedProjects : prj.map(p=>({dept:'IT',status:p.st,progress:p.p}));
+          const depts = (() => {
             const m = {};
-            _savedInhouse.forEach(p => {
-              const d = p.dept || 'Other';
+            src.forEach(p => {
+              const d = p.dept || 'IT';
               if (!m[d]) m[d] = { d, total:0, finish:0, pSum:0, c: DC[Object.keys(m).length % DC.length] };
               m[d].total++;
-              if (p.status==='COMPLETED'||(p.progress||0)>=85) m[d].finish++;
+              if (p.status==='completed'||p.status==='Completed'||(p.progress||0)>=100) m[d].finish++;
               m[d].pSum += p.progress||0;
             });
             return Object.values(m).map(x=>({...x, avgPct:Math.round(x.pSum/x.total)}));
-          })() : [
-            { d: 'Tech', total: 5, finish: 2, avgPct: 72, c: '#2563eb' },
-            { d: 'Sale', total: 3, finish: 1, avgPct: 58, c: '#10b981' },
-            { d: 'Acc',  total: 4, finish: 2, avgPct: 65, c: '#8b5cf6' },
-            { d: 'Prod', total: 3, finish: 1, avgPct: 55, c: '#f59e0b' },
-            { d: 'QA',   total: 4, finish: 2, avgPct: 61, c: '#0ea5e9' },
-          ];
+          })();
           return e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat('+Math.min(depts.length,8)+',1fr)', gap: 4 } },
           ...depts.map(dept => e('div', { key: dept.d, style: { background: '#fff', borderRadius: 8, padding: '8px 6px', textAlign: 'center', border: '1px solid ' + dept.c + '30' } },
-            // Dept label
             e('div', { style: { fontSize: 13, fontWeight: 600, color: dept.c, marginBottom: 4 } }, dept.d),
-            // Total — bold
-            e('div', { style: { fontSize: 42, fontWeight: 700, color: '#0f172a', lineHeight: 1 } }, dept.total),
-            // Progress bar
-            e('div', { style: { width: '100%', height: 4, background: '#e2e8f0', borderRadius: 2, margin: '6px 0 4px', overflow: 'hidden' } },
-              e('div', { style: { height: '100%', width: Math.round((dept.finish / dept.total) * 100) + '%', background: dept.c, borderRadius: 2 } })
+            e('div', { style: { fontSize: 28, fontWeight: 700, color: '#0f172a', lineHeight: 1 } }, dept.total),
+            e('div', { style: { width: '80%', height: 3, background: '#e2e8f0', borderRadius: 2, margin: '4px auto' } },
+              e('div', { style: { height: '100%', width: (dept.total>0?Math.round(dept.finish/dept.total*100):0)+'%', background: dept.c, borderRadius: 2 } })
             ),
-            // Finish count
-            e('div', { style: { fontSize: 16, fontWeight: 700, color: dept.c, marginBottom: 3 } }, dept.finish + ' ✓'),
-
-          ))
-          );
+            e('div', { style: { fontSize: 12, color: dept.c, fontWeight: 600 } }, dept.finish + ' ✓')
+          )))
+          ;
         })()
       ),
       // Avg Progress
@@ -1048,7 +1026,7 @@ class Component extends DCLogic {
         inRange ? e('div', { style: {
           position: 'absolute',
           left: barL, right: barR, top: '50%', transform: 'translateY(-50%)',
-          height: 14, background: isPast ? faded : fullColor, borderRadius: barRadius,
+          height: 14, background: p2.st === 'completed' ? '#10b981' : p2.st === 'in-progress' ? '#f59e0b' : p2.st === 'delayed' ? '#ef4444' : p2.st === 'on-hold' ? '#f97316' : '#94a3b8', borderRadius: barRadius,
         } }) : null,
         isMs ? e('div', {
           title: 'Milestone — ' + MONTHS[m1-1] + ' 2026',
@@ -1063,13 +1041,15 @@ class Component extends DCLogic {
       );
     };
 
-    // Summary strip
+    // p4summary: Total / In Progress / Not Started / Delayed
+    const delayedCount = prjGantt.filter(p2 => p2.st === 'delayed').length;
+    const notStartedCount = prjGantt.filter(p2 => p2.st === 'not-started').length;
     const p4summary = e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 12 } },
       ...[
-        { lbl: 'Pipeline Completion', v: avgPct + '%', c: '#2563eb', bg: '#eff6ff', sub: 'Weighted avg',    ic: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-        { lbl: 'Active',              v: activeCount,  c: '#0ea5e9', bg: '#f0f9ff', sub: 'Total programs', ic: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-        { lbl: 'On-Plan',             v: onPlanCount,  c: '#10b981', bg: '#f0fdf4', sub: 'On track',        ic: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-        { lbl: 'Wait / Start',        v: waitCount,    c: '#f59e0b', bg: '#fffbeb', sub: '< 30% progress', ic: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+        { lbl: 'Total Program',  v: activeCount,      c: '#0ea5e9', bg: '#f0f9ff', sub: 'All programs',     ic: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+        { lbl: 'In Progress',    v: onPlanCount,      c: '#2563eb', bg: '#eff6ff', sub: 'Active',             ic: 'M13 10V3L4 14h7v7l9-11h-7z' },
+        { lbl: 'Not Started',    v: notStartedCount,  c: '#94a3b8', bg: '#f8fafc', sub: 'Pending',            ic: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+        { lbl: 'Delayed',        v: delayedCount,     c: '#ef4444', bg: '#fef2f2', sub: 'At risk',             ic: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
       ].map(s => e('div', { key: s.lbl, style: { background: s.bg, borderRadius: 9, padding: '12px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 4 } },
         e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b' } }, s.lbl),
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' } },
@@ -1390,11 +1370,10 @@ class Component extends DCLogic {
       ))
     );
 
-    // KPI Summary bar data
-    const _kpiSrc = [
-      ...(_savedInhouse || []),
-      ...(_savedProjects && _savedProjects.length ? _savedProjects.map(p=>({ status: p.status, progress: p.progress||0, dept: p.dept||'IT' })) : [])
-    ];
+    // KPI Summary bar data — projects only (not inhouse)
+    const _kpiSrc = _savedProjects && _savedProjects.length
+      ? _savedProjects.map(p=>({ status: p.status, progress: p.progress||0, dept: p.dept||'IT' }))
+      : prj.map(p=>({ status: p.st, progress: p.p, dept: 'IT' }));
     const _kpiLen = _kpiSrc.length || 1;
     const totalPrgAll = _kpiSrc.length || 19;
     const finishAll   = _kpiSrc.filter(p=>p.status==='completed'||p.status==='Completed'||(p.progress||0)>=100).length;
