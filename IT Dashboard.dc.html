@@ -1005,8 +1005,8 @@ class Component extends DCLogic {
     const p4ganttCell = (m1, p2) => {
       const inRange = m1 >= p2.s && m1 <= p2.e;
       const isMs    = p2.ms.includes(m1);
-      const isPast  = m1 < CUR_M;
-      const isCur   = m1 === CUR_M;
+      const isPast  = m1 < filterMonth;
+      const isCur   = m1 === filterMonth;
       const isStart = m1 === p2.s;
       const isEnd   = m1 === p2.e;
       const fullColor = p2.c;
@@ -1068,7 +1068,7 @@ class Component extends DCLogic {
     const p4legendTop = e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 } },
       e('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
         e('div', { style: { width: 8, height: 8, borderRadius: '50%', background: '#2563eb' } }),
-        e('span', { style: { fontSize: 15, fontWeight: 600, color: '#2563eb' } }, 'Current month: July 2026')
+        e('span', { style: { fontSize: 15, fontWeight: 600, color: '#2563eb' } }, 'Report month: ' + MONTH_FULL[filterMonth-1] + ' ' + filterYear)
       ),
       e('div', { style: { display: 'flex', gap: 14, alignItems: 'center' } },
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 5 } },
@@ -1088,8 +1088,9 @@ class Component extends DCLogic {
 
     // Dynamic grid columns for left info panel
     const INFO_COLS = '32px 1fr 90px 110px 32px 64px';
+    const INFO_COLS = '32px 1fr 90px 110px 110px 72px';
     const HDR_S = { position: 'sticky', top: 0, zIndex: 2, fontSize: 14, fontWeight: 600, color: '#dee2e6', background: '#212529', padding: '8px 6px', borderBottom: '2px solid #dee2e6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' };
-    const hdrDefs = [['#','center'],['Project','left'],['Type','left'],['Lead','left'],['St','center'],['%','left']];
+    const hdrDefs = [['#','center'],['Project','left'],['Type','left'],['Lead','left'],['Status','left'],['%','left']];
 
     // Single flat grid: header + data rows together for perfect column alignment
     const p4LeftCells = [
@@ -1098,15 +1099,15 @@ class Component extends DCLogic {
       ),
       ...prjGantt.flatMap((p2, idx) => {
         const even = idx % 2 === 0;
-        const pctColor = p2.st === 'in-progress' ? '#198754' : p2.st === 'on-hold' ? '#ffc107' : p2.st === 'delayed' ? '#dc3545' : p2.st === 'completed' ? '#0d6efd' : '#6c757d';
-        const ow = ownerMap[p2.n] || 'W';
+        const pctColor = p2.st === 'in-progress' ? '#f59e0b' : p2.st === 'on-hold' ? '#f97316' : p2.st === 'delayed' ? '#ef4444' : p2.st === 'completed' ? '#10b981' : '#94a3b8';
+        const stLabel = stL[p2.st] || p2.st || 'N/A';
         const cell = (content, extra) => e('div', { style: Object.assign({ background: even ? '#fff' : 'rgba(0,0,0,.05)', borderBottom: '1px solid #dee2e6', padding: '6px 6px', display: 'flex', alignItems: 'center', minHeight: ROW_H }, extra || {}) }, content);
         return [
           cell(e('span', { style: { fontSize: 14, color: '#6c757d', width: '100%', textAlign: 'center' } }, idx + 1)),
           cell(e('span', { title: p2.n, style: { fontSize: 14, fontWeight: 600, color: '#212529', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' } }, p2.n), { overflow: 'hidden' }),
           cell(e('span', { style: { fontSize: 13, fontWeight: 500, color: p2.c, background: p2.c + '20', padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', border: '1px solid ' + p2.c + '40' } }, p2.type)),
           cell(e('span', { title: p2.ld, style: { fontSize: 14, color: '#495057', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' } }, p2.ld), { overflow: 'hidden' }),
-          cell(e('span', { style: { fontSize: 14, fontWeight: 700, color: ow === 'F' ? '#198754' : ow === 'N' ? '#dc3545' : '#ffc107', width: '100%', textAlign: 'center' } }, ow)),
+          cell(e('span', { style: { fontSize: 11, fontWeight: 700, color: pctColor, background: pctColor + '20', padding: '3px 6px', borderRadius: 4, whiteSpace: 'nowrap', border: '1px solid ' + pctColor + '40' } }, stLabel)),
           cell(e('div', null,
             e('div', { style: { fontSize: 14, fontWeight: 700, color: pctColor, lineHeight: 1 } }, p2.p + '%'),
             e('div', { style: { height: 4, background: '#dee2e6', borderRadius: 2, marginTop: 4, overflow: 'hidden', width: 48 } },
@@ -1123,7 +1124,7 @@ class Component extends DCLogic {
     // Right timeline header (12 months)
     const p4TimeHeader = e('div', { style: { display: 'flex', height: HEAD_H, background: '#212529', borderBottom: '2px solid #dee2e6' } },
       MONTHS.map((m, i) => {
-        const isCur = i + 1 === CUR_M;
+        const isCur = i + 1 === filterMonth;
         return e('div', { key: m, style: {
           width: P4_CELL, minWidth: P4_CELL, height: HEAD_H, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2734,7 +2735,7 @@ class Component extends DCLogic {
       // Month headers
       e('div', { style: { display: 'flex', flex: 1, overflow: 'hidden' } },
         MONTHS.map((m, i) => {
-          const isCur = i + 1 === CUR_M;
+          const isCur = i + 1 === filterMonth;
           return e('div', { key: m, style: {
             width: CELL, minWidth: CELL, flexShrink: 0, height: 34,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
