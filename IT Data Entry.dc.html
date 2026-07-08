@@ -2277,7 +2277,7 @@ class Component extends DCLogic {
     );
 
     // ── Form content by tab ───────────────────────────────────────
-    const contentMap = { period: periodForm, projects: this.state.projView === 'programs' ? inhouseForm : projectsForm, inhouse: inhouseForm, budget: budgetForm, security: e('div',null,securityForm,vulnsSection), secevents: secEventsForm, changereq: changeReqForm, network: networkForm, netkpis: netKpisForm, bizsvcs: bizSvcsForm, statusovr: statusOvrForm, uptime: uptimeForm };
+    const contentMap = { period: periodForm, projects: projectsForm, inhouse: inhouseForm, budget: budgetForm, security: e('div',null,securityForm,vulnsSection), secevents: secEventsForm, changereq: changeReqForm, network: networkForm, netkpis: netKpisForm, bizsvcs: bizSvcsForm, statusovr: statusOvrForm, uptime: uptimeForm };
     // ── Confirm Delete modal ──────────────────────────────────────
     const { addTypePopup, newTypeName, addDeptPopup, newDeptName, confirmDelete, confirmDeleteIH, confirmDeleteCR, confirmDeleteSE, confirmDeleteBS, confirmDeleteCapex, confirmDeleteMA, confirmDeleteBudCat } = this.state;
 
