@@ -96,9 +96,9 @@ class Component extends DCLogic {
 
   async componentDidUpdate(prevProps, prevState) {
     if (this.state.session && (prevState.filterMonth !== this.state.filterMonth || prevState.filterYear !== this.state.filterYear)) {
-      // Persist shared period so Data Entry stays in sync
+      // Skip if _onSignIn already loaded data for this period
+      if (this._skipPeriodReload) { this._skipPeriodReload = false; return; }
       try { localStorage.setItem('it_active_period', JSON.stringify({ month: this.state.filterMonth, year: this.state.filterYear })); } catch(_) {}
-      // Clear stale data immediately so old month doesn't flash
       await this._loadData();
     }
   }
@@ -114,6 +114,7 @@ class Component extends DCLogic {
       if (rows && rows[0]) {
         const fm = rows[0].period_month, fy = rows[0].period_year;
         try { localStorage.setItem('it_active_period', JSON.stringify({ month: fm, year: fy })); } catch(_) {}
+        this._skipPeriodReload = true; // prevent componentDidUpdate from re-querying
         this.setState({ filterMonth: fm, filterYear: fy, supabaseData: rows[0].data || null, loadingData: false });
       } else {
         await this._loadData();
@@ -124,11 +125,18 @@ class Component extends DCLogic {
 
   async _loadData() {
     if (!this._sb) return;
+    // Capture period values synchronously before any async operations
+    const fm = this.state.filterMonth;
+    const fy = this.state.filterYear;
     this.setState({ loadingData: true, supabaseData: null });
-    const { filterMonth, filterYear } = this.state;
     try {
-      const { data } = await this._sb.from('it_reports').select('data').eq('period_year', filterYear).eq('period_month', filterMonth).maybeSingle();
-      this.setState({ supabaseData: data?.data || null, loadingData: false });
+      const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000));
+      const query = this._sb.from('it_reports').select('data').eq('period_year', fy).eq('period_month', fm).maybeSingle();
+      const { data } = await Promise.race([query, timeout]);
+      // Only apply if period hasn't changed while waiting
+      if (this.state.filterMonth === fm && this.state.filterYear === fy) {
+        this.setState({ supabaseData: data?.data || null, loadingData: false });
+      }
     } catch(_) {
       this.setState({ supabaseData: null, loadingData: false });
     }
