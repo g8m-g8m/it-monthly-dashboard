@@ -70,6 +70,14 @@ class Component extends DCLogic {
     supabaseData: null, loadingData: false };
 
   async componentDidMount() {
+    // Sync period from shared localStorage key
+    try {
+      const p = JSON.parse(localStorage.getItem('it_active_period'));
+      if (p?.month && p?.year) this.setState({ filterMonth: p.month, filterYear: p.year });
+    } catch(_) {}
+    // Close dropdown on outside click
+    this._docClick = () => { if (this.state.filterOpen) this.setState({ filterOpen: false }); };
+    document.addEventListener('click', this._docClick);
     const sb = window.getSupabaseClient ? window.getSupabaseClient() : null;
     if (!sb) return;
     this._sb = sb;
@@ -81,8 +89,14 @@ class Component extends DCLogic {
     });
   }
 
+  componentWillUnmount() {
+    if (this._docClick) document.removeEventListener('click', this._docClick);
+  }
+
   async componentDidUpdate(prevProps, prevState) {
     if (this.state.session && (prevState.filterMonth !== this.state.filterMonth || prevState.filterYear !== this.state.filterYear)) {
+      // Persist shared period so Data Entry stays in sync
+      try { localStorage.setItem('it_active_period', JSON.stringify({ month: this.state.filterMonth, year: this.state.filterYear })); } catch(_) {}
       await this._loadData();
     }
   }
@@ -354,7 +368,7 @@ class Component extends DCLogic {
     const periodFilter = e('div', { style: { position: 'relative' } },
       // Trigger button
       e('button', {
-        onClick: () => this.setState({ filterOpen: !filterOpen }),
+        onClick: ev => { ev.stopPropagation(); this.setState({ filterOpen: !filterOpen }); },
         style: { display: 'flex', alignItems: 'center', gap: 7, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: "'72', sans-serif", outline: 'none' }
       },
         e('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: '#2563eb', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
@@ -365,6 +379,7 @@ class Component extends DCLogic {
       ),
       // Popover calendar
       filterOpen ? e('div', {
+        onClick: ev => ev.stopPropagation(),
         style: { position: 'absolute', top: '110%', right: 0, zIndex: 999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.12)', padding: 14, width: 260 }
       },
         // Year selector

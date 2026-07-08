@@ -412,10 +412,16 @@ class Component extends DCLogic {
   async _onSignIn(session) {
     const { data: profile } = await this._sb.from('profiles').select('*').eq('id', session.user.id).single();
     this.setState({ session, user: session.user, userRole: profile?.role || 'viewer', userName: profile?.full_name || session.user.email, loginError: '' });
-    // Load latest period from DB
-    const { data: latest } = await this._sb.from('it_reports').select('period_year,period_month').order('period_year',{ascending:false}).order('period_month',{ascending:false}).limit(1);
-    if (latest && latest[0]) {
-      this.setState({ period: { year: latest[0].period_year, month: latest[0].period_month } });
+    // Read shared period from localStorage first, then fall back to latest DB record
+    let activePeriod = null;
+    try { activePeriod = JSON.parse(localStorage.getItem('it_active_period')); } catch(_) {}
+    if (activePeriod?.month && activePeriod?.year) {
+      this.setState({ period: { month: activePeriod.month, year: activePeriod.year } });
+    } else {
+      const { data: latest } = await this._sb.from('it_reports').select('period_year,period_month').order('period_year',{ascending:false}).order('period_month',{ascending:false}).limit(1);
+      if (latest && latest[0]) {
+        this.setState({ period: { year: latest[0].period_year, month: latest[0].period_month } });
+      }
     }
     await this._loadFromSupabase();
     this._subscribeRealtime();
@@ -575,7 +581,7 @@ class Component extends DCLogic {
     const MN_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const periodBadge = e('div', { style:{ position:'relative' } },
       e('button', {
-        onClick: () => this.setState({ periodPickerOpen: !periodPickerOpen }),
+        onClick: ev => { ev.stopPropagation(); this.setState({ periodPickerOpen: !periodPickerOpen }); },
         style:{ display:'flex', alignItems:'center', gap:6, background:'#fff', border:'1px solid #e2e8f0', borderRadius:20, padding:'5px 14px', fontSize:12, color:'#374151', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 1px 3px rgba(0,0,0,.06)', fontFamily:"'72','Inter','Kanit',sans-serif" }
       },
         MONTHS[period.month-1] + ' ' + period.year,
@@ -586,16 +592,16 @@ class Component extends DCLogic {
         style:{ position:'absolute', top:'110%', right:0, zIndex:999, background:'#fff', border:'1px solid #e2e8f0', borderRadius:12, boxShadow:'0 8px 24px rgba(0,0,0,.12)', padding:14, width:240 }
       },
         e('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
-          e('button',{onClick:()=>this.setState({period:{...period,year:period.year-1}}),style:{background:'none',border:'1px solid #e2e8f0',borderRadius:6,width:28,height:28,cursor:'pointer',fontSize:14,color:'#64748b'}},'‹'),
+          e('button',{onClick:()=>{ const np={...period,year:period.year-1}; try{localStorage.setItem('it_active_period',JSON.stringify({month:np.month,year:np.year}));}catch(_){} this.setState({period:np}); },style:{background:'none',border:'1px solid #e2e8f0',borderRadius:6,width:28,height:28,cursor:'pointer',fontSize:14,color:'#64748b'}},'‹'),
           e('span',{style:{fontSize:14,fontWeight:700,color:'#0f172a'}},period.year),
-          e('button',{onClick:()=>this.setState({period:{...period,year:period.year+1}}),style:{background:'none',border:'1px solid #e2e8f0',borderRadius:6,width:28,height:28,cursor:'pointer',fontSize:14,color:'#64748b'}},'›')
+          e('button',{onClick:()=>{ const np={...period,year:period.year+1}; try{localStorage.setItem('it_active_period',JSON.stringify({month:np.month,year:np.year}));}catch(_){} this.setState({period:np}); },style:{background:'none',border:'1px solid #e2e8f0',borderRadius:6,width:28,height:28,cursor:'pointer',fontSize:14,color:'#64748b'}},'›')
         ),
         e('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}},
           MN_SHORT.map((m,i)=>{
             const mn=i+1; const active=mn===period.month;
             return e('button',{
               key:mn,
-              onClick:()=>{ const np={...period,month:mn}; this.setState({period:np,periodPickerOpen:false}); this._loadPeriodData(np); },
+              onClick:()=>{ const np={...period,month:mn}; try{localStorage.setItem('it_active_period',JSON.stringify({month:np.month,year:np.year}));}catch(_){} this.setState({period:np,periodPickerOpen:false}); this._loadPeriodData(np); },
               style:{padding:'6px 4px',borderRadius:6,fontSize:12,fontWeight:active?700:400,cursor:'pointer',background:active?'#2563eb':'transparent',color:active?'#fff':'#334155',border:active?'none':'1px solid transparent',fontFamily:"'72','Inter','Kanit',sans-serif"}
             },m);
           })
