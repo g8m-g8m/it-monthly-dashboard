@@ -107,7 +107,19 @@ class Component extends DCLogic {
   async _onSignIn(session) {
     const { data: profile } = await this._sb.from('profiles').select('*').eq('id', session.user.id).single();
     this.setState({ session, user: session.user, userRole: profile?.role || 'viewer', userName: profile?.full_name || session.user.email, loginError: '' });
-    await this._loadData();
+    // Load latest period + data from DB (same logic as Data Entry)
+    try {
+      const { data: rows } = await this._sb.from('it_reports')
+        .select('period_year,period_month,data')
+        .order('period_year',{ascending:false}).order('period_month',{ascending:false}).limit(1);
+      if (rows && rows[0]) {
+        const fm = rows[0].period_month, fy = rows[0].period_year;
+        try { localStorage.setItem('it_active_period', JSON.stringify({ month: fm, year: fy })); } catch(_) {}
+        this.setState({ filterMonth: fm, filterYear: fy, supabaseData: rows[0].data || null, loadingData: false });
+      } else {
+        await this._loadData();
+      }
+    } catch(_) { await this._loadData(); }
     this._subscribeRealtime();
   }
 
@@ -260,17 +272,8 @@ class Component extends DCLogic {
     const e = React.createElement;
     const { session, userRole, userName, loginEmail, loginPassword, loginLoading, loginError } = this.state;
     try {
-      const key = 'it_report_' + (this.state.filterYear||2026) + '_' + String(this.state.filterMonth||7).padStart(2,'0');
-      const local = localStorage.getItem(key);
-      // Only use data that belongs to the currently-selected period
-      this._savedData = this.state.supabaseData || (local ? JSON.parse(local) : null);
-      // Validate period matches (guard against stale supabaseData)
-      if (this._savedData && this._savedData.period) {
-        const dp = this._savedData.period;
-        if (dp.month !== this.state.filterMonth || dp.year !== this.state.filterYear) {
-          this._savedData = null;
-        }
-      }
+      // DB only — no localStorage fallback
+      this._savedData = this.state.supabaseData || null;
     } catch(_) { this._savedData = null; }
 
     // ── Auth overlay ─────────────────────────────────────────────
