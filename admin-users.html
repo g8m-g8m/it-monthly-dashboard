@@ -395,7 +395,10 @@ async function inviteUser() {
 
     const { data, error } = await tmpSb.auth.signUp({
       email, password: pass,
-      options: { data: { full_name: name } }
+      options: {
+        data: { full_name: name },
+        emailRedirectTo: window.location.origin + '/index.html'
+      }
     });
     if (error) throw new Error(error.message);
     if (!data?.user) throw new Error('ไม่ได้รับข้อมูล user จาก Supabase');
