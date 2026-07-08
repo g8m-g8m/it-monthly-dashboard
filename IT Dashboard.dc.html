@@ -2638,7 +2638,7 @@ class Component extends DCLogic {
           details: p.details ? p.details.split('\n').filter(Boolean) : [],
           conc: p.status||'ON-PLAN',
           concNote: p.concNote||'',
-          next: p.nextSteps||p.due||''
+          next: p.due ? 'กำหนด: ' + p.due : p.nextSteps||''
         }))
       : (_savedProjects && _savedProjects.length) ? _savedProjects.map((p,i)=>({
       n: p.name,
@@ -2652,7 +2652,7 @@ class Component extends DCLogic {
       details: p.details||[],
       conc: _stMap[(p.status||'not-started')]||'Not Started',
       concNote: p.note||'',
-      next: p.next||p.due||''
+      next: p.due ? 'กำหนด: ' + p.due : ''
     })) : [
       { n: 'Network Infrastructure Upgrade', shortN: 'NETWORK\nINFRA UPGRADE', type: 'Infrastructure', c: '#2563eb', ic: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01', st: 'ON-PLAN', p: 75, stSub: 'ดำเนินการตามแผน', details: ['Core switch firmware upgraded (Jul 22)', 'WAN link redundancy testing complete', 'Fiber routing to Plant B in progress', 'Phase 2: Data center cabling pending'], conc: 'ON-PLAN', concNote: 'งานเป็นไปตามแผน\nพร้อมเข้าสู่ Phase 2', next: 'เริ่ม Phase 2 Data Center\nCabling และ Testing' },
       { n: 'ERP Migration Phase 2',          shortN: 'ERP\nMIGRATION PH.2', type: 'ERP/App',        c: '#f97316', ic: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4', st: 'ON-HOLD', p: 40, stSub: 'รอการพิจารณา/ตัดสินใจ', details: ['Data migration script v1 complete', 'UAT session 1 — 23 issues found', 'Business sign-off pending (Finance)', 'Go-live postponed to Oct 2026'], conc: 'ON-HOLD', concNote: 'รอ Business sign-off\nก่อนดำเนินการต่อ', next: 'นัด Steering Committee\nทบทวนและอนุมัติ Go-live' },
@@ -2899,7 +2899,7 @@ class Component extends DCLogic {
             ),
             // Program — no icon, just name
             e('div', { style: { padding: '12px 10px', display: 'flex', alignItems: 'center', borderLeft: '1px solid #f1f5f9' } },
-              e('div', { style: { fontSize: 12, fontWeight: 700, color: p2.c, lineHeight: 1.5, wordBreak: 'break-word' } }, p2.n)
+              e('div', { style: { fontSize: 13, fontWeight: 700, color: p2.c, lineHeight: 1.5, textAlign: 'left', overflowWrap: 'anywhere' } }, p2.n)
             ),
             // Current Status
             e('div', { style: { padding: '12px 10px', borderLeft: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', gap: 6 } },
