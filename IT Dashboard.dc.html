@@ -124,11 +124,14 @@ class Component extends DCLogic {
 
   async _loadData() {
     if (!this._sb) return;
-    // Clear old data and set loading atomically in one render
     this.setState({ loadingData: true, supabaseData: null });
     const { filterMonth, filterYear } = this.state;
-    const { data } = await this._sb.from('it_reports').select('data').eq('period_year', filterYear).eq('period_month', filterMonth).single();
-    this.setState({ supabaseData: data?.data || null, loadingData: false });
+    try {
+      const { data } = await this._sb.from('it_reports').select('data').eq('period_year', filterYear).eq('period_month', filterMonth).maybeSingle();
+      this.setState({ supabaseData: data?.data || null, loadingData: false });
+    } catch(_) {
+      this.setState({ supabaseData: null, loadingData: false });
+    }
   }
 
   _subscribeRealtime() {
