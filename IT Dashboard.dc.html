@@ -398,9 +398,9 @@ class Component extends DCLogic {
       },
         // Year selector
         e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 } },
-          e('button', { onClick: () => { const ny = filterYear - 1; if (ny >= CUR_YEAR-3) this.setState({ filterYear: ny }); }, style: { background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#64748b' } }, '‹'),
+          e('button', { onClick: () => { const ny = filterYear - 1; if (ny >= CUR_YEAR-3) this.setState({ filterYear: ny, supabaseData: null, loadingData: true }); }, style: { background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#64748b' } }, '‹'),
           e('span', { style: { fontSize: 14, fontWeight: 700, color: '#0f172a' } }, filterYear),
-          e('button', { onClick: () => { const ny = filterYear + 1; if (ny <= CUR_YEAR) this.setState({ filterYear: ny }); }, style: { background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#64748b' } }, '›')
+          e('button', { onClick: () => { const ny = filterYear + 1; if (ny <= CUR_YEAR) this.setState({ filterYear: ny, supabaseData: null, loadingData: true }); }, style: { background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#64748b' } }, '›')
         ),
         // Month grid
         e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 } },
@@ -412,7 +412,7 @@ class Component extends DCLogic {
             return e('button', {
               key: mn,
               disabled,
-              onClick: () => { if (!disabled) this.setState({ filterMonth: mn, filterOpen: false }); },
+              onClick: () => { if (!disabled) this.setState({ filterMonth: mn, filterOpen: false, supabaseData: null, loadingData: true }); },
               style: {
                 padding: '6px 4px', borderRadius: 6, fontSize: 12, fontWeight: isActive ? 700 : 400, cursor: disabled ? 'not-allowed' : 'pointer',
                 background: isActive ? '#2563eb' : 'transparent',
