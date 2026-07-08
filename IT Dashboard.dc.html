@@ -556,13 +556,13 @@ class Component extends DCLogic {
     const tSp = bud.reduce((s, b) => s + b.sp, 0);
     const _savedProjects = this._savedData && this._savedData.projects;
     const _savedInhouse = (this._savedData && this._savedData.inhouse && this._savedData.inhouse.length) ? this._savedData.inhouse : null;
-    const _ihStatusMap = { 'COMPLETED':'on-track','ON-PLAN':'on-track','ON-HOLD':'at-risk','DELAYED':'delayed','NOT STARTED':'on-track' };
+    const _ihStatusMap = { 'Completed':'completed','In Progress':'in-progress','On Hold':'on-hold','Delayed':'delayed','Not Started':'not-started','COMPLETED':'completed','ON-PLAN':'in-progress','ON-HOLD':'on-hold','DELAYED':'delayed','NOT STARTED':'not-started' };
     const _ganttColors = { 'Infra':'#2563eb','ERP/App':'#f59e0b','Security':'#8b5cf6','Cloud':'#0ea5e9','Continuity':'#10b981','Asset':'#84cc16','Other':'#94a3b8' };
     const _parseM = (s) => { const MNAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const i=MNAMES.indexOf((s||'').split(' ')[0]); return i>=0?i+1:1; };
     const _prjBase = (_savedProjects && _savedProjects.length) ? _savedProjects.map(p=>({ n:p.name, p:p.progress, st:p.status, due:p.due, ld:p.lead }))
       : _savedInhouse ? _savedInhouse.map(p=>({ n:p.name, p:p.progress||0, st:_ihStatusMap[p.status]||'on-track', due:p.due||'', ld:p.lead||'' })) : [
-      { n: 'Network Infrastructure Upgrade',  p: 75, st: 'on-track', due: 'Sep 2026', ld: 'K. Wattana'     },
-      { n: 'ERP Migration Phase 2',           p: 40, st: 'at-risk',  due: 'Oct 2026', ld: 'P. Suksan'      },
+      { n: 'Network Infrastructure Upgrade',  p: 75, st: 'in-progress', due: 'Sep 2026', ld: 'K. Wattana'     },
+      { n: 'ERP Migration Phase 2',           p: 40, st: 'on-hold',     due: 'Oct 2026', ld: 'P. Suksan'      },
       { n: 'Security Awareness Program',      p: 90, st: 'on-track', due: 'Aug 2026', ld: 'S. Charoenporn' },
       { n: 'Cloud Migration Pilot',           p: 25, st: 'on-track', due: 'Dec 2026', ld: 'T. Boonmee'     },
       { n: 'DR/BC Plan Update',               p: 60, st: 'on-track', due: 'Sep 2026', ld: 'A. Phongphan'   },
@@ -580,8 +580,8 @@ class Component extends DCLogic {
     ];
 
     // ── Helpers ───────────────────────────────────────────────────
-    const stC = { 'on-track': '#10b981', 'at-risk': '#f59e0b', 'delayed': '#ef4444' };
-    const stL = { 'on-track': 'On Track', 'at-risk': 'At Risk', 'delayed': 'Delayed' };
+    const stC = { 'completed':'#16a34a','in-progress':'#2563eb','on-hold':'#d97706','delayed':'#e11d48','not-started':'#6b7280','on-track':'#10b981','at-risk':'#f59e0b' };
+    const stL = { 'completed':'Completed','in-progress':'In Progress','on-hold':'On Hold','delayed':'Delayed','not-started':'Not Started','on-track':'On Track','at-risk':'At Risk' };
 
     const pbar = (p, c, h) => {
       const ht = h || 6;

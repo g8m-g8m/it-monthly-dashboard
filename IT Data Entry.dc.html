@@ -139,13 +139,13 @@ class Component extends DCLogic {
     ],
     period: { month: 7, year: 2026 },
     projects: [
-      { id: 1, name: 'Network Infrastructure Upgrade', type: 'Infra',      lead: 'K. Wattana',     dept: 'IT',   status: 'on-track', progress: 75, startDate: 'Apr 2026', due: 'Sep 2026', milestones: 'Jun,Sep' },
-      { id: 2, name: 'ERP Migration Phase 2',          type: 'ERP/App',    lead: 'P. Suksan',      dept: 'IT',   status: 'at-risk',  progress: 40, startDate: 'Mar 2026', due: 'Oct 2026', milestones: 'Jul,Oct' },
-      { id: 3, name: 'Security Awareness Program',     type: 'Security',   lead: 'S. Charoenporn', dept: 'IT',   status: 'on-track', progress: 90, startDate: 'May 2026', due: 'Aug 2026', milestones: 'Jul' },
-      { id: 4, name: 'Cloud Migration Pilot',          type: 'Cloud',      lead: 'T. Boonmee',     dept: 'IT',   status: 'on-track', progress: 25, startDate: 'Jun 2026', due: 'Dec 2026', milestones: 'Sep,Dec' },
-      { id: 5, name: 'DR/BC Plan Update',              type: 'Continuity', lead: 'A. Phongphan',   dept: 'IT',   status: 'on-track', progress: 60, startDate: 'May 2026', due: 'Sep 2026', milestones: 'Aug' },
+      { id: 1, name: 'Network Infrastructure Upgrade', type: 'Infra',      lead: 'K. Wattana',     dept: 'IT',   status: 'in-progress', progress: 75, startDate: 'Apr 2026', due: 'Sep 2026', milestones: 'Jun,Sep' },
+      { id: 2, name: 'ERP Migration Phase 2',          type: 'ERP/App',    lead: 'P. Suksan',      dept: 'IT',   status: 'on-hold',  progress: 40, startDate: 'Mar 2026', due: 'Oct 2026', milestones: 'Jul,Oct' },
+      { id: 3, name: 'Security Awareness Program',     type: 'Security',   lead: 'S. Charoenporn', dept: 'IT',   status: 'in-progress', progress: 90, startDate: 'May 2026', due: 'Aug 2026', milestones: 'Jul' },
+      { id: 4, name: 'Cloud Migration Pilot',          type: 'Cloud',      lead: 'T. Boonmee',     dept: 'IT',   status: 'in-progress', progress: 25, startDate: 'Jun 2026', due: 'Dec 2026', milestones: 'Sep,Dec' },
+      { id: 5, name: 'DR/BC Plan Update',              type: 'Continuity', lead: 'A. Phongphan',   dept: 'IT',   status: 'in-progress', progress: 60, startDate: 'May 2026', due: 'Sep 2026', milestones: 'Aug' },
       { id: 6, name: 'Fiber Expansion – Plant B',      type: 'Infra',      lead: 'C. Nirattisai',  dept: 'IT',   status: 'delayed',  progress: 55, startDate: 'Apr 2026', due: 'Aug 2026', milestones: 'Jul' },
-      { id: 7, name: 'IT Asset Refresh',               type: 'Asset',      lead: 'N. Sombat',      dept: 'IT',   status: 'on-track', progress: 85, startDate: 'May 2026', due: 'Jul 2026', milestones: 'Jul' },
+      { id: 7, name: 'IT Asset Refresh',               type: 'Asset',      lead: 'N. Sombat',      dept: 'IT',   status: 'in-progress', progress: 85, startDate: 'May 2026', due: 'Jul 2026', milestones: 'Jul' },
     ],
     budget: [
       { id: 1, category: 'Infrastructure',        type: 'CapEx', budget: 5.8, actual: 4.2, monthBudget: 0.48, monthActual: 0.38 },
@@ -221,12 +221,12 @@ class Component extends DCLogic {
       datacenter: 100, database: 100, networkLink: 100, internet: 100, security: 100
     },
     inhouse: [
-      { id: 1, name: 'HR Self-Service Portal',       status: 'COMPLETED',   progress: 100, lead: 'K. Wattana',     dept: 'HR',   due: 'Jun 2026', expanded: false, details: 'Module 1-3 completed\nUser acceptance test passed\nDocumentation submitted', concNote: 'โครงการเสร็จสมบูรณ์ตามแผน', nextStep: 'Handover and close project' },
-      { id: 2, name: 'Inventory Management v2',       status: 'ON-PLAN',    progress: 65,  lead: 'P. Suksan',      dept: 'WH',   due: 'Sep 2026', expanded: false, details: 'Core module development 65% done\nDB schema finalized\nAPI integration testing', concNote: 'ดำเนินการตามแผนงาน', nextStep: 'Complete module 4-5 and begin UAT' },
-      { id: 3, name: 'Production Dashboard',          status: 'ON-PLAN',    progress: 50,  lead: 'T. Boonmee',     dept: 'PROD', due: 'Oct 2026', expanded: false, details: 'UI design approved\nData pipeline 50% complete\nReal-time KPI integration ongoing', concNote: 'ดำเนินการตามแผนงาน', nextStep: 'Complete data pipeline and deploy to UAT' },
-      { id: 4, name: 'E-Document System',             status: 'ON-HOLD',    progress: 30,  lead: 'S. Charoenporn', dept: 'ACC',  due: 'TBD',       expanded: false, details: 'Requirements gathering done\nScope change requested by ACC dept\nOn hold pending approval', concNote: 'รอการอนุมัติ scope ใหม่', nextStep: 'Submit revised scope for committee approval' },
-      { id: 5, name: 'Asset Tracking Mobile App',     status: 'DELAYED',    progress: 20,  lead: 'C. Nirattisai',  dept: 'IT',   due: 'Aug 2026', expanded: false, details: 'Mobile framework setup done\nBackend API delayed\nResource constraint — 1 developer on leave', concNote: 'ล่าช้าเนื่องจาก resource ไม่เพียงพอ', nextStep: 'Re-baseline timeline and assign backup resource' },
-      { id: 6, name: 'Customer Portal Phase 2',       status: 'NOT STARTED', progress: 0,  lead: 'N. Sombat',      dept: 'SALE', due: 'Q4 2026', expanded: false, details: 'Kickoff meeting scheduled Q3\nBusiness requirements pending from SALE team\nBudget approved', concNote: 'รอเริ่มดำเนินการ', nextStep: 'Conduct kickoff meeting and gather requirements' },
+      { id: 1, name: 'HR Self-Service Portal',       status: 'Completed',   progress: 100, lead: 'K. Wattana',     dept: 'HR',   due: 'Jun 2026', expanded: false, details: 'Module 1-3 completed\nUser acceptance test passed\nDocumentation submitted', concNote: 'โครงการเสร็จสมบูรณ์ตามแผน', nextStep: 'Handover and close project' },
+      { id: 2, name: 'Inventory Management v2',       status: 'In Progress', progress: 65,  lead: 'P. Suksan',      dept: 'WH',   due: 'Sep 2026', expanded: false, details: 'Core module development 65% done\nDB schema finalized\nAPI integration testing', concNote: 'ดำเนินการตามแผนงาน', nextStep: 'Complete module 4-5 and begin UAT' },
+      { id: 3, name: 'Production Dashboard',          status: 'In Progress', progress: 50,  lead: 'T. Boonmee',     dept: 'PROD', due: 'Oct 2026', expanded: false, details: 'UI design approved\nData pipeline 50% complete\nReal-time KPI integration ongoing', concNote: 'ดำเนินการตามแผนงาน', nextStep: 'Complete data pipeline and deploy to UAT' },
+      { id: 4, name: 'E-Document System',             status: 'On Hold',     progress: 30,  lead: 'S. Charoenporn', dept: 'ACC',  due: 'TBD',       expanded: false, details: 'Requirements gathering done\nScope change requested by ACC dept\nOn hold pending approval', concNote: 'รอการอนุมัติ scope ใหม่', nextStep: 'Submit revised scope for committee approval' },
+      { id: 5, name: 'Asset Tracking Mobile App',     status: 'Delayed',     progress: 20,  lead: 'C. Nirattisai',  dept: 'IT',   due: 'Aug 2026', expanded: false, details: 'Mobile framework setup done\nBackend API delayed\nResource constraint — 1 developer on leave', concNote: 'ล่าช้าเนื่องจาก resource ไม่เพียงพอ', nextStep: 'Re-baseline timeline and assign backup resource' },
+      { id: 6, name: 'Customer Portal Phase 2',       status: 'Not Started', progress: 0,  lead: 'N. Sombat',      dept: 'SALE', due: 'Q4 2026', expanded: false, details: 'Kickoff meeting scheduled Q3\nBusiness requirements pending from SALE team\nBudget approved', concNote: 'รอเริ่มดำเนินการ', nextStep: 'Conduct kickoff meeting and gather requirements' },
     ],
     securityEvents: [
       { id: 1, date: 'Jul 24', description: 'Blocked intrusion attempt (SSH brute-force)',        severity: 'high',   resolved: true  },
@@ -894,10 +894,10 @@ class Component extends DCLogic {
     );
 
     // ── 2. Projects ───────────────────────────────────────────────
-    const statusColors  = { 'on-track':'#16a34a','at-risk':'#d97706','delayed':'#e11d48','completed':'#2563eb','on-hold':'#6b7280' };
-    const statusBg      = { 'on-track':'#f0fdf4','at-risk':'#fffbeb','delayed':'#fff1f2','completed':'#eff6ff','on-hold':'#f9fafb' };
-    const statusBorder  = { 'on-track':'#bbf7d0','at-risk':'#fde68a','delayed':'#fecdd3','completed':'#bfdbfe','on-hold':'#e5e7eb' };
-    const statusIcon    = { 'on-track':'M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0','at-risk':'M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z','delayed':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z','completed':'M5 13l4 4L19 7','on-hold':'M10 9v6m4-6v6' };
+    const statusColors  = { 'completed':'#16a34a','in-progress':'#2563eb','on-hold':'#d97706','delayed':'#e11d48','not-started':'#6b7280' };
+    const statusBg      = { 'completed':'#f0fdf4','in-progress':'#eff6ff','on-hold':'#fffbeb','delayed':'#fff1f2','not-started':'#f9fafb' };
+    const statusBorder  = { 'completed':'#bbf7d0','in-progress':'#bfdbfe','on-hold':'#fde68a','delayed':'#fecdd3','not-started':'#e5e7eb' };
+    const statusIcon    = { 'completed':'M5 13l4 4L19 7','in-progress':'M13 10V3L4 14h7v7l9-11h-7z','on-hold':'M10 9v6m4-6v6','delayed':'M6 18L18 6M6 6l12 12','not-started':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' };.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z','delayed':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z','completed':'M5 13l4 4L19 7','on-hold':'M10 9v6m4-6v6' };
     // Solid type badge colors (opaque, like reference)
     const typeGrad = { 'Infra':'linear-gradient(135deg,#f97316,#ea580c)','ERP/App':'linear-gradient(135deg,#eab308,#ca8a04)','Security':'linear-gradient(135deg,#a78bfa,#7c3aed)','Cloud':'linear-gradient(135deg,#38bdf8,#0284c7)','Continuity':'linear-gradient(135deg,#34d399,#059669)','Asset':'linear-gradient(135deg,#86efac,#16a34a)','Other':'linear-gradient(135deg,#94a3b8,#475569)' };
     const typeText  = { 'Infra':'#fff','ERP/App':'#1a1000','Security':'#fff','Cloud':'#fff','Continuity':'#0a1f0f','Asset':'#0a1f0f','Other':'#fff' };
@@ -907,7 +907,7 @@ class Component extends DCLogic {
     // Avatar gradient colors by index
     const avatarGrads = ['linear-gradient(135deg,#6366f1,#8b5cf6)','linear-gradient(135deg,#14b8a6,#0891b2)','linear-gradient(135deg,#f97316,#ef4444)','linear-gradient(135deg,#22c55e,#16a34a)','linear-gradient(135deg,#f59e0b,#ea580c)','linear-gradient(135deg,#ec4899,#8b5cf6)','linear-gradient(135deg,#38bdf8,#6366f1)'];
     const getInitials = (name) => name.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
-    const cycleStatus = (cur) => { const ord = ['on-track','at-risk','delayed','on-hold','completed']; return ord[(ord.indexOf(cur)+1)%ord.length]; };
+    const cycleStatus = (cur) => { const ord = ['not-started','in-progress','on-hold','delayed','completed']; return ord[(ord.indexOf(cur)+1)%ord.length]; };
     const COL_P = '36px minmax(100px,1fr) 100px 110px 65px 110px 145px 100px 100px 155px 36px';
     const GANTT_COLORS = { 'Infra':'#2563eb','ERP/App':'#f59e0b','Security':'#8b5cf6','Cloud':'#0ea5e9','Continuity':'#10b981','Asset':'#84cc16','Other':'#94a3b8' };
     // Parse "Apr 2026" → month index 1-12
@@ -925,8 +925,8 @@ class Component extends DCLogic {
     };
     const fmtDue = (m, y) => DUE_MONTHS[m-1] + ' ' + y;
 
-    const onTrackCnt = projects.filter(p=>p.status==='on-track').length;
-    const atRiskCnt  = projects.filter(p=>p.status==='at-risk').length;
+    const onTrackCnt = projects.filter(p=>p.status==='in-progress').length;
+    const atRiskCnt  = projects.filter(p=>p.status==='on-hold').length;
     const delayedCnt = projects.filter(p=>p.status==='delayed').length;
 
     // Mini donut chart SVG (Overall Project Health)
@@ -1045,7 +1045,7 @@ class Component extends DCLogic {
               style:{ display:'inline-flex', alignItems:'center', gap:6, background:statusBg[p.status]||'rgba(148,163,184,.1)', border:'1px solid '+(statusBorder[p.status]||'rgba(148,163,184,.2)'), borderRadius:20, padding:'5px 12px', cursor:'pointer', userSelect:'none' }
             },
               e('span',{style:{fontSize:12,fontWeight:600,color:statusColors[p.status]||'#94a3b8',whiteSpace:'nowrap'}},
-                {'on-track':'On Track','at-risk':'At Risk','delayed':'Delayed','completed':'Done','on-hold':'On Hold'}[p.status]||p.status
+                {'completed':'Completed','in-progress':'In Progress','on-hold':'On Hold','delayed':'Delayed','not-started':'Not Started'}[p.status]||p.status
               ),
               e('div',{style:{width:16,height:16,borderRadius:'50%',background:statusColors[p.status]||'#94a3b8',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
                 e('svg',{width:9,height:9,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:statusIcon[p.status]||statusIcon['on-track']}))
@@ -1173,7 +1173,7 @@ class Component extends DCLogic {
       // Add row button
       e('button', {
         onClick: () => {
-          const newP = { id: Date.now(), name: 'New Project', type: 'Infra', lead: '', dept: 'IT', status: 'on-track', progress: 0, startDate: '', due: '', milestones: '' };
+          const newP = { id: Date.now(), name: 'New Project', type: 'Infra', lead: '', dept: 'IT', status: 'not-started', progress: 0, startDate: '', due: '', milestones: '' };
           this.setState({ projects: [...this.state.projects, newP] });
         },
         className: 'add-proj',
@@ -1689,11 +1689,11 @@ class Component extends DCLogic {
 
     // ── 3. In-house Develop ───────────────────────────────────────
     const { inhouse, securityEvents, vulns, bizServices, statusKpis, networkKpis } = this.state;
-    const inhouseStatuses = [['COMPLETED','Completed'],['ON-PLAN','In Progress'],['ON-HOLD','On Hold'],['DELAYED','Delayed'],['NOT STARTED','Not Started']];
-    const ihColors  = { 'COMPLETED':'#16a34a','ON-PLAN':'#2563eb','ON-HOLD':'#d97706','DELAYED':'#e11d48','NOT STARTED':'#6b7280' };
-    const ihBg      = { 'COMPLETED':'#f0fdf4','ON-PLAN':'#eff6ff','ON-HOLD':'#fffbeb','DELAYED':'#fff1f2','NOT STARTED':'#f9fafb' };
-    const ihBorder  = { 'COMPLETED':'#bbf7d0','ON-PLAN':'#bfdbfe','ON-HOLD':'#fde68a','DELAYED':'#fecdd3','NOT STARTED':'#e5e7eb' };
-    const ihIcon    = { 'COMPLETED':'M5 13l4 4L19 7','ON-PLAN':'M13 10V3L4 14h7v7l9-11h-7z','ON-HOLD':'M10 9v6m4-6v6','DELAYED':'M6 18L18 6M6 6l12 12','NOT STARTED':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' };
+    const inhouseStatuses = [['Completed','Completed'],['In Progress','In Progress'],['On Hold','On Hold'],['Delayed','Delayed'],['Not Started','Not Started']];
+    const ihColors  = { 'Completed':'#16a34a','In Progress':'#2563eb','On Hold':'#d97706','Delayed':'#e11d48','Not Started':'#6b7280' };
+    const ihBg      = { 'Completed':'#f0fdf4','In Progress':'#eff6ff','On Hold':'#fffbeb','Delayed':'#fff1f2','Not Started':'#f9fafb' };
+    const ihBorder  = { 'Completed':'#bbf7d0','In Progress':'#bfdbfe','On Hold':'#fde68a','Delayed':'#fecdd3','Not Started':'#e5e7eb' };
+    const ihIcon    = { 'Completed':'M5 13l4 4L19 7','In Progress':'M13 10V3L4 14h7v7l9-11h-7z','On Hold':'M10 9v6m4-6v6','Delayed':'M6 18L18 6M6 6l12 12','Not Started':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' };
     const ihGrad    = { IT:'linear-gradient(135deg,#6366f1,#8b5cf6)',HR:'linear-gradient(135deg,#f97316,#ef4444)',WH:'linear-gradient(135deg,#14b8a6,#0891b2)',PROD:'linear-gradient(135deg,#22c55e,#16a34a)',ACC:'linear-gradient(135deg,#f59e0b,#ea580c)',SALE:'linear-gradient(135deg,#ec4899,#8b5cf6)' };
     const COL_IH = '40px 1fr 145px 160px 160px 200px 160px 84px';
 
@@ -1743,7 +1743,7 @@ class Component extends DCLogic {
             // Status badge (click to cycle)
             this.tdCell(e('div',{
               title:'Click to cycle status',
-              onClick:()=>{ const ord=['ON-PLAN','COMPLETED','DELAYED','ON-HOLD','NOT STARTED']; upd('status',ord[(ord.indexOf(p.status)+1)%ord.length]); },
+              onClick:()=>{ const ord=['Not Started','In Progress','On Hold','Delayed','Completed']; upd('status',ord[(ord.indexOf(p.status)+1)%ord.length]); },
               style:{display:'inline-flex',alignItems:'center',gap:6,background:sc.bg,border:'1px solid '+sc.border,borderRadius:20,padding:'5px 12px',cursor:'pointer',userSelect:'none'}
             },
               e('span',{style:{fontSize:12,fontWeight:600,color:sc.color,whiteSpace:'nowrap'}},({'COMPLETED':'Completed','ON-PLAN':'In Progress','ON-HOLD':'On Hold','DELAYED':'Delayed','NOT STARTED':'Not Started'})[p.status]||p.status),
