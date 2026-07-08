@@ -125,20 +125,23 @@ class Component extends DCLogic {
 
   async _loadData() {
     if (!this._sb) return;
-    // Capture period values synchronously before any async operations
+    // Sequence counter — only apply result of the latest call
+    this._loadSeq = (this._loadSeq || 0) + 1;
+    const seq = this._loadSeq;
+    this.setState({ loadingData: true, supabaseData: null });
     const fm = this.state.filterMonth;
     const fy = this.state.filterYear;
-    this.setState({ loadingData: true, supabaseData: null });
     try {
       const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000));
       const query = this._sb.from('it_reports').select('data').eq('period_year', fy).eq('period_month', fm).maybeSingle();
       const { data } = await Promise.race([query, timeout]);
-      // Only apply if period hasn't changed while waiting
-      if (this.state.filterMonth === fm && this.state.filterYear === fy) {
+      if (this._loadSeq === seq) {
         this.setState({ supabaseData: data?.data || null, loadingData: false });
       }
     } catch(_) {
-      this.setState({ supabaseData: null, loadingData: false });
+      if (this._loadSeq === seq) {
+        this.setState({ supabaseData: null, loadingData: false });
+      }
     }
   }
 
