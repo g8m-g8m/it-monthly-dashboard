@@ -15,8 +15,6 @@
     .topbar { background: #fff; border-bottom: 1px solid #e0e5ea; height: 56px; display: flex; align-items: center; padding: 0 28px; gap: 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
     .topbar-logo { width: 32px; height: 32px; background: #0070f2; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .topbar-title { font-size: 15px; font-weight: 700; color: #1d2d3e; flex: 1; }
-    .topbar-back { display: flex; align-items: center; gap: 6px; text-decoration: none; color: #6b7c8d; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; border: 1px solid #e0e5ea; transition: border-color .15s; }
-    .topbar-back:hover { border-color: #0070f2; color: #0070f2; }
     .user-chip { display: flex; align-items: center; gap: 8px; background: #f5f7f9; border-radius: 20px; padding: 5px 12px; }
     .avatar { width: 28px; height: 28px; border-radius: 50%; background: #0070f2; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
     .chip-name { font-size: 12px; font-weight: 600; color: #1d2d3e; }
@@ -25,7 +23,33 @@
     .btn-signout:hover { color: #c9190b; }
 
     /* ── Layout ── */
+    .app-shell { display: flex; height: 100vh; overflow: hidden; }
+    .main-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .content-scroll { flex: 1; overflow-y: auto; }
     .main { max-width: 960px; margin: 32px auto; padding: 0 24px; }
+
+    /* ── Sidebar ── */
+    .sidebar { width: 228px; min-width: 228px; background: #fff; border-right: 1px solid #e0e5ea; display: flex; flex-direction: column; overflow: hidden; transition: width .25s ease, min-width .25s ease; flex-shrink: 0; }
+    .sidebar.collapsed { width: 64px; min-width: 64px; }
+    .sidebar-header { padding: 14px 10px 12px; border-bottom: 1px solid #e0e5ea; overflow: hidden; }
+    .sidebar-header-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .sidebar.collapsed .sidebar-header-row { justify-content: center; margin-bottom: 0; }
+    .sidebar-header-left { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+    .sidebar-logo { width: 36px; height: 36px; background: #0070f2; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 17px; font-weight: 600; flex-shrink: 0; cursor: pointer; box-shadow: 0 2px 8px rgba(0,112,242,.4); }
+    .sidebar-brand-name { font-size: 16px; font-weight: 600; color: #1d2d3e; white-space: nowrap; }
+    .sidebar-brand-sub { font-size: 12px; color: #a8b5c0; margin-top: 1px; white-space: nowrap; }
+    .sidebar-collapse-btn { width: 24px; height: 24px; border-radius: 6px; background: #f5f7f9; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .sidebar.collapsed .sidebar-brand, .sidebar.collapsed .sidebar-collapse-btn, .sidebar.collapsed .sidebar-label { display: none; }
+    .sidebar-nav { flex: 1; padding: 10px 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+    .sidebar-row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 7px; color: #6b7c8d; font-size: 13px; font-weight: 500; text-decoration: none; cursor: pointer; }
+    .sidebar.collapsed .sidebar-row { justify-content: center; padding: 10px; }
+    .sidebar-row:hover { background: #f8fafc; }
+    .sidebar-row.active { color: #1d2d3e; font-weight: 600; cursor: default; }
+    .sidebar-row svg { flex-shrink: 0; }
+    .sidebar-footer { padding: 10px; border-top: 1px solid #e0e5ea; display: flex; justify-content: center; }
+    .sidebar-footer-text { font-size: 10px; color: #a8b5c0; white-space: nowrap; }
+    .sidebar-footer-dot { display: none; width: 6px; height: 6px; border-radius: 50%; background: #d1d9e0; }
+    .sidebar.collapsed .sidebar-footer-dot { display: block; }
 
     /* ── Page header ── */
     .page-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
@@ -125,28 +149,62 @@
   </div>
 </div>
 
-<!-- Top bar -->
-<div class="topbar">
-  <div class="topbar-logo">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-  </div>
-  <span class="topbar-title">User Management</span>
-  <a href="./index.html" class="topbar-back">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    Back
-  </a>
-  <div class="user-chip" id="user-chip" style="display:none">
-    <div class="avatar" id="topbar-avatar">A</div>
-    <div>
-      <div class="chip-name" id="topbar-name">Admin</div>
-      <div class="chip-role" id="topbar-role">admin</div>
-    </div>
-    <button class="btn-signout" onclick="doLogout()">Sign Out</button>
-  </div>
-</div>
+<div class="app-shell">
 
-<!-- Main -->
-<div class="main" id="main-content" style="display:none">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-header-row">
+        <div class="sidebar-header-left">
+          <div class="sidebar-logo" onclick="toggleSidebar()" title="Toggle menu">P</div>
+          <div class="sidebar-brand">
+            <div class="sidebar-brand-name">Pacificpipe PLC</div>
+            <div class="sidebar-brand-sub">IT Division</div>
+          </div>
+        </div>
+        <div class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Collapse">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b7c8d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-row" href="./IT Dashboard.dc.html" title="Dashboard">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg>
+        <span class="sidebar-label">Dashboard</span>
+      </a>
+      <a class="sidebar-row" href="./IT Data Entry.dc.html" title="Data Entry">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span class="sidebar-label">Data Entry</span>
+      </a>
+      <div class="sidebar-row active" title="User Management">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <span class="sidebar-label">User Management</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="sidebar-footer-text sidebar-label">IT Department Report</span>
+      <span class="sidebar-footer-dot"></span>
+    </div>
+  </aside>
+
+  <div class="main-col">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <span class="topbar-title">User Management</span>
+      <div class="user-chip" id="user-chip" style="display:none">
+        <div class="avatar" id="topbar-avatar">A</div>
+        <div>
+          <div class="chip-name" id="topbar-name">Admin</div>
+          <div class="chip-role" id="topbar-role">admin</div>
+        </div>
+        <button class="btn-signout" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="content-scroll">
+    <div class="main" id="main-content" style="display:none">
 
   <!-- Access denied -->
   <div id="access-denied">
@@ -204,6 +262,9 @@
 
   </div><!-- /admin-content -->
 </div><!-- /main -->
+    </div><!-- /content-scroll -->
+  </div><!-- /main-col -->
+</div><!-- /app-shell -->
 
 <!-- Invite Modal -->
 <div class="overlay" id="invite-modal">
@@ -481,6 +542,8 @@ async function confirmDelete() {
 }
 
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
 
 // Close modal on overlay click
 document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', () => o.classList.remove('open')));
