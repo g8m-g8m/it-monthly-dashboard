@@ -2968,37 +2968,64 @@ class Component extends DCLogic {
       )
     );
 
-    // ── Sidebar nav element ──────────────────────────────────────
+    // ── Sidebar nav element — program tree (IT Dashboard / Data Entry) ──
+    const progRowStyle = (active, clickable) => ({
+      display: 'flex', alignItems: 'center', gap: sidebarOpen ? 10 : 0,
+      padding: sidebarOpen ? '9px 10px' : '10px', justifyContent: sidebarOpen ? 'flex-start' : 'center',
+      borderRadius: 7, cursor: clickable ? 'pointer' : 'default', userSelect: 'none',
+      fontSize: 16, fontWeight: 600, color: active ? '#f1f5f9' : '#64748b'
+    });
     const sidebarNav = React.createElement('div', { style: { display: 'flex', flexDirection: 'column' } },
-      React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#334155', letterSpacing: '.01em', padding: '8px 10px 6px' } }, 'Sections'),
-      ...navDefs.map(n => {
-        const on = n.id === tab;
-        const baseStyle = { display: 'flex', alignItems: 'center', gap: sidebarOpen ? 10 : 0, padding: sidebarOpen ? '9px 10px' : '10px', justifyContent: sidebarOpen ? 'flex-start' : 'center', borderRadius: 7, margin: '1px 0', cursor: 'pointer', userSelect: 'none', fontSize: 16, transition: 'all .15s', background: on ? 'rgba(59,130,246,.18)' : 'transparent', color: on ? '#93c5fd' : '#64748b', fontWeight: on ? 600 : 500 };
-        const handleClick = ((id) => (ev) => {
-          const nav = ev.currentTarget.closest('nav');
-          if (nav) {
-            nav.querySelectorAll('[data-nav-id]').forEach(el => {
-              el.style.background = 'transparent';
-              el.style.color = '#64748b';
-              el.style.fontWeight = '500';
-            });
-          }
-          ev.currentTarget.style.background = 'rgba(59,130,246,.18)';
-          ev.currentTarget.style.color = '#93c5fd';
-          ev.currentTarget.style.fontWeight = '600';
-          this.setState({ tab: id });
-        })(n.id);
-        return React.createElement('div', {
-          key: n.id,
-          'data-nav-id': n.id,
-          onClick: handleClick,
-          title: !sidebarOpen ? n.label : '',
-          style: baseStyle
-        },
-          this.ic(n.d),
-          sidebarOpen ? React.createElement('span', { style: { whiteSpace: 'nowrap', overflow: 'hidden' } }, n.label) : null
-        );
-      })
+      // Program: IT Dashboard (this page — expanded)
+      React.createElement('div', { style: progRowStyle(true, false), title: !sidebarOpen ? 'IT Dashboard' : '' },
+        this.ic('M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'),
+        sidebarOpen ? React.createElement('span', null, 'IT Dashboard') : null
+      ),
+      sidebarOpen ? React.createElement('div', { style: { marginLeft: 20, paddingLeft: 10, borderLeft: '1px solid rgba(255,255,255,.08)', display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } },
+        ...navDefs.map(n => {
+          const on = n.id === tab;
+          const baseStyle = { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 7, margin: '1px 0', cursor: 'pointer', userSelect: 'none', fontSize: 14, transition: 'all .15s', background: on ? 'rgba(59,130,246,.18)' : 'transparent', color: on ? '#93c5fd' : '#64748b', fontWeight: on ? 600 : 400 };
+          const handleClick = ((id) => (ev) => {
+            const nav = ev.currentTarget.closest('nav');
+            if (nav) {
+              nav.querySelectorAll('[data-nav-id]').forEach(el => {
+                el.style.background = 'transparent';
+                el.style.color = '#64748b';
+                el.style.fontWeight = '400';
+              });
+            }
+            ev.currentTarget.style.background = 'rgba(59,130,246,.18)';
+            ev.currentTarget.style.color = '#93c5fd';
+            ev.currentTarget.style.fontWeight = '600';
+            this.setState({ tab: id });
+          })(n.id);
+          return React.createElement('div', {
+            key: n.id,
+            'data-nav-id': n.id,
+            onClick: handleClick,
+            style: baseStyle
+          },
+            this.ic(n.d),
+            React.createElement('span', { style: { whiteSpace: 'nowrap', overflow: 'hidden' } }, n.label)
+          );
+        })
+      ) : null,
+      // Program: Data Entry (link to the other page)
+      React.createElement('div', {
+        onClick: () => { window.location.href = './IT Data Entry.dc.html'; },
+        style: progRowStyle(false, true), title: !sidebarOpen ? 'Data Entry' : ''
+      },
+        this.ic('M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'),
+        sidebarOpen ? React.createElement('span', null, 'Data Entry') : null
+      ),
+      // User Management (admin only)
+      userRole === 'admin' ? React.createElement('div', {
+        onClick: () => { window.location.href = './admin-users.html'; },
+        style: progRowStyle(false, true), title: !sidebarOpen ? 'User Management' : ''
+      },
+        this.ic('M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75'),
+        sidebarOpen ? React.createElement('span', null, 'User Management') : null
+      ) : null
     );
 
     // ── Assemble ─────────────────────────────────────────────────
@@ -3031,51 +3058,12 @@ class Component extends DCLogic {
           : (map[tab] || overviewEl),
       printFn: () => window.print(),
       appMenuBtn: (() => {
-        const { showAppMenu } = this.state;
         const titles = { overview:'Dashboard Overview', uptime:'Uptime & Availability', network:'Network & Infrastructure', security:'Security & Compliance', budget:'Budget & Projects', projects:'Project Portfolio' };
-        return e('div',{style:{position:'relative'},onClick:(ev)=>ev.stopPropagation()},
-          e('div',{onClick:()=>this.setState({showAppMenu:!showAppMenu}),style:{cursor:'pointer',userSelect:'none'}},
-            e('div',{style:{margin:0,fontSize:17,fontWeight:600,color:'#0f172a',letterSpacing:'-.01em',display:'flex',alignItems:'center',gap:6}},
-              titles[tab]||'IT Dashboard',
-              e('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M19 9l-7 7-7-7'}))
-            ),
-            e('div',{style:{fontSize:11,color:'#94a3b8',marginTop:1}},headerSubtitle)
+        return e('div', null,
+          e('div',{style:{margin:0,fontSize:17,fontWeight:600,color:'#0f172a',letterSpacing:'-.01em'}},
+            titles[tab]||'IT Dashboard'
           ),
-          showAppMenu?e('div',{style:{position:'absolute',top:'calc(100% + 8px)',left:0,background:'#fff',borderRadius:12,boxShadow:'0 8px 30px rgba(0,0,0,.15)',border:'1px solid #e2e8f0',minWidth:240,zIndex:200,overflow:'hidden'}},
-            e('div',{style:{padding:'6px'}},
-              e('div',{style:{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,background:'#eff6ff'}},
-                e('div',{style:{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#1e40af,#3b82f6)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
-                  e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'}))
-                ),
-                e('div',null,
-                  e('div',{style:{fontSize:13,fontWeight:600,color:'#2563eb'}},'IT Dashboard'),
-                  e('div',{style:{fontSize:11,color:'#64748b'}},'ดูรายงาน KPI (หน้านี้)')
-                )
-              ),
-              e('div',{onClick:()=>{ window.location.href='./IT Data Entry.dc.html'; },style:{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,cursor:'pointer',background:'transparent',transition:'background .15s'},
-                onMouseEnter:(ev)=>ev.currentTarget.style.background='#f8fafc',
-                onMouseLeave:(ev)=>ev.currentTarget.style.background='transparent'},
-                e('div',{style:{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#059669,#10b981)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
-                  e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'}))
-                ),
-                e('div',null,
-                  e('div',{style:{fontSize:13,fontWeight:600,color:'#0f172a'}},'Data Entry'),
-                  e('div',{style:{fontSize:11,color:'#64748b'}},'กรอกข้อมูลรายงานประจำเดือน')
-                )
-              ),
-              userRole==='admin'?e('div',{onClick:()=>{ window.location.href='./admin-users.html'; },style:{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,cursor:'pointer',background:'transparent',transition:'background .15s'},
-                onMouseEnter:(ev)=>ev.currentTarget.style.background='#f8fafc',
-                onMouseLeave:(ev)=>ev.currentTarget.style.background='transparent'},
-                e('div',{style:{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#6b21a8,#9333ea)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
-                  e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75'}))
-                ),
-                e('div',null,
-                  e('div',{style:{fontSize:13,fontWeight:600,color:'#0f172a'}},'User Management'),
-                  e('div',{style:{fontSize:11,color:'#64748b'}},'จัดการผู้ใช้งานและสิทธิ์')
-                )
-              ):null
-            )
-          ):null
+          e('div',{style:{fontSize:11,color:'#94a3b8',marginTop:1}},headerSubtitle)
         );
       })(),
       authOverlay,
