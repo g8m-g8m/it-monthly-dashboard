@@ -760,10 +760,10 @@ class Component extends DCLogic {
       // Program: IT Dashboard (link)
       e('div', {
         onClick: () => { window.location.href = './IT Dashboard.dc.html'; },
-        style: progRowStyle(false, true), title: !sidebarOpen ? 'IT Dashboard' : ''
+        style: progRowStyle(false, true), title: !sidebarOpen ? 'Dashboard' : ''
       },
         ic('M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'),
-        sidebarOpen ? e('span', null, 'IT Dashboard') : null
+        sidebarOpen ? e('span', null, 'Dashboard') : null
       ),
       // Program: Data Entry (this page — expanded)
       e('div', { style: progRowStyle(true, false), title: !sidebarOpen ? 'Data Entry' : '' },
@@ -796,7 +796,15 @@ class Component extends DCLogic {
           sidebarOpen ? t.label : null
         );
       })
-      )
+      ),
+      // User Management (admin only)
+      this.state.userRole === 'admin' ? e('div', {
+        onClick: () => { window.location.href = './admin-users.html'; },
+        style: progRowStyle(false, true), title: !sidebarOpen ? 'User Management' : ''
+      },
+        ic('M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75'),
+        sidebarOpen ? e('span', null, 'User Management') : null
+      ) : null
     );
 
     // ── 1. Period ─────────────────────────────────────────────────
