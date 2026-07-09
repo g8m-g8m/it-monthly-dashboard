@@ -770,15 +770,17 @@ class Component extends DCLogic {
         ic('M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'),
         sidebarOpen ? e('span', null, 'Data Entry') : null
       ),
-      sidebarOpen ? e('div', { style: { marginLeft: 20, paddingLeft: 10, borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } },
+      e('div', { style: sidebarOpen ? { marginLeft: 20, paddingLeft: 10, borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } : { display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } },
         ...tabs.map(t => {
         const on = t.id === tab;
         return e('button', {
           key: t.id,
           onClick: () => this.setState({ tab: t.id }),
+          title: !sidebarOpen ? t.label : '',
           style: {
-            display:'flex', alignItems:'center', gap:8, width:'100%',
-            padding:'8px 10px', fontSize:12.5,
+            display:'flex', alignItems:'center', gap: sidebarOpen ? 8 : 0, width:'100%',
+            justifyContent: sidebarOpen ? 'flex-start' : 'center',
+            padding: sidebarOpen ? '8px 10px' : '8px', fontSize:12.5,
             fontWeight: on ? 600 : 400,
             color: on ? '#2563eb' : '#64748b',
             background: on ? '#eff6ff' : 'transparent',
@@ -791,10 +793,10 @@ class Component extends DCLogic {
           e('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:on?'#2563eb':'#94a3b8',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round',style:{flexShrink:0}},
             e('path',{d:t.d})
           ),
-          t.label
+          sidebarOpen ? t.label : null
         );
       })
-      ) : null
+      )
     );
 
     // ── 1. Period ─────────────────────────────────────────────────

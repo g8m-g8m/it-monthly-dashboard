@@ -2981,10 +2981,10 @@ class Component extends DCLogic {
         this.ic('M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'),
         sidebarOpen ? React.createElement('span', null, 'IT Dashboard') : null
       ),
-      sidebarOpen ? React.createElement('div', { style: { marginLeft: 20, paddingLeft: 10, borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } },
+      React.createElement('div', { style: sidebarOpen ? { marginLeft: 20, paddingLeft: 10, borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } : { display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } },
         ...navDefs.map(n => {
           const on = n.id === tab;
-          const baseStyle = { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 7, margin: '1px 0', cursor: 'pointer', userSelect: 'none', fontSize: 14, transition: 'all .15s', background: on ? '#eff6ff' : 'transparent', color: on ? '#2563eb' : '#64748b', fontWeight: on ? 600 : 400 };
+          const baseStyle = { display: 'flex', alignItems: 'center', gap: sidebarOpen ? 10 : 0, padding: sidebarOpen ? '8px 10px' : '8px', justifyContent: sidebarOpen ? 'flex-start' : 'center', borderRadius: 7, margin: '1px 0', cursor: 'pointer', userSelect: 'none', fontSize: 12.5, transition: 'all .15s', background: on ? '#eff6ff' : 'transparent', color: on ? '#2563eb' : '#64748b', fontWeight: on ? 600 : 400 };
           const handleClick = ((id) => (ev) => {
             const nav = ev.currentTarget.closest('nav');
             if (nav) {
@@ -3003,13 +3003,14 @@ class Component extends DCLogic {
             key: n.id,
             'data-nav-id': n.id,
             onClick: handleClick,
+            title: !sidebarOpen ? n.label : '',
             style: baseStyle
           },
             this.ic(n.d),
-            React.createElement('span', { style: { whiteSpace: 'nowrap', overflow: 'hidden' } }, n.label)
+            sidebarOpen ? React.createElement('span', { style: { whiteSpace: 'nowrap', overflow: 'hidden' } }, n.label) : null
           );
         })
-      ) : null,
+      ),
       // Program: Data Entry (link to the other page)
       React.createElement('div', {
         onClick: () => { window.location.href = './IT Data Entry.dc.html'; },
