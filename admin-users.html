@@ -113,6 +113,15 @@
     /* ── Empty state ── */
     .empty { text-align: center; padding: 48px 24px; color: #a8b5c0; font-size: 14px; }
 
+    /* ── Avatar upload ── */
+    .avatar-upload-row { display: flex; justify-content: center; margin-bottom: 20px; }
+    .avatar-upload { position: relative; width: 84px; height: 84px; border-radius: 50%; background: #f5f7f9; border: 2px dashed #d1d9e0; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; flex-shrink: 0; }
+    .avatar-upload img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .avatar-upload-placeholder { color: #a8b5c0; display: flex; align-items: center; justify-content: center; }
+    .avatar-upload-hint { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; text-align: center; padding: 4px 0; opacity: 0; transition: opacity .15s; }
+    .avatar-upload:hover .avatar-upload-hint { opacity: 1; }
+    .avatar-img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+
     /* ── Access denied ── */
     #access-denied { display: none; text-align: center; padding: 80px 24px; }
     #access-denied .icon { font-size: 48px; margin-bottom: 16px; }
@@ -274,6 +283,16 @@
     <div id="invite-error" class="modal-error"></div>
     <div id="invite-success" style="background:#e8f9f0;border:1px solid #a3e6c0;border-radius:8px;padding:10px 14px;font-size:12px;color:#0a6640;margin-bottom:16px;display:none"></div>
     <div class="field"><label>Full Name</label><input type="text" id="inv-name" placeholder="ชื่อ-นามสกุล"></div>
+    <div class="avatar-upload-row">
+      <div class="avatar-upload" id="inv-avatar-upload" onclick="document.getElementById('inv-avatar-input').click()">
+        <div class="avatar-upload-placeholder" id="inv-avatar-placeholder">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+        <img id="inv-avatar-img" style="display:none">
+        <div class="avatar-upload-hint">เปลี่ยนรูป</div>
+      </div>
+      <input type="file" id="inv-avatar-input" accept="image/*" style="display:none" onchange="handleAvatarSelect(event,'inv')">
+    </div>
     <div class="field"><label>Email</label><input type="email" id="inv-email" placeholder="user@pacificpipe.co.th"></div>
     <div class="field">
       <label>Role</label>
@@ -299,6 +318,16 @@
     <div id="edit-error" class="modal-error"></div>
     <input type="hidden" id="edit-uid">
     <div class="field"><label>Full Name</label><input type="text" id="edit-name" placeholder="ชื่อ-นามสกุล"></div>
+    <div class="avatar-upload-row">
+      <div class="avatar-upload" id="edit-avatar-upload" onclick="document.getElementById('edit-avatar-input').click()">
+        <div class="avatar-upload-placeholder" id="edit-avatar-placeholder">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+        <img id="edit-avatar-img" style="display:none">
+        <div class="avatar-upload-hint">เปลี่ยนรูป</div>
+      </div>
+      <input type="file" id="edit-avatar-input" accept="image/*" style="display:none" onchange="handleAvatarSelect(event,'edit')">
+    </div>
     <div class="field">
       <label>Role</label>
       <select id="edit-role">
@@ -333,6 +362,53 @@
 <script>
 const sb = window.getSupabaseClient ? window.getSupabaseClient() : null;
 let currentUser = null;
+const avatarData = { inv: null, edit: null };
+
+function avatarHtml(p, size) {
+  const initial = (p.full_name || p.email || '?').charAt(0).toUpperCase();
+  if (p.avatar_url) return `<img class="avatar-img" style="width:${size}px;height:${size}px" src="${p.avatar_url}">`;
+  return `<div class="avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.38)}px">${initial}</div>`;
+}
+
+function fileToResizedDataUrl(file, size) {
+  size = size || 160;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const s = Math.min(img.width, img.height);
+        const sx = (img.width - s) / 2, sy = (img.height - s) / 2;
+        ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleAvatarSelect(ev, prefix) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await fileToResizedDataUrl(file, 160);
+    avatarData[prefix] = dataUrl;
+    const img = document.getElementById(prefix + '-avatar-img');
+    const placeholder = document.getElementById(prefix + '-avatar-placeholder');
+    img.src = dataUrl;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  } catch (_) {
+    alert('ไม่สามารถอ่านรูปภาพนี้ได้');
+  }
+  ev.target.value = '';
+}
 
 async function init() {
   if (!sb) { alert('Supabase not connected'); return; }
@@ -353,7 +429,16 @@ async function onSignIn(session) {
   document.getElementById('user-chip').style.display = 'flex';
 
   const name = profile?.full_name || session.user.email.split('@')[0];
-  document.getElementById('topbar-avatar').textContent = name.charAt(0).toUpperCase();
+  const topAvatar = document.getElementById('topbar-avatar');
+  if (profile?.avatar_url) {
+    topAvatar.style.backgroundImage = `url(${profile.avatar_url})`;
+    topAvatar.style.backgroundSize = 'cover';
+    topAvatar.style.backgroundPosition = 'center';
+    topAvatar.textContent = '';
+  } else {
+    topAvatar.style.backgroundImage = '';
+    topAvatar.textContent = name.charAt(0).toUpperCase();
+  }
   document.getElementById('topbar-name').textContent = name;
   document.getElementById('topbar-role').textContent = profile?.role || 'viewer';
 
@@ -389,7 +474,7 @@ async function loadUsers() {
     return `<tr>
       <td>
         <div style="display:flex;align-items:center;gap:10px">
-          <div class="avatar" style="width:34px;height:34px;font-size:13px">${initial}</div>
+          ${avatarHtml(p, 34)}
           <div>
             <div style="font-weight:600;color:#1d2d3e">${p.full_name || '—'}</div>
             <div style="font-size:11px;color:#6b7c8d;margin-top:1px">${p.email || '—'}</div>
@@ -430,6 +515,9 @@ function openInviteModal() {
   document.getElementById('inv-name').value = '';
   document.getElementById('inv-email').value = '';
   document.getElementById('inv-role').value = 'viewer';
+  avatarData.inv = null;
+  document.getElementById('inv-avatar-img').style.display = 'none';
+  document.getElementById('inv-avatar-placeholder').style.display = 'flex';
   document.getElementById('invite-modal').classList.add('open');
 }
 
@@ -468,6 +556,7 @@ async function inviteUser() {
     // Update profile with role (using admin's authenticated client)
     await sb.from('profiles').upsert({
       id: userId, email, full_name: name, role,
+      avatar_url: avatarData.inv || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
@@ -491,6 +580,11 @@ function openEditModal(profile) {
   document.getElementById('edit-name').value = profile.full_name || '';
   document.getElementById('edit-role').value = profile.role || 'viewer';
   document.getElementById('edit-modal-sub').textContent = profile.email || '';
+  avatarData.edit = profile.avatar_url || null;
+  const img = document.getElementById('edit-avatar-img');
+  const placeholder = document.getElementById('edit-avatar-placeholder');
+  if (avatarData.edit) { img.src = avatarData.edit; img.style.display = 'block'; placeholder.style.display = 'none'; }
+  else { img.style.display = 'none'; placeholder.style.display = 'flex'; }
   document.getElementById('edit-modal').classList.add('open');
 }
 
@@ -504,7 +598,7 @@ async function saveEdit() {
   errEl.style.display = 'none';
   btn.textContent = 'Saving…'; btn.disabled = true;
 
-  const { error } = await sb.from('profiles').update({ full_name: name, role, updated_at: new Date().toISOString() }).eq('id', id);
+  const { error } = await sb.from('profiles').update({ full_name: name, role, avatar_url: avatarData.edit || null, updated_at: new Date().toISOString() }).eq('id', id);
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; btn.textContent = 'Save Changes'; btn.disabled = false; return; }
 
   btn.textContent = 'Save Changes'; btn.disabled = false;
