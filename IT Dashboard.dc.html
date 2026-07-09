@@ -275,6 +275,30 @@ class Component extends DCLogic {
     );
   }
 
+  // Editable note box — seeded with AI default text, edits persist to localStorage
+  noteBox(storageKey, defaultLines, opts) {
+    const e = React.createElement;
+    const { accent = '#475569', bg = '#fafcff', border = '#cbd5e1' } = opts || {};
+    const notes = this.state.notes || {};
+    const lsKey = 'itdash_note_' + storageKey;
+    let val = notes[storageKey];
+    if (val === undefined) {
+      try { val = window.localStorage.getItem(lsKey); } catch (_) { val = null; }
+      if (val === null || val === undefined) val = defaultLines.map(l => '• ' + l).join('\n');
+    }
+    return e('textarea', {
+      value: val,
+      onChange: (ev) => {
+        const v = ev.target.value;
+        this.setState(s => ({ notes: { ...(s.notes || {}), [storageKey]: v } }));
+        try { window.localStorage.setItem(lsKey, v); } catch (_) {}
+      },
+      placeholder: 'พิมพ์ note หรือ comment ของคุณที่นี่...',
+      rows: Math.max(3, defaultLines.length),
+      style: { width: '100%', boxSizing: 'border-box', border: '1px dashed ' + border, borderRadius: 8, padding: '8px 10px', fontSize: 14, color: accent, lineHeight: 1.6, fontFamily: 'inherit', background: bg, outline: 'none', resize: 'vertical' }
+    });
+  }
+
   renderVals() {
     // ── Load from Supabase (primary) or localStorage (fallback) ───
     const e = React.createElement;
@@ -730,44 +754,20 @@ class Component extends DCLogic {
           ),
           'Key Points — AI Analysis'
         ),
-        e('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } },
-          ...((() => {
-            const _avgP  = Math.round(prj.reduce((s,p2)=>s+p2.p,0)/prj.length);
-            const _fin   = prjFinish.length;
-            const _risk  = prjAtRisk.length;
-            const _onTrk = prj.filter(p2=>p2.st==='in-progress').length;
-            const _depts = [{d:'TECH',f:2,t:5},{d:'SALE',f:1,t:3},{d:'ACC',f:2,t:4},{d:'PROD',f:1,t:3},{d:'QA',f:2,t:4}];
-            const _lowDept = _depts.reduce((a,b)=>((b.f/b.t)<(a.f/a.t)?b:a));
-            const points = [
-              {
-                c: _avgP >= 70 ? '#10b981' : _avgP >= 50 ? '#f59e0b' : '#ef4444',
-                icon: _avgP >= 70 ? '✓' : '⚠',
-                txt: 'Portfolio progress อยู่ที่ ' + _avgP + '% — ' + (_avgP >= 70 ? 'เป็นไปตามแผนงานประจำเดือนกรกฎาคม 2026' : 'ต่ำกว่าเป้า ควรเร่งดำเนินการ')
-              },
-              {
-                c: _risk === 0 ? '#10b981' : '#f59e0b',
-                icon: _risk === 0 ? '✓' : '⚠',
-                txt: _risk + ' โครงการ' + (_risk > 0 ? 'อยู่ในสถานะ At Risk/Delayed ต้องการ escalation' : ' ไม่มีโครงการที่เสี่ยงสูงในเดือนนี้')
-              },
-              {
-                c: '#2563eb',
-                icon: '→',
-                txt: 'Dept ' + _lowDept.d + ' มี completion rate ต่ำสุด (' + Math.round((_lowDept.f/_lowDept.t)*100) + '%) ควรเร่ง review milestone'
-              },
-              {
-                c: '#10b981',
-                icon: '✓',
-                txt: _fin + ' โครงการใกล้เสร็จสมบูรณ์ (≥85%) · ' + _onTrk + ' โครงการดำเนินการตามแผน'
-              },
-            ];
-            return points.map((pt, i) =>
-              e('div', { key: i, style: { display: 'flex', gap: 6, alignItems: 'flex-start' } },
-                e('span', { style: { fontSize: 14, fontWeight: 700, color: pt.c, flexShrink: 0, marginTop: 1 } }, pt.icon),
-                e('span', { style: { fontSize: 14, color: '#475569', lineHeight: 1.55 } }, pt.txt)
-              )
-            );
-          })())
-        )
+        this.noteBox('overview_keypoints', (() => {
+          const _avgP  = Math.round(prj.reduce((s,p2)=>s+p2.p,0)/prj.length);
+          const _fin   = prjFinish.length;
+          const _risk  = prjAtRisk.length;
+          const _onTrk = prj.filter(p2=>p2.st==='in-progress').length;
+          const _depts = [{d:'TECH',f:2,t:5},{d:'SALE',f:1,t:3},{d:'ACC',f:2,t:4},{d:'PROD',f:1,t:3},{d:'QA',f:2,t:4}];
+          const _lowDept = _depts.reduce((a,b)=>((b.f/b.t)<(a.f/a.t)?b:a));
+          return [
+            'Portfolio progress อยู่ที่ ' + _avgP + '% — ' + (_avgP >= 70 ? 'เป็นไปตามแผนงานประจำเดือนกรกฎาคม 2026' : 'ต่ำกว่าเป้า ควรเร่งดำเนินการ'),
+            _risk + ' โครงการ' + (_risk > 0 ? 'อยู่ในสถานะ At Risk/Delayed ต้องการ escalation' : ' ไม่มีโครงการที่เสี่ยงสูงในเดือนนี้'),
+            'Dept ' + _lowDept.d + ' มี completion rate ต่ำสุด (' + Math.round((_lowDept.f/_lowDept.t)*100) + '%) ควรเร่ง review milestone',
+            _fin + ' โครงการใกล้เสร็จสมบูรณ์ (≥85%) · ' + _onTrk + ' โครงการดำเนินการตามแผน',
+          ];
+        })())
       )
     ]);
 
@@ -1512,20 +1512,15 @@ class Component extends DCLogic {
               ),
               e('span', { style: { fontSize: 14, fontWeight: 600, color: '#0f172a', letterSpacing: '.01em' } }, 'Key Points — AI Analysis')
             ),
-            e('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } }, ...((() => {
-              const allMet = svcMonthly.every(s => s.data[s.data.length-1] === 100);
+            this.noteBox('uptime_domain_keypoints', (() => {
               const improving = svcMonthly.filter(s => s.data[s.data.length-1] > s.data[0]);
               const lowestDomain = svcMonthly.reduce((a,b) => Math.min(...b.data) < Math.min(...a.data) ? b : a);
-              const pts = [
-                { c: '#10b981', icon: '✓', txt: 'กรกฎาคม 2026 — ทุก domain บรรลุ uptime 100% เกิน SLA target ทุกค่า' },
-                { c: '#2563eb', icon: '→', txt: improving.length + ' domains มีแนวโน้มดีขึ้นต่อเนื่องตลอด Jan–Jul 2026' },
-                { c: '#f59e0b', icon: '⚠', txt: lowestDomain.n + ' มี min uptime ต่ำสุด (' + Math.min(...lowestDomain.data) + '%) ในช่วง Jan–Feb — ควรติดตาม' },
+              return [
+                'กรกฎาคม 2026 — ทุก domain บรรลุ uptime 100% เกิน SLA target ทุกค่า',
+                improving.length + ' domains มีแนวโน้มดีขึ้นต่อเนื่องตลอด Jan–Jul 2026',
+                lowestDomain.n + ' มี min uptime ต่ำสุด (' + Math.min(...lowestDomain.data) + '%) ในช่วง Jan–Feb — ควรติดตาม',
               ];
-              return pts.map((pt, i) => e('div', { key: i, style: { display: 'flex', gap: 6, alignItems: 'flex-start' } },
-                e('span', { style: { fontSize: 15, fontWeight: 600, color: pt.c, flexShrink: 0, marginTop: 1 } }, pt.icon),
-                e('span', { style: { fontSize: 14, color: '#475569', lineHeight: 1.6 } }, pt.txt)
-              ));
-            })()))
+            })())
           )
         ]),
         card([
@@ -1577,20 +1572,17 @@ class Component extends DCLogic {
             ),
             e('span', { style: { fontSize: 14, fontWeight: 600, color: '#0f172a', letterSpacing: '.01em' } }, 'Key Points — AI Analysis')
           ),
-          e('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } }, ...((() => {
+          this.noteBox('service_status_keypoints', (() => {
             const totalInc   = svcs.reduce((s,v) => s + v.incidents, 0);
             const totalAct   = svcs.reduce((s,v) => s + v.actions, 0);
             const allHits    = svcs.every(s => s.score >= s.target);
             const incDomains = svcs.filter(s => s.incidents > 0).map(s => s.n);
             return [
-              { c: '#10b981', icon: '✓', txt: allHits ? 'ทุก domain บรรลุ Hits — score ≥ target ทุกตัว ไม่มี miss SLA ในกรกฎาคม 2026' : 'บาง domain ยังไม่บรรลุ target — ควรตรวจสอบ' },
-              { c: totalInc > 0 ? '#f97316' : '#10b981', icon: totalInc > 0 ? '⚠' : '✓', txt: totalInc > 0 ? totalInc + ' incident(s): ' + incDomains.join(', ') + ' — มี ' + totalAct + ' action(s) ดำเนินการแก้ไข' : 'ไม่มี incident ในกรกฎาคม 2026 — ทุก domain เสถียรตลอดเดือน' },
-              { c: '#2563eb', icon: '→', txt: 'Security บรรลุ 100% SLA สูงสุด · แนะนำ review incident ที่ Data Center และ Network Link' },
-            ].map((pt, i) => e('div', { key: i, style: { display: 'flex', gap: 6, alignItems: 'flex-start' } },
-              e('span', { style: { fontSize: 15, fontWeight: 600, color: pt.c, flexShrink: 0, marginTop: 1 } }, pt.icon),
-              e('span', { style: { fontSize: 14, color: '#475569', lineHeight: 1.6 } }, pt.txt)
-            ));
-          })()))
+              allHits ? 'ทุก domain บรรลุ Hits — score ≥ target ทุกตัว ไม่มี miss SLA ในกรกฎาคม 2026' : 'บาง domain ยังไม่บรรลุ target — ควรตรวจสอบ',
+              totalInc > 0 ? totalInc + ' incident(s): ' + incDomains.join(', ') + ' — มี ' + totalAct + ' action(s) ดำเนินการแก้ไข' : 'ไม่มี incident ในกรกฎาคม 2026 — ทุก domain เสถียรตลอดเดือน',
+              'Security บรรลุ 100% SLA สูงสุด · แนะนำ review incident ที่ Data Center และ Network Link',
+            ];
+          })())
         ])
       )
     );
@@ -2543,14 +2535,7 @@ class Component extends DCLogic {
               // Card 2: Key Insight
               e('div', { style: { background: '#f0f9ff', borderRadius: 10, border: '1px solid #bae6fd', padding: '10px' } },
                 e('div', { style: { fontSize: 14, fontWeight: 700, color: '#0ea5e9', marginBottom: 6 } }, '💡 Key Insight'),
-                e('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
-                  ...['Datacenter และ Equipment Repair ดำเนินการแล้ว 100%', 'Network ดำเนินการแล้ว 100%', 'ควรติดตามกลุ่ม Subscription และ Security อย่างใกล้ชิด'].map((t,i) =>
-                    e('div', { key: i, style: { display: 'flex', gap: 5 } },
-                      e('span', { style: { color: '#0ea5e9', flexShrink: 0, fontSize: 14 } }, '•'),
-                      e('span', { style: { fontSize: 14, color: '#334155', lineHeight: 1.6 } }, t)
-                    )
-                  )
-                )
+                this.noteBox('datacenter_key_insight', ['Datacenter และ Equipment Repair ดำเนินการแล้ว 100%', 'Network ดำเนินการแล้ว 100%', 'ควรติดตามกลุ่ม Subscription และ Security อย่างใกล้ชิด'], { accent: '#334155', bg: '#f0f9ff', border: '#bae6fd' })
               )
             )
           ),
@@ -2580,14 +2565,7 @@ class Component extends DCLogic {
               // Card 2: Key Insight
               e('div', { style: { background: '#f0fdf4', borderRadius: 10, border: '1px solid #bbf7d0', padding: '10px' } },
                 e('div', { style: { fontSize: 14, fontWeight: 700, color: '#10b981', marginBottom: 6 } }, '💡 Key Insight'),
-                e('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
-                  ...['Q1 ดำเนินการแล้วเกือบทั้งหมด 97%', 'ควรวางแผนและติดตาม Q2 – Q4 เพื่อให้ไปตามแผนงาน'].map((t,i) =>
-                    e('div', { key: i, style: { display: 'flex', gap: 5 } },
-                      e('span', { style: { color: '#10b981', flexShrink: 0, fontSize: 14 } }, '•'),
-                      e('span', { style: { fontSize: 14, color: '#334155', lineHeight: 1.6 } }, t)
-                    )
-                  )
-                )
+                this.noteBox('ma_key_insight', ['Q1 ดำเนินการแล้วเกือบทั้งหมด 97%', 'ควรวางแผนและติดตาม Q2 – Q4 เพื่อให้ไปตามแผนงาน'], { accent: '#334155', bg: '#f0fdf4', border: '#bbf7d0' })
               )
             )
           ),
