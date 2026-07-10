@@ -131,7 +131,7 @@
 
         <div class="divider">เลือกระบบ</div>
 
-        <a href="./IT Dashboard.dc.html" class="menu-btn">
+        <a href="./IT Dashboard.dc.html" class="menu-btn" id="dash-btn">
           <div class="menu-icon" style="background:#0070f2">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
@@ -140,7 +140,7 @@
           </div>
           <div class="menu-text">
             <div class="menu-title">IT Dashboard</div>
-            <div class="menu-sub">ดูรายงานและ KPI รายเดือน</div>
+            <div class="menu-sub" id="dash-sub">ดูรายงานและ KPI รายเดือน</div>
           </div>
           <svg class="menu-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
         </a>
@@ -191,7 +191,15 @@
     }
 
     async function showMenu(session) {
-      const { data: profile } = await sb.from('profiles').select('full_name, role, must_change_password').eq('id', session.user.id).single();
+      let { data: profile, error: profErr } = await sb.from('profiles').select('full_name, role, must_change_password, menu_access').eq('id', session.user.id).single();
+
+      if (profErr) {
+        console.error('[profiles] fetch failed, retrying without must_change_password/menu_access:', profErr.message);
+        const retry = await sb.from('profiles').select('full_name, role').eq('id', session.user.id).single();
+        profile = retry.data;
+        profErr = retry.error;
+        if (profErr) console.error('[profiles] fetch still failed:', profErr.message);
+      }
 
       document.getElementById('login-section').style.display = 'none';
 
@@ -214,9 +222,25 @@
       if (role === 'admin') {
         document.getElementById('admin-btn').style.display = 'flex';
       }
-      if (role === 'viewer') {
+
+      // Menu access — explicit per-user list, or role-based default when not set
+      const defaultAccess = (role === 'admin' || role === 'editor') ? ['dashboard','data_entry'] : ['dashboard'];
+      const access = Array.isArray(profile?.menu_access) ? profile.menu_access : defaultAccess;
+
+      const dashBtn = document.getElementById('dash-btn');
+      if (access.includes('dashboard')) {
+        dashBtn.classList.remove('disabled');
+        document.getElementById('dash-sub').textContent = 'ดูรายงานและ KPI รายเดือน';
+      } else {
+        dashBtn.classList.add('disabled');
+        document.getElementById('dash-sub').textContent = 'ไม่ได้รับสิทธิ์เข้าเมนูนี้';
+      }
+      if (access.includes('data_entry')) {
+        document.getElementById('entry-btn').classList.remove('disabled');
+        document.getElementById('entry-sub').textContent = 'กรอกข้อมูลรายงานประจำเดือน';
+      } else {
         document.getElementById('entry-btn').classList.add('disabled');
-        document.getElementById('entry-sub').textContent = 'ต้องการสิทธิ์ Editor ขึ้นไป';
+        document.getElementById('entry-sub').textContent = 'ไม่ได้รับสิทธิ์เข้าเมนูนี้';
       }
 
       document.getElementById('login-section').style.display = 'none';
