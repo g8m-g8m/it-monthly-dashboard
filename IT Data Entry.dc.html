@@ -1487,95 +1487,61 @@ class Component extends DCLogic {
       )
     );
 
-    const COL_B = '1fr 120px 140px 140px 140px 140px 44px';
     const typeCfgB = { 'CapEx':{ color:'#1d4ed8', bg:'#dbeafe', border:'#bfdbfe' }, 'OpEx':{ color:'#6d28d9', bg:'#ede9fe', border:'#ddd6fe' } };
-    const totalB = (f) => budget.reduce((s,b2)=>s+(parseFloat(b2[f])||0),0);
-    const totalByType = (type, f) => budget.filter(b2=>(b2.type||'OpEx')===type).reduce((s,b2)=>s+(parseFloat(b2[f])||0),0);
+
+    // Auto-computed totals per Type — sourced from the CapEx Projects and Software Subscription /
+    // MA+Subscription cards above (no manual key-in here; this panel is read-only).
+    const COL_TY = '1fr 160px 160px 160px 120px';
+    const _maD2 = this.state.maData || { maSub: [], maDet: [] };
+    const _opBdg = (_maD2.maSub||[]).reduce((s,r)=>s+(r.bg||0),0) + (_maD2.maDet||[]).reduce((s,g)=>s+(g.items ? g.items.reduce((ss,it)=>ss+(it.budget||0),0) : (g.bg||0)),0);
+    const _opAct = (_maD2.maSub||[]).reduce((s,r)=>s+(r.act||0),0) + (_maD2.maDet||[]).reduce((s,g)=>s+(g.items ? g.items.reduce((ss,it)=>ss+(it.actual||0),0) : (g.act||0)),0);
+    const _opCmt = Math.max(_opBdg - _opAct, 0);
+    const typeRows = [
+      { type: 'CapEx', budget: _grandBdg, actual: _grandAct, commit: _grandCmt, note: 'จาก CapEx Projects' },
+      { type: 'OpEx',  budget: _opBdg,    actual: _opAct,     commit: _opCmt,    note: 'จาก MA+Subscription / Software Subscription' },
+    ];
+    const totalBudgetTy = typeRows.reduce((s,r)=>s+r.budget,0);
+    const totalActualTy = typeRows.reduce((s,r)=>s+r.actual,0);
+    const totalCommitTy = typeRows.reduce((s,r)=>s+r.commit,0);
+    const toM = (n) => (n/1e6);
 
     const budgetCatForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
       e('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20 } },
         e('div', null,
           e('div', { style:{ fontSize:22, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'IT Budget Categories'),
-          e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3 } }, 'งบประมาณและค่าใช้จ่ายจริง (หน่วย: ล้านบาท) FY2026')
+          e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3 } }, 'สรุปงบประมาณตาม Type — คำนวณอัตโนมัติจากข้อมูล CapEx/OpEx ด้านบน (หน่วย: ล้านบาท) FY2026')
         ),
         e('div', { style:{ display:'flex', gap:8 } },
-          e('div',{style:{background:'#dbeafe',border:'1px solid #bfdbfe',borderRadius:20,padding:'4px 14px',fontSize:12,color:'#1d4ed8',fontWeight:700}}, 'CapEx ฿'+totalByType('CapEx','budget').toFixed(1)+'M / ฿'+totalByType('CapEx','actual').toFixed(1)+'M'),
-          e('div',{style:{background:'#ede9fe',border:'1px solid #ddd6fe',borderRadius:20,padding:'4px 14px',fontSize:12,color:'#6d28d9',fontWeight:700}}, 'OpEx ฿'+totalByType('OpEx','budget').toFixed(1)+'M / ฿'+totalByType('OpEx','actual').toFixed(1)+'M')
+          e('div',{style:{background:'#dbeafe',border:'1px solid #bfdbfe',borderRadius:20,padding:'4px 14px',fontSize:12,color:'#1d4ed8',fontWeight:700}}, 'CapEx ฿'+toM(_grandBdg).toFixed(1)+'M / ฿'+toM(_grandAct).toFixed(1)+'M'),
+          e('div',{style:{background:'#ede9fe',border:'1px solid #ddd6fe',borderRadius:20,padding:'4px 14px',fontSize:12,color:'#6d28d9',fontWeight:700}}, 'OpEx ฿'+toM(_opBdg).toFixed(1)+'M / ฿'+toM(_opAct).toFixed(1)+'M')
         )
       ),
-      e('div', { style:{ display:'grid', gridTemplateColumns:COL_B, gap:0 } },
-        ...['Category','Type','Annual Budget (M฿)','YTD Actual (M฿)','Month Budget (M฿)','Month Actual (M฿)',''].map(h=>this.thCell(h))
+      e('div', { style:{ display:'grid', gridTemplateColumns:COL_TY, gap:0 } },
+        ...['Type','Budget (M฿)','Actual (M฿)','Commit (M฿)','% Actual'].map(h=>this.thCell(h))
       ),
-      ...budget.map((b2, idx) => {
-        const tc = typeCfgB[b2.type]||typeCfgB['OpEx'];
-        const pct = b2.budget>0 ? Math.round((b2.actual/b2.budget)*100) : 0;
+      ...typeRows.map(r => {
+        const tc = typeCfgB[r.type];
+        const pct = r.budget>0 ? Math.round((r.actual/r.budget)*100) : 0;
         const ok = pct <= 100;
-        return e('div',{key:b2.id,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_B,gap:0,background:'#fff'}},
-          this.tdCell(e('input',{type:'text',value:b2.category,onChange:(ev)=>this.updateBudget(idx,'category',ev.target.value),style:{fontSize:14,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
+        return e('div',{key:r.type,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#fff'}},
           this.tdCell(e('div',{
-            onClick:()=>this.updateBudget(idx,'type',b2.type==='CapEx'?'OpEx':'CapEx'),
-            style:{display:'inline-flex',alignItems:'center',background:tc.bg,border:'1px solid '+tc.border,borderRadius:20,padding:'4px 12px',cursor:'pointer',userSelect:'none'}
-          }, e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},b2.type))),
-          // Annual budget
-          this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:4}},
-            e('input',{type:'number',value:b2.budget,min:0,step:0.1,onChange:(ev)=>this.updateBudget(idx,'budget',parseFloat(ev.target.value)||0),style:{width:70,fontSize:13,fontWeight:600,color:'#374151',border:'none',background:'transparent',outline:'none',textAlign:'right',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
-            e('span',{style:{fontSize:11,color:'#9ca3af'}},'M')
-          )),
-          // YTD actual + mini bar
-          this.tdCell(e('div',{style:{width:'100%'}},
-            e('div',{style:{display:'flex',alignItems:'center',gap:4,marginBottom:3}},
-              e('input',{type:'number',value:b2.actual,min:0,step:0.1,onChange:(ev)=>this.updateBudget(idx,'actual',parseFloat(ev.target.value)||0),style:{width:60,fontSize:13,fontWeight:700,color:ok?'#16a34a':'#e11d48',border:'none',background:'transparent',outline:'none',textAlign:'right',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
-              e('span',{style:{fontSize:11,color:'#9ca3af'}},'M'),
-              e('span',{style:{fontSize:11,fontWeight:600,color:ok?'#16a34a':'#e11d48'}},pct+'%')
-            ),
-            e('div',{style:{height:3,background:'#f3f4f6',borderRadius:99,overflow:'hidden'}},
-              e('div',{style:{height:'100%',width:Math.min(pct,100)+'%',background:ok?'#22c55e':'#ef4444',borderRadius:99}})
-            )
-          )),
-          // Month budget
-          this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:4}},
-            e('input',{type:'number',value:b2.monthBudget,min:0,step:0.01,onChange:(ev)=>this.updateBudget(idx,'monthBudget',parseFloat(ev.target.value)||0),style:{width:60,fontSize:13,color:'#374151',border:'none',background:'transparent',outline:'none',textAlign:'right',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
-            e('span',{style:{fontSize:11,color:'#9ca3af'}},'M')
-          )),
-          // Month actual
-          this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:4}},
-            e('input',{type:'number',value:b2.monthActual,min:0,step:0.01,onChange:(ev)=>this.updateBudget(idx,'monthActual',parseFloat(ev.target.value)||0),style:{width:60,fontSize:13,fontWeight:600,color:b2.monthActual<=b2.monthBudget?'#16a34a':'#e11d48',border:'none',background:'transparent',outline:'none',textAlign:'right',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
-            e('span',{style:{fontSize:11,color:'#9ca3af'}},'M')
-          )),
-          this.tdCell(e('button',{title:'Delete',className:'del-btn',onClick:()=>this.setState({confirmDeleteBudCat:{idx,name:b2.category}}),style:{background:'transparent',border:'none',cursor:'pointer',color:'#ef4444',padding:'5px',display:'flex',alignItems:'center',borderRadius:6}},
-            e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'}))
-          ))
-        );
-      }),
-      // Subtotal rows — CapEx / OpEx
-      ...['CapEx','OpEx'].map(type => {
-        const tc = typeCfgB[type];
-        const bSub = totalByType(type,'budget'), aSub = totalByType(type,'actual');
-        const pctSub = bSub>0 ? Math.round((aSub/bSub)*100) : 0;
-        return e('div',{key:'sub-'+type,style:{display:'grid',gridTemplateColumns:COL_B,gap:0,background:tc.bg,borderTop:'1px solid '+tc.border}},
-          this.tdCell(e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},type+' Subtotal')),
-          this.tdCell(e('span',{style:{fontSize:11,color:tc.color}},pctSub+'%')),
-          this.tdCell(e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},'฿'+bSub.toFixed(2)+'M')),
-          this.tdCell(e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},'฿'+aSub.toFixed(2)+'M')),
-          this.tdCell(e('span',{style:{fontSize:12,color:tc.color}},'฿'+totalByType(type,'monthBudget').toFixed(2)+'M')),
-          this.tdCell(e('span',{style:{fontSize:12,color:tc.color}},'฿'+totalByType(type,'monthActual').toFixed(2)+'M')),
-          this.tdCell(null)
+            style:{display:'inline-flex',alignItems:'center',background:tc.bg,border:'1px solid '+tc.border,borderRadius:20,padding:'4px 12px'}
+          }, e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},r.type))),
+          this.tdCell(e('span',{style:{fontSize:14,fontWeight:700,color:'#111827',textAlign:'right',display:'block'}},'฿'+toM(r.budget).toFixed(2)+'M')),
+          this.tdCell(e('span',{style:{fontSize:14,fontWeight:700,color:ok?'#16a34a':'#e11d48',textAlign:'right',display:'block'}},'฿'+toM(r.actual).toFixed(2)+'M')),
+          this.tdCell(e('span',{style:{fontSize:14,fontWeight:600,color:'#f97316',textAlign:'right',display:'block'}},'฿'+toM(r.commit).toFixed(2)+'M')),
+          this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:ok?'#16a34a':'#e11d48',textAlign:'right',display:'block'}},pct+'%'))
         );
       }),
       // Totals row
-      e('div',{style:{display:'grid',gridTemplateColumns:COL_B,gap:0,background:'#f8fafc',borderTop:'2px solid #e2e8f0'}},
+      e('div',{style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#f8fafc',borderTop:'2px solid #e2e8f0'}},
         this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#111827'}},'TOTAL')),
-        this.tdCell(e('span',{style:{fontSize:11,color:'#9ca3af'}},'—')),
-        ...['budget','actual','monthBudget','monthActual'].map(f=>
-          this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#2563eb'}},'฿'+totalB(f).toFixed(2)+'M'))
-        ),
-        this.tdCell(null)
+        this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#2563eb',textAlign:'right',display:'block'}},'฿'+toM(totalBudgetTy).toFixed(2)+'M')),
+        this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#2563eb',textAlign:'right',display:'block'}},'฿'+toM(totalActualTy).toFixed(2)+'M')),
+        this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#2563eb',textAlign:'right',display:'block'}},'฿'+toM(totalCommitTy).toFixed(2)+'M')),
+        this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#2563eb',textAlign:'right',display:'block'}}, totalBudgetTy>0?Math.round((totalActualTy/totalBudgetTy)*100)+'%':'—'))
       ),
-      // Add row
-      e('button',{
-        onClick:()=>this.setState({budget:[...this.state.budget,{id:Date.now(),category:'New Category',type:'OpEx',budget:0,actual:0,monthBudget:0,monthActual:0}]}),
-        style:{marginTop:12,fontSize:12,color:'#6b7280',background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:22,padding:'8px 18px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif",fontWeight:500,display:'inline-flex',alignItems:'center',gap:6}
-      }, e('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 5v14M5 12h14'})), '+ Add Category')
+      e('div',{style:{marginTop:10,fontSize:11,color:'#9ca3af'}},'ℹ️ ตัวเลขคำนวณอัตโนมัติ ไม่ต้องกรอกข้อมูลซ้ำที่นี่ — แก้ไขได้ที่การ์ด CapEx Projects และ MA+Subscription/Software Subscription ด้านบน')
     );
 
     // ── MA (Maintenance) Data Entry ───────────────────────────────
