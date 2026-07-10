@@ -1489,27 +1489,32 @@ class Component extends DCLogic {
 
     const typeCfgB = { 'CapEx':{ color:'#1d4ed8', bg:'#dbeafe', border:'#bfdbfe' }, 'OpEx':{ color:'#6d28d9', bg:'#ede9fe', border:'#ddd6fe' } };
 
-    // Auto-computed totals per Type — sourced from the CapEx Projects and Software Subscription /
-    // MA+Subscription cards above (no manual key-in here; this panel is read-only).
-    const COL_TY = '1fr 160px 160px 160px 120px';
+    // Auto-computed totals per card — sourced from the CapEx Projects, MA+Subscription Detail and
+    // Software Subscription cards below (no manual key-in here; this panel is read-only).
+    const COL_TY = '110px 1fr 150px 150px 150px 100px';
     const _maD2 = this.state.maData || { maSub: [], maDet: [] };
-    const _opBdg = (_maD2.maSub||[]).reduce((s,r)=>s+(r.bg||0),0) + (_maD2.maDet||[]).reduce((s,g)=>s+(g.items ? g.items.reduce((ss,it)=>ss+(it.budget||0),0) : (g.bg||0)),0);
-    const _opAct = (_maD2.maSub||[]).reduce((s,r)=>s+(r.act||0),0) + (_maD2.maDet||[]).reduce((s,g)=>s+(g.items ? g.items.reduce((ss,it)=>ss+(it.actual||0),0) : (g.act||0)),0);
-    const _opCmt = Math.max(_opBdg - _opAct, 0);
-    const typeRows = [
-      { type: 'CapEx', budget: _grandBdg, actual: _grandAct, commit: _grandCmt, note: 'จาก CapEx Projects' },
-      { type: 'OpEx',  budget: _opBdg,    actual: _opAct,     commit: _opCmt,    note: 'จาก MA+Subscription / Software Subscription' },
+    const _maSubBdg = (_maD2.maSub||[]).reduce((s,r)=>s+(r.bg||0),0);
+    const _maSubAct = (_maD2.maSub||[]).reduce((s,r)=>s+(r.act||0),0);
+    const _maDetBdg = (_maD2.maDet||[]).reduce((s,g)=>s+(g.items ? g.items.reduce((ss,it)=>ss+(it.budget||0),0) : (g.bg||0)),0);
+    const _maDetAct = (_maD2.maDet||[]).reduce((s,g)=>s+(g.items ? g.items.reduce((ss,it)=>ss+(it.actual||0),0) : (g.act||0)),0);
+    const _opBdg = _maSubBdg + _maDetBdg;
+    const _opAct = _maSubAct + _maDetAct;
+    const cardRows = [
+      { type: 'CapEx', name: 'CapEx Projects',            budget: _grandBdg, actual: _grandAct, commit: _grandCmt },
+      { type: 'OpEx',  name: 'MA+Subscription Detail',    budget: _maSubBdg, actual: _maSubAct, commit: Math.max(_maSubBdg-_maSubAct,0) },
+      { type: 'OpEx',  name: 'Software Subscription',     budget: _maDetBdg, actual: _maDetAct, commit: Math.max(_maDetBdg-_maDetAct,0) },
     ];
-    const totalBudgetTy = typeRows.reduce((s,r)=>s+r.budget,0);
-    const totalActualTy = typeRows.reduce((s,r)=>s+r.actual,0);
-    const totalCommitTy = typeRows.reduce((s,r)=>s+r.commit,0);
+    const totalBudgetTy = cardRows.reduce((s,r)=>s+r.budget,0);
+    const totalActualTy = cardRows.reduce((s,r)=>s+r.actual,0);
+    const totalCommitTy = cardRows.reduce((s,r)=>s+r.commit,0);
     const toM = (n) => (n/1e6);
+    const rowCell = (v, c, bold) => e('span',{style:{fontSize:14,fontWeight:bold?700:500,color:c||'#334155',textAlign:'right',display:'block'}}, v);
 
     const budgetCatForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
       e('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20 } },
         e('div', null,
-          e('div', { style:{ fontSize:22, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'IT Budget Categories'),
-          e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3 } }, 'สรุปงบประมาณตาม Type — คำนวณอัตโนมัติจากข้อมูล CapEx/OpEx ด้านบน (หน่วย: ล้านบาท) FY2026')
+          e('div', { style:{ fontSize:22, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'งบประมาณประจำปี : ' + (period && period.year || new Date().getFullYear())),
+          e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3 } }, 'สรุปงบประมาณตาม Type — คำนวณอัตโนมัติจากข้อมูล CapEx/OpEx ด้านล่าง (หน่วย: ล้านบาท)')
         ),
         e('div', { style:{ display:'flex', gap:8 } },
           e('div',{style:{background:'#dbeafe',border:'1px solid #bfdbfe',borderRadius:20,padding:'4px 14px',fontSize:12,color:'#1d4ed8',fontWeight:700}}, 'CapEx ฿'+toM(_grandBdg).toFixed(1)+'M / ฿'+toM(_grandAct).toFixed(1)+'M'),
@@ -1517,31 +1522,47 @@ class Component extends DCLogic {
         )
       ),
       e('div', { style:{ display:'grid', gridTemplateColumns:COL_TY, gap:0 } },
-        ...['Type','Budget (M฿)','Actual (M฿)','Commit (M฿)','% Actual'].map(h=>this.thCell(h))
+        ...['Type','Category','Budget (M฿)','Actual (M฿)','Commit (M฿)','% Actual'].map(h=>this.thCell(h))
       ),
-      ...typeRows.map(r => {
-        const tc = typeCfgB[r.type];
-        const pct = r.budget>0 ? Math.round((r.actual/r.budget)*100) : 0;
-        const ok = pct <= 100;
-        return e('div',{key:r.type,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#fff'}},
-          this.tdCell(e('div',{
-            style:{display:'inline-flex',alignItems:'center',background:tc.bg,border:'1px solid '+tc.border,borderRadius:20,padding:'4px 12px'}
-          }, e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},r.type))),
-          this.tdCell(e('span',{style:{fontSize:14,fontWeight:700,color:'#111827',textAlign:'right',display:'block'}},'฿'+toM(r.budget).toFixed(2)+'M')),
-          this.tdCell(e('span',{style:{fontSize:14,fontWeight:700,color:ok?'#16a34a':'#e11d48',textAlign:'right',display:'block'}},'฿'+toM(r.actual).toFixed(2)+'M')),
-          this.tdCell(e('span',{style:{fontSize:14,fontWeight:600,color:'#f97316',textAlign:'right',display:'block'}},'฿'+toM(r.commit).toFixed(2)+'M')),
-          this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:ok?'#16a34a':'#e11d48',textAlign:'right',display:'block'}},pct+'%'))
-        );
+      // Card rows, grouped by Type with a subtotal after each group
+      ...['CapEx','OpEx'].flatMap(ty => {
+        const rows = cardRows.filter(r=>r.type===ty);
+        if (!rows.length) return [];
+        const tc = typeCfgB[ty];
+        const out = rows.map(r => {
+          const pct = r.budget>0 ? Math.round((r.actual/r.budget)*100) : 0;
+          const ok = pct <= 100;
+          return e('div',{key:r.name,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#fff'}},
+            this.tdCell(e('div',{style:{display:'inline-flex',alignItems:'center',background:tc.bg,border:'1px solid '+tc.border,borderRadius:20,padding:'4px 12px'}}, e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},ty))),
+            this.tdCell(e('span',{style:{fontSize:14,fontWeight:600,color:'#111827'}}, r.name)),
+            this.tdCell(rowCell('฿'+toM(r.budget).toFixed(2)+'M', '#111827', true)),
+            this.tdCell(rowCell('฿'+toM(r.actual).toFixed(2)+'M', ok?'#16a34a':'#e11d48', true)),
+            this.tdCell(rowCell('฿'+toM(r.commit).toFixed(2)+'M', '#f97316')),
+            this.tdCell(rowCell(pct+'%', ok?'#16a34a':'#e11d48', true))
+          );
+        });
+        const bSub = rows.reduce((s,r)=>s+r.budget,0), aSub = rows.reduce((s,r)=>s+r.actual,0), cSub = rows.reduce((s,r)=>s+r.commit,0);
+        const pctSub = bSub>0 ? Math.round((aSub/bSub)*100) : 0;
+        out.push(e('div',{key:ty+'-subtotal',style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:tc.bg,borderTop:'1px solid '+tc.border,borderBottom:'1px solid '+tc.border}},
+          this.tdCell(null),
+          this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:tc.color}}, ty+' Subtotal')),
+          this.tdCell(rowCell('฿'+toM(bSub).toFixed(2)+'M', tc.color, true)),
+          this.tdCell(rowCell('฿'+toM(aSub).toFixed(2)+'M', tc.color, true)),
+          this.tdCell(rowCell('฿'+toM(cSub).toFixed(2)+'M', tc.color, true)),
+          this.tdCell(rowCell(pctSub+'%', tc.color, true))
+        ));
+        return out;
       }),
       // Totals row
       e('div',{style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#f8fafc',borderTop:'2px solid #e2e8f0'}},
+        this.tdCell(null),
         this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#111827'}},'TOTAL')),
-        this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#2563eb',textAlign:'right',display:'block'}},'฿'+toM(totalBudgetTy).toFixed(2)+'M')),
-        this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#2563eb',textAlign:'right',display:'block'}},'฿'+toM(totalActualTy).toFixed(2)+'M')),
-        this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#2563eb',textAlign:'right',display:'block'}},'฿'+toM(totalCommitTy).toFixed(2)+'M')),
-        this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#2563eb',textAlign:'right',display:'block'}}, totalBudgetTy>0?Math.round((totalActualTy/totalBudgetTy)*100)+'%':'—'))
+        this.tdCell(rowCell('฿'+toM(totalBudgetTy).toFixed(2)+'M', '#2563eb', true)),
+        this.tdCell(rowCell('฿'+toM(totalActualTy).toFixed(2)+'M', '#2563eb', true)),
+        this.tdCell(rowCell('฿'+toM(totalCommitTy).toFixed(2)+'M', '#2563eb', true)),
+        this.tdCell(rowCell(totalBudgetTy>0?Math.round((totalActualTy/totalBudgetTy)*100)+'%':'—', '#2563eb', true))
       ),
-      e('div',{style:{marginTop:10,fontSize:11,color:'#9ca3af'}},'ℹ️ ตัวเลขคำนวณอัตโนมัติ ไม่ต้องกรอกข้อมูลซ้ำที่นี่ — แก้ไขได้ที่การ์ด CapEx Projects และ MA+Subscription/Software Subscription ด้านบน')
+      e('div',{style:{marginTop:10,fontSize:11,color:'#9ca3af'}},'ℹ️ ตัวเลขคำนวณอัตโนมัติ ไม่ต้องกรอกข้อมูลซ้ำที่นี่ — แก้ไขได้ที่การ์ด CapEx Projects และ OpEx Project ด้านล่าง')
     );
 
     // ── MA (Maintenance) Data Entry ───────────────────────────────
@@ -1651,26 +1672,29 @@ class Component extends DCLogic {
           const sc = maStCfg[g.st]||maStCfg['Not Started'];
           const gt = groupTotals[gIdx];
           return [
-            // Quarter header row — Budget/Actual auto-summed from items
-            e('div', { key:'grp'+g.id, style:{ display:'grid', gridTemplateColumns:COL_MA_DET, gap:0, background:'#1e293b', alignItems:'center', borderRadius: gIdx===0?'8px 8px 0 0':0 } },
-              this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#f8fafc'}}, g.n)),
+            // Quarter header row — Budget/Actual auto-summed from items (light style, matches MA+Subscription Detail)
+            e('div', { key:'grp'+g.id, style:{ display:'grid', gridTemplateColumns:COL_MA_DET, gap:0, background:'#f8fafc', alignItems:'center', borderTop: gIdx>0?'2px solid #e2e8f0':'none' } },
+              this.tdCell(e('span',{style:{fontSize:14,fontWeight:700,color:'#111827'}}, g.n)),
               this.tdCell(null),
-              this.tdCell(e('div',{style:{textAlign:'right'}},
-                e('div',{style:{fontSize:9,color:'rgba(255,255,255,.4)',textTransform:'uppercase',letterSpacing:'.06em'}},'auto'),
-                e('div',{style:{fontSize:13,fontWeight:700,color:'#93c5fd'}}, fmtB(gt.bg))
+              this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
+                e('span',{style:{fontSize:13,fontWeight:700,color:'#334155'}}, fmtB(gt.bg)),
+                e('span',{style:{fontSize:9,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.04em'}},'auto')
               )),
-              this.tdCell(e('div',{style:{textAlign:'right'}},
-                e('div',{style:{fontSize:9,color:'rgba(255,255,255,.4)',textTransform:'uppercase',letterSpacing:'.06em'}},'auto'),
-                e('div',{style:{fontSize:13,fontWeight:700,color:'#86efac'}}, fmtB(gt.act))
+              this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
+                e('span',{style:{fontSize:13,fontWeight:700,color:'#10b981'}}, fmtB(gt.act)),
+                e('span',{style:{fontSize:9,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.04em'}},'auto')
               )),
               this.tdCell(e('div',{
                 title:'Click to cycle',
                 onClick:()=>{ const ord=MA_STATUSES; updMADetGroup(gIdx,'st',ord[(ord.indexOf(g.st)+1)%ord.length]); },
                 style:{display:'inline-flex',alignItems:'center',gap:6,background:sc.bg,border:'1px solid '+sc.border,borderRadius:20,padding:'4px 12px',cursor:'pointer',userSelect:'none'}
               },
-                e('span',{style:{fontSize:12,fontWeight:700,color:sc.color,whiteSpace:'nowrap'}},g.st||'Not Started')
+                e('span',{style:{fontSize:12,fontWeight:700,color:sc.color,whiteSpace:'nowrap'}},g.st||'Not Started'),
+                e('div',{style:{width:14,height:14,borderRadius:'50%',background:sc.color,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+                  e('svg',{width:8,height:8,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:sc.ic}))
+                )
               )),
-              this.tdCell(e('button',{title:'Add subscription item',onClick:()=>addMADetItem(gIdx),style:{background:'rgba(255,255,255,.12)',border:'none',borderRadius:6,cursor:'pointer',color:'#e2e8f0',padding:'5px',display:'flex',alignItems:'center',justifyContent:'center'}},
+              this.tdCell(e('button',{title:'Add subscription item',onClick:()=>addMADetItem(gIdx),style:{background:'#eef2ff',border:'1px solid #c7d2fe',borderRadius:6,cursor:'pointer',color:'#4f46e5',padding:'5px',display:'flex',alignItems:'center',justifyContent:'center'}},
                 e('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 5v14M5 12h14'}))
               ))
             ),
@@ -1694,12 +1718,25 @@ class Component extends DCLogic {
       );
     };
 
-    const maForm = e('div', null,
+    const opexGrandBdg = _maSubBdg + _maDetBdg;
+    const opexGrandAct = _maSubAct + _maDetAct;
+    const opexGrandPct = opexGrandBdg>0 ? Math.round((opexGrandAct/opexGrandBdg)*100) : 0;
+
+    const opexProjectForm = e('div', { style:{ background:'#f8fafc', borderRadius:20, border:'1px solid #e2e8f0', padding:'20px 20px 16px', marginBottom:16 } },
+      e('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 } },
+        e('div', null,
+          e('div', { style:{ fontSize:20, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'OpEx Project'),
+          e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3 } }, 'MA+Subscription Detail และ Software Subscription')
+        ),
+        e('div',{style:{background:'#ede9fe',border:'1px solid #ddd6fe',borderRadius:20,padding:'5px 16px',fontSize:12,color:'#6d28d9',fontWeight:700}}, 'Grand Total ฿'+fmtB(opexGrandBdg)+' budget · ฿'+fmtB(opexGrandAct)+' actual · '+opexGrandPct+'% used')
+      ),
       mkMASubCard('MA+Subscription Detail', 'maSub', '#2563eb'),
       mkMADetCard('Software Subscription', '#0ea5e9')
     );
 
-    const budgetForm = e('div', null, capexForm, maForm, budgetCatForm);
+    const maForm = opexProjectForm;
+
+    const budgetForm = e('div', null, budgetCatForm, capexForm, maForm);
 
     // ── 4. Security ───────────────────────────────────────────────
     const secFields = [
