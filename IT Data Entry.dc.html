@@ -1309,8 +1309,8 @@ class Component extends DCLogic {
             e('input',{type:'text', value:p.en||'', onChange:(ev)=>updCapex(pi,'en',ev.target.value), style:{fontSize:11,color:'rgba(255,255,255,.45)',background:'transparent',border:'none',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif",marginTop:2}})
           ),
           e('div', { style:{ textAlign:'right' } },
-            e('div',{style:{fontSize:10,color:'rgba(255,255,255,.4)',marginBottom:2,textTransform:'uppercase',letterSpacing:'.06em'}},'Budget ฿'),
-            numInp(p.budget, (v)=>updCapex(pi,'budget',v), {fontSize:14,fontWeight:700,color:'#93c5fd',width:'100%'})
+            e('div',{style:{fontSize:10,color:'rgba(255,255,255,.4)',marginBottom:2,textTransform:'uppercase',letterSpacing:'.06em'}},'Budget ฿ (auto)'),
+            e('div',{style:{fontSize:14,fontWeight:700,color:'#93c5fd',textAlign:'right'}}, fmtB(p.subs.reduce((s,sub)=>s+deriveSubBudget(sub),0)))
           ),
           e('div', { style:{ textAlign:'right' } },
             e('div',{style:{fontSize:10,color:'rgba(255,255,255,.4)',marginBottom:2,textTransform:'uppercase',letterSpacing:'.06em'}},'Actual ฿ (auto)'),
