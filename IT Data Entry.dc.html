@@ -1500,7 +1500,13 @@ class Component extends DCLogic {
     const _opBdg = _maSubBdg + _maDetBdg;
     const _opAct = _maSubAct + _maDetAct;
     const cardRows = [
-      { type: 'CapEx', name: 'CapEx Projects',            budget: _grandBdg, actual: _grandAct, commit: _grandCmt },
+      ...capexProjects.flatMap(p => (p.subs||[]).map(sub => ({
+        type: 'CapEx',
+        name: sub.n,
+        budget: deriveSubBudget(sub),
+        actual: deriveSubActual(sub),
+        commit: deriveSubCommit(sub),
+      }))),
       { type: 'OpEx',  name: 'MA+Subscription Detail',    budget: _maSubBdg, actual: _maSubAct, commit: Math.max(_maSubBdg-_maSubAct,0) },
       { type: 'OpEx',  name: 'Software Subscription',     budget: _maDetBdg, actual: _maDetAct, commit: Math.max(_maDetBdg-_maDetAct,0) },
     ];
@@ -1640,9 +1646,10 @@ class Component extends DCLogic {
 
     // ── Software Subscription (grouped by Q1–Q4, items add/delete within each quarter) ──
     const COL_MA_DET = '1fr 90px 130px 130px 150px 44px';
+    const _materializeMADetItems = (g) => g.items || ((g.sub || g.bg || g.act) ? [{ id:(g.id||Date.now())+1, n:g.sub||'Item 1', type:g.type||'OpEx', budget:g.bg||0, actual:g.act||0 }] : []);
     const updMADetGroup = (gIdx, field, val) => { const a=[...this.state.maData.maDet]; a[gIdx]={...a[gIdx],[field]:val}; this.setState({maData:{...this.state.maData,maDet:a}}); };
-    const updMADetItem  = (gIdx, iIdx, field, val) => { const a=[...this.state.maData.maDet]; const items=[...(a[gIdx].items||[])]; items[iIdx]={...items[iIdx],[field]:val}; a[gIdx]={...a[gIdx],items}; this.setState({maData:{...this.state.maData,maDet:a}}); };
-    const addMADetItem  = (gIdx) => { const a=[...this.state.maData.maDet]; a[gIdx]={...a[gIdx],items:[...(a[gIdx].items||[]),{id:Date.now(),n:'New Subscription',type:'OpEx',budget:0,actual:0}]}; this.setState({maData:{...this.state.maData,maDet:a}}); };
+    const updMADetItem  = (gIdx, iIdx, field, val) => { const a=[...this.state.maData.maDet]; const items=[..._materializeMADetItems(a[gIdx])]; items[iIdx]={...items[iIdx],[field]:val}; a[gIdx]={...a[gIdx],items}; this.setState({maData:{...this.state.maData,maDet:a}}); };
+    const addMADetItem  = (gIdx) => { const a=[...this.state.maData.maDet]; a[gIdx]={...a[gIdx],items:[..._materializeMADetItems(a[gIdx]),{id:Date.now(),n:'New Subscription',type:'OpEx',budget:0,actual:0}]}; this.setState({maData:{...this.state.maData,maDet:a}}); };
 
     const mkMADetCard = (title, color) => {
       const groups = (maData.maDet||[]).map(g => g.items ? g : { ...g, items: [{ id: (g.id||Date.now())+1, n: g.sub || 'Item 1', type: g.type || 'OpEx', budget: g.bg||0, actual: g.act||0 }] });
@@ -1676,13 +1683,13 @@ class Component extends DCLogic {
             e('div', { key:'grp'+g.id, style:{ display:'grid', gridTemplateColumns:COL_MA_DET, gap:0, background:'#f8fafc', alignItems:'center', borderTop: gIdx>0?'2px solid #e2e8f0':'none' } },
               this.tdCell(e('span',{style:{fontSize:14,fontWeight:700,color:'#111827'}}, g.n)),
               this.tdCell(null),
-              this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
-                e('span',{style:{fontSize:13,fontWeight:700,color:'#334155'}}, fmtB(gt.bg)),
-                e('span',{style:{fontSize:9,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.04em'}},'auto')
+              this.tdCell(e('div',{style:{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:1}},
+                e('span',{style:{fontSize:9,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.04em'}},'auto'),
+                e('span',{style:{fontSize:13,fontWeight:700,color:'#334155'}}, fmtB(gt.bg))
               )),
-              this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
-                e('span',{style:{fontSize:13,fontWeight:700,color:'#10b981'}}, fmtB(gt.act)),
-                e('span',{style:{fontSize:9,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.04em'}},'auto')
+              this.tdCell(e('div',{style:{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:1}},
+                e('span',{style:{fontSize:9,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.04em'}},'auto'),
+                e('span',{style:{fontSize:13,fontWeight:700,color:'#10b981'}}, fmtB(gt.act))
               )),
               this.tdCell(e('div',{
                 title:'Click to cycle',
@@ -2490,7 +2497,7 @@ class Component extends DCLogic {
       () => {
         if (confirmDeleteMA.sec === 'maDet' && confirmDeleteMA.gIdx !== undefined) {
           const a=[...this.state.maData.maDet];
-          const items=[...(a[confirmDeleteMA.gIdx].items||[])];
+          const items=[..._materializeMADetItems(a[confirmDeleteMA.gIdx])];
           items.splice(confirmDeleteMA.itemIdx,1);
           a[confirmDeleteMA.gIdx]={...a[confirmDeleteMA.gIdx],items};
           this.setState({maData:{...this.state.maData,maDet:a},confirmDeleteMA:null});
