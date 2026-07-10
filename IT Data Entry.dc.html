@@ -157,17 +157,30 @@ class Component extends DCLogic {
     ],
     maData: {
       maSub: [
-        { id:1, n:'Datacenter',       sub:'กลุ่มศูนย์คอมพิวเตอร์/เน็ตเวิร์ก',        bg:4800000, act:4032000, st:'Completed'   },
-        { id:2, n:'Subscription',     sub:'กลุ่มโปรแกรมที่ให้บริการ',                bg:2100000, act:987000,  st:'In Progress'  },
-        { id:3, n:'Network',          sub:'กลุ่มระบบเครือข่ายและอินเทอร์เน็ต',       bg:620000,  act:620000,  st:'Completed'    },
-        { id:4, n:'Security',         sub:'กลุ่มระบบรักษาความปลอดภัยเครือข่าย',      bg:342000,  act:185000,  st:'In Progress'  },
-        { id:5, n:'Equipment Repair', sub:'กลุ่มซื้อ/ซ่อมอุปกรณ์คอมพิวเตอร์',       bg:158000,  act:158000,  st:'Completed'    },
+        { id:1, n:'Datacenter',       sub:'กลุ่มศูนย์คอมพิวเตอร์/เน็ตเวิร์ก',        type:'OpEx', bg:4800000, act:4032000, st:'Completed'   },
+        { id:2, n:'Subscription',     sub:'กลุ่มโปรแกรมที่ให้บริการ',                type:'OpEx', bg:2100000, act:987000,  st:'In Progress'  },
+        { id:3, n:'Network',          sub:'กลุ่มระบบเครือข่ายและอินเทอร์เน็ต',       type:'OpEx', bg:620000,  act:620000,  st:'Completed'    },
+        { id:4, n:'Security',         sub:'กลุ่มระบบรักษาความปลอดภัยเครือข่าย',      type:'OpEx', bg:342000,  act:185000,  st:'In Progress'  },
+        { id:5, n:'Equipment Repair', sub:'กลุ่มซื้อ/ซ่อมอุปกรณ์คอมพิวเตอร์',       type:'OpEx', bg:158000,  act:158000,  st:'Completed'    },
       ],
       maDet: [
-        { id:1, n:'Q1', sub:'(SAP License + Oracle 12c)',                bg:1350000, act:1309500, st:'Completed'   },
-        { id:2, n:'Q2', sub:'(SAP Support + Factorium + MA Dynamics)',   bg:1385000, act:0,       st:'Not Started' },
-        { id:3, n:'Q3', sub:'(PDPA)',                                    bg:158000,  act:0,       st:'Not Started' },
-        { id:4, n:'Q4', sub:'(Dynamics Support + WOLF + RPA)',           bg:357000,  act:0,       st:'Not Started' },
+        { id:1, n:'Q1', st:'Completed', items:[
+          { id:11, n:'SAP License', type:'OpEx', budget:900000, actual:900000 },
+          { id:12, n:'Oracle 12c',  type:'OpEx', budget:450000, actual:409500 },
+        ]},
+        { id:2, n:'Q2', st:'Not Started', items:[
+          { id:21, n:'SAP Support', type:'OpEx', budget:600000, actual:0 },
+          { id:22, n:'Factorium',   type:'OpEx', budget:500000, actual:0 },
+          { id:23, n:'MA Dynamics', type:'OpEx', budget:285000, actual:0 },
+        ]},
+        { id:3, n:'Q3', st:'Not Started', items:[
+          { id:31, n:'PDPA', type:'OpEx', budget:158000, actual:0 },
+        ]},
+        { id:4, n:'Q4', st:'Not Started', items:[
+          { id:41, n:'Dynamics Support', type:'OpEx', budget:150000, actual:0 },
+          { id:42, n:'WOLF',             type:'OpEx', budget:132000, actual:0 },
+          { id:43, n:'RPA',              type:'OpEx', budget:75000,  actual:0 },
+        ]},
       ],
     },
     capexProjects: [
@@ -1477,6 +1490,7 @@ class Component extends DCLogic {
     const COL_B = '1fr 120px 140px 140px 140px 140px 44px';
     const typeCfgB = { 'CapEx':{ color:'#1d4ed8', bg:'#dbeafe', border:'#bfdbfe' }, 'OpEx':{ color:'#6d28d9', bg:'#ede9fe', border:'#ddd6fe' } };
     const totalB = (f) => budget.reduce((s,b2)=>s+(parseFloat(b2[f])||0),0);
+    const totalByType = (type, f) => budget.filter(b2=>(b2.type||'OpEx')===type).reduce((s,b2)=>s+(parseFloat(b2[f])||0),0);
 
     const budgetCatForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
       e('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20 } },
@@ -1485,8 +1499,8 @@ class Component extends DCLogic {
           e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3 } }, 'งบประมาณและค่าใช้จ่ายจริง (หน่วย: ล้านบาท) FY2026')
         ),
         e('div', { style:{ display:'flex', gap:8 } },
-          e('div',{style:{background:'#dbeafe',border:'1px solid #bfdbfe',borderRadius:20,padding:'4px 14px',fontSize:12,color:'#1d4ed8',fontWeight:700}}, '฿'+totalB('budget').toFixed(1)+'M Total'),
-          e('div',{style:{background:'#dcfce7',border:'1px solid #bbf7d0',borderRadius:20,padding:'4px 14px',fontSize:12,color:'#16a34a',fontWeight:700}}, '฿'+totalB('actual').toFixed(1)+'M Actual')
+          e('div',{style:{background:'#dbeafe',border:'1px solid #bfdbfe',borderRadius:20,padding:'4px 14px',fontSize:12,color:'#1d4ed8',fontWeight:700}}, 'CapEx ฿'+totalByType('CapEx','budget').toFixed(1)+'M / ฿'+totalByType('CapEx','actual').toFixed(1)+'M'),
+          e('div',{style:{background:'#ede9fe',border:'1px solid #ddd6fe',borderRadius:20,padding:'4px 14px',fontSize:12,color:'#6d28d9',fontWeight:700}}, 'OpEx ฿'+totalByType('OpEx','budget').toFixed(1)+'M / ฿'+totalByType('OpEx','actual').toFixed(1)+'M')
         )
       ),
       e('div', { style:{ display:'grid', gridTemplateColumns:COL_B, gap:0 } },
@@ -1533,6 +1547,21 @@ class Component extends DCLogic {
           ))
         );
       }),
+      // Subtotal rows — CapEx / OpEx
+      ...['CapEx','OpEx'].map(type => {
+        const tc = typeCfgB[type];
+        const bSub = totalByType(type,'budget'), aSub = totalByType(type,'actual');
+        const pctSub = bSub>0 ? Math.round((aSub/bSub)*100) : 0;
+        return e('div',{key:'sub-'+type,style:{display:'grid',gridTemplateColumns:COL_B,gap:0,background:tc.bg,borderTop:'1px solid '+tc.border}},
+          this.tdCell(e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},type+' Subtotal')),
+          this.tdCell(e('span',{style:{fontSize:11,color:tc.color}},pctSub+'%')),
+          this.tdCell(e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},'฿'+bSub.toFixed(2)+'M')),
+          this.tdCell(e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},'฿'+aSub.toFixed(2)+'M')),
+          this.tdCell(e('span',{style:{fontSize:12,color:tc.color}},'฿'+totalByType(type,'monthBudget').toFixed(2)+'M')),
+          this.tdCell(e('span',{style:{fontSize:12,color:tc.color}},'฿'+totalByType(type,'monthActual').toFixed(2)+'M')),
+          this.tdCell(null)
+        );
+      }),
       // Totals row
       e('div',{style:{display:'grid',gridTemplateColumns:COL_B,gap:0,background:'#f8fafc',borderTop:'2px solid #e2e8f0'}},
         this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#111827'}},'TOTAL')),
@@ -1554,8 +1583,14 @@ class Component extends DCLogic {
     const updMA    = (sec, idx, field, val) => { const a=[...this.state.maData[sec]]; a[idx]={...a[idx],[field]:val}; this.setState({maData:{...this.state.maData,[sec]:a}}); };
     const MA_STATUSES = ['Completed','In Progress','Not Started','On-Hold'];
     const maStCfg  = { 'Completed':{ color:'#16a34a',bg:'#f0fdf4',border:'#bbf7d0',ic:'M5 13l4 4L19 7' }, 'In Progress':{ color:'#d97706',bg:'#fffbeb',border:'#fde68a',ic:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }, 'Not Started':{ color:'#e11d48',bg:'#fff1f2',border:'#fecdd3',ic:'M6 18L18 6M6 6l12 12' }, 'On-Hold':{ color:'#6b7280',bg:'#f9fafb',border:'#e5e7eb',ic:'M10 9v6m4-6v6' } };
-    const COL_MA   = '1fr 140px 140px 155px 44px';
-    const mkMACard = (title, sec, color) => {
+    const maTypeCfg = { 'CapEx':{ color:'#1d4ed8', bg:'#dbeafe', border:'#bfdbfe' }, 'OpEx':{ color:'#6d28d9', bg:'#ede9fe', border:'#ddd6fe' } };
+    const typeToggle = (val, onClick) => { const tc = maTypeCfg[val]||maTypeCfg['OpEx']; return e('div',{
+      onClick, style:{display:'inline-flex',alignItems:'center',background:tc.bg,border:'1px solid '+tc.border,borderRadius:20,padding:'4px 10px',cursor:'pointer',userSelect:'none'}
+    }, e('span',{style:{fontSize:11,fontWeight:700,color:tc.color}},val)); };
+    const COL_MA_SUB = '1fr 90px 130px 130px 150px 44px';
+
+    // ── MA+Subscription Detail (flat rows, with Type default OpEx) ──
+    const mkMASubCard = (title, sec, color) => {
       const rows = maData[sec]||[];
       const totalBdg = rows.reduce((s,r)=>s+(r.bg||0),0);
       const totalAct = rows.reduce((s,r)=>s+(r.act||0),0);
@@ -1575,16 +1610,17 @@ class Component extends DCLogic {
             e('div',{style:{height:'100%',width:Math.min(pct,100)+'%',background:color,borderRadius:99}})
           )
         ),
-        e('div',{style:{display:'grid',gridTemplateColumns:COL_MA,gap:0}},
-          ...['Service / Category','Budget (฿)','Actual (฿)','Status',''].map(h=>this.thCell(h))
+        e('div',{style:{display:'grid',gridTemplateColumns:COL_MA_SUB,gap:0}},
+          ...['Service / Category','Type','Budget (฿)','Actual (฿)','Status',''].map(h=>this.thCell(h))
         ),
         ...rows.map((r,idx)=>{
           const sc = maStCfg[r.st]||maStCfg['Not Started'];
-          return e('div',{key:idx,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_MA,gap:0,background:'#fff'}},
+          return e('div',{key:idx,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_MA_SUB,gap:0,background:'#fff'}},
             this.tdCell(e('div',null,
               e('input',{type:'text',value:r.n||'',onChange:(ev)=>updMA(sec,idx,'n',ev.target.value),style:{fontSize:13,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
               r.sub!==undefined?e('input',{type:'text',value:r.sub||'',onChange:(ev)=>updMA(sec,idx,'sub',ev.target.value),placeholder:'(sub description)',style:{fontSize:11,color:'#9ca3af',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif",marginTop:2}}):null
             )),
+            this.tdCell(typeToggle(r.type||'OpEx', ()=>updMA(sec,idx,'type',(r.type||'OpEx')==='CapEx'?'OpEx':'CapEx'))),
             this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
               numInp(r.bg||0,(v)=>updMA(sec,idx,'bg',v),{fontSize:13,fontWeight:600,color:'#334155',width:100}),
               e('span',{style:{fontSize:11,color:'#9ca3af'}})
@@ -1609,15 +1645,92 @@ class Component extends DCLogic {
           );
         }),
         e('button',{
-          onClick:()=>{ const a=[...this.state.maData[sec]]; a.push({id:Date.now(),n:'New Item',sub:'',bg:0,act:0,st:'Not Started'}); this.setState({maData:{...this.state.maData,[sec]:a}}); },
+          onClick:()=>{ const a=[...this.state.maData[sec]]; a.push({id:Date.now(),n:'New Item',sub:'',type:'OpEx',bg:0,act:0,st:'Not Started'}); this.setState({maData:{...this.state.maData,[sec]:a}}); },
           style:{marginTop:10,fontSize:12,color:'#6b7280',background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:22,padding:'7px 16px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif",fontWeight:500,display:'inline-flex',alignItems:'center',gap:6}
         }, e('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 5v14M5 12h14'})), '+ Add Row')
       );
     };
 
+    // ── Software Subscription (grouped by Q1–Q4, items add/delete within each quarter) ──
+    const COL_MA_DET = '1fr 90px 130px 130px 150px 44px';
+    const updMADetGroup = (gIdx, field, val) => { const a=[...this.state.maData.maDet]; a[gIdx]={...a[gIdx],[field]:val}; this.setState({maData:{...this.state.maData,maDet:a}}); };
+    const updMADetItem  = (gIdx, iIdx, field, val) => { const a=[...this.state.maData.maDet]; const items=[...a[gIdx].items]; items[iIdx]={...items[iIdx],[field]:val}; a[gIdx]={...a[gIdx],items}; this.setState({maData:{...this.state.maData,maDet:a}}); };
+    const addMADetItem  = (gIdx) => { const a=[...this.state.maData.maDet]; a[gIdx]={...a[gIdx],items:[...a[gIdx].items,{id:Date.now(),n:'New Subscription',type:'OpEx',budget:0,actual:0}]}; this.setState({maData:{...this.state.maData,maDet:a}}); };
+
+    const mkMADetCard = (title, color) => {
+      const groups = maData.maDet||[];
+      const groupTotals = groups.map(g => ({ bg: g.items.reduce((s,it)=>s+(it.budget||0),0), act: g.items.reduce((s,it)=>s+(it.actual||0),0) }));
+      const totalBdg = groupTotals.reduce((s,g)=>s+g.bg,0);
+      const totalAct = groupTotals.reduce((s,g)=>s+g.act,0);
+      const pct = totalBdg>0?Math.round((totalAct/totalBdg)*100):0;
+      return e('div',{style:{background:'#fff',borderRadius:18,border:'1px solid #e5e7eb',boxShadow:'0 2px 16px rgba(15,23,42,.07)',padding:'20px 24px 14px',marginBottom:16}},
+        e('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}},
+          e('div',{style:{display:'flex',alignItems:'center',gap:10}},
+            e('div',{style:{width:36,height:36,borderRadius:'50%',background:color,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 8px '+color+'40'}},
+              e('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2'}))
+            ),
+            e('div',null,
+              e('div',{style:{fontSize:16,fontWeight:700,color:'#111827'}},title),
+              e('div',{style:{fontSize:11,color:'#9ca3af',marginTop:2}},'฿'+fmtB(totalBdg)+' budget · ฿'+fmtB(totalAct)+' actual · '+pct+'% used')
+            )
+          ),
+          e('div',{style:{height:4,width:100,background:'#f3f4f6',borderRadius:99,overflow:'hidden',alignSelf:'center'}},
+            e('div',{style:{height:'100%',width:Math.min(pct,100)+'%',background:color,borderRadius:99}})
+          )
+        ),
+        e('div',{style:{display:'grid',gridTemplateColumns:COL_MA_DET,gap:0}},
+          ...['Subscription Item','Type','Budget (฿)','Actual (฿)','Status',''].map(h=>this.thCell(h))
+        ),
+        ...groups.flatMap((g, gIdx) => {
+          const sc = maStCfg[g.st]||maStCfg['Not Started'];
+          const gt = groupTotals[gIdx];
+          return [
+            // Quarter header row — Budget/Actual auto-summed from items
+            e('div', { key:'grp'+g.id, style:{ display:'grid', gridTemplateColumns:COL_MA_DET, gap:0, background:'#1e293b', alignItems:'center', borderRadius: gIdx===0?'8px 8px 0 0':0 } },
+              this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#f8fafc'}}, g.n)),
+              this.tdCell(null),
+              this.tdCell(e('div',{style:{textAlign:'right'}},
+                e('div',{style:{fontSize:9,color:'rgba(255,255,255,.4)',textTransform:'uppercase',letterSpacing:'.06em'}},'auto'),
+                e('div',{style:{fontSize:13,fontWeight:700,color:'#93c5fd'}}, fmtB(gt.bg))
+              )),
+              this.tdCell(e('div',{style:{textAlign:'right'}},
+                e('div',{style:{fontSize:9,color:'rgba(255,255,255,.4)',textTransform:'uppercase',letterSpacing:'.06em'}},'auto'),
+                e('div',{style:{fontSize:13,fontWeight:700,color:'#86efac'}}, fmtB(gt.act))
+              )),
+              this.tdCell(e('div',{
+                title:'Click to cycle',
+                onClick:()=>{ const ord=MA_STATUSES; updMADetGroup(gIdx,'st',ord[(ord.indexOf(g.st)+1)%ord.length]); },
+                style:{display:'inline-flex',alignItems:'center',gap:6,background:sc.bg,border:'1px solid '+sc.border,borderRadius:20,padding:'4px 12px',cursor:'pointer',userSelect:'none'}
+              },
+                e('span',{style:{fontSize:12,fontWeight:700,color:sc.color,whiteSpace:'nowrap'}},g.st||'Not Started')
+              )),
+              this.tdCell(e('button',{title:'Add subscription item',onClick:()=>addMADetItem(gIdx),style:{background:'rgba(255,255,255,.12)',border:'none',borderRadius:6,cursor:'pointer',color:'#e2e8f0',padding:'5px',display:'flex',alignItems:'center',justifyContent:'center'}},
+                e('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 5v14M5 12h14'}))
+              ))
+            ),
+            // Items under this quarter
+            ...g.items.map((it, iIdx) => e('div',{key:'itm'+g.id+'-'+it.id,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_MA_DET,gap:0,background:'#fff'}},
+              this.tdCell(e('input',{type:'text',value:it.n||'',onChange:(ev)=>updMADetItem(gIdx,iIdx,'n',ev.target.value),style:{fontSize:13,fontWeight:500,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',paddingLeft:14,fontFamily:"'72','Inter','Kanit',sans-serif"}})),
+              this.tdCell(typeToggle(it.type||'OpEx', ()=>updMADetItem(gIdx,iIdx,'type',(it.type||'OpEx')==='CapEx'?'OpEx':'CapEx'))),
+              this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
+                numInp(it.budget||0,(v)=>updMADetItem(gIdx,iIdx,'budget',v),{fontSize:13,fontWeight:600,color:'#334155',width:100})
+              )),
+              this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
+                numInp(it.actual||0,(v)=>updMADetItem(gIdx,iIdx,'actual',v),{fontSize:13,fontWeight:700,color:'#10b981',width:100})
+              )),
+              this.tdCell(e('span',{style:{fontSize:12,color:'#cbd5e1'}},'–')),
+              this.tdCell(e('button',{title:'Delete',className:'del-btn',onClick:()=>this.setState({confirmDeleteMA:{sec:'maDet',gIdx,itemIdx:iIdx,name:it.n||'รายการนี้'}}),style:{background:'transparent',border:'none',cursor:'pointer',color:'#ef4444',padding:'4px',display:'flex',alignItems:'center',borderRadius:6}},
+                e('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'}))
+              ))
+            ))
+          ];
+        })
+      );
+    };
+
     const maForm = e('div', null,
-      mkMACard('MA+Subscription Detail', 'maSub', '#2563eb'),
-      mkMACard('MA (Maintenance) Detail', 'maDet', '#0ea5e9')
+      mkMASubCard('MA+Subscription Detail', 'maSub', '#2563eb'),
+      mkMADetCard('Software Subscription', '#0ea5e9')
     );
 
     const budgetForm = e('div', null, capexForm, maForm, budgetCatForm);
@@ -2371,7 +2484,17 @@ class Component extends DCLogic {
     const confirmMAModal = confirmDeleteMA ? _mkDelModal(
       'ยืนยันการลบรายการ MA',
       confirmDeleteMA.name,
-      () => { const a=[...this.state.maData[confirmDeleteMA.sec]]; a.splice(confirmDeleteMA.idx,1); this.setState({maData:{...this.state.maData,[confirmDeleteMA.sec]:a},confirmDeleteMA:null}); },
+      () => {
+        if (confirmDeleteMA.sec === 'maDet' && confirmDeleteMA.gIdx !== undefined) {
+          const a=[...this.state.maData.maDet];
+          const items=[...a[confirmDeleteMA.gIdx].items];
+          items.splice(confirmDeleteMA.itemIdx,1);
+          a[confirmDeleteMA.gIdx]={...a[confirmDeleteMA.gIdx],items};
+          this.setState({maData:{...this.state.maData,maDet:a},confirmDeleteMA:null});
+        } else {
+          const a=[...this.state.maData[confirmDeleteMA.sec]]; a.splice(confirmDeleteMA.idx,1); this.setState({maData:{...this.state.maData,[confirmDeleteMA.sec]:a},confirmDeleteMA:null});
+        }
+      },
       () => this.setState({confirmDeleteMA:null})
     ) : null;
 
