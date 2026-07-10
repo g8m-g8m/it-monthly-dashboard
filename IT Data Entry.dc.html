@@ -1519,7 +1519,7 @@ class Component extends DCLogic {
     const rowCell = (v, c, bold) => e('span',{style:{fontSize:14,fontWeight:bold?700:500,color:c||'#334155',textAlign:'right',display:'block'}}, v);
 
     // Type → Parent (card/project) → Category (sub-project/item) — each level rolls up into the next
-    const renderTypeGroup = (ty, groups) => {
+    const renderTypeGroup = (ty, groups, showCategories) => {
       const tc = typeCfgB[ty];
       const rows = [];
       groups.forEach(g => {
@@ -1538,19 +1538,21 @@ class Component extends DCLogic {
           this.tdCell(rowCell('฿'+toM(gc).toFixed(2)+'M', '#f97316', true)),
           this.tdCell(rowCell(gp+'%', gok?'#16a34a':'#e11d48', true))
         ));
-        // Category rows (indented, roll up into the parent above)
-        g.categories.forEach((c, ci) => {
-          const cp = c.budget>0 ? Math.round((c.actual/c.budget)*100) : 0;
-          const cok = cp<=100;
-          rows.push(e('div',{key:ty+'-c-'+g.parent+'-'+ci,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#fff'}},
-            this.tdCell(null),
-            this.tdCell(e('span',{style:{fontSize:13,fontWeight:500,color:'#64748b',paddingLeft:18}}, c.name)),
-            this.tdCell(rowCell('฿'+toM(c.budget).toFixed(2)+'M', '#475569')),
-            this.tdCell(rowCell('฿'+toM(c.actual).toFixed(2)+'M', cok?'#16a34a':'#e11d48')),
-            this.tdCell(rowCell('฿'+toM(c.commit).toFixed(2)+'M', '#f97316')),
-            this.tdCell(rowCell(cp+'%', cok?'#16a34a':'#e11d48'))
-          ));
-        });
+        // Category rows (indented, roll up into the parent above) — optional
+        if (showCategories) {
+          g.categories.forEach((c, ci) => {
+            const cp = c.budget>0 ? Math.round((c.actual/c.budget)*100) : 0;
+            const cok = cp<=100;
+            rows.push(e('div',{key:ty+'-c-'+g.parent+'-'+ci,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#fff'}},
+              this.tdCell(null),
+              this.tdCell(e('span',{style:{fontSize:13,fontWeight:500,color:'#64748b',paddingLeft:18}}, c.name)),
+              this.tdCell(rowCell('฿'+toM(c.budget).toFixed(2)+'M', '#475569')),
+              this.tdCell(rowCell('฿'+toM(c.actual).toFixed(2)+'M', cok?'#16a34a':'#e11d48')),
+              this.tdCell(rowCell('฿'+toM(c.commit).toFixed(2)+'M', '#f97316')),
+              this.tdCell(rowCell(cp+'%', cok?'#16a34a':'#e11d48'))
+            ));
+          });
+        }
       });
       const tb = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.budget,0),0);
       const ta = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.actual,0),0);
@@ -1581,8 +1583,8 @@ class Component extends DCLogic {
       e('div', { style:{ display:'grid', gridTemplateColumns:COL_TY, gap:0 } },
         ...['Type','Category','Budget (M฿)','Actual (M฿)','Commit (M฿)','% Actual'].map(h=>this.thCell(h))
       ),
-      ...renderTypeGroup('CapEx', capexGroups),
-      ...renderTypeGroup('OpEx', opexGroups),
+      ...renderTypeGroup('CapEx', capexGroups, true),
+      ...renderTypeGroup('OpEx', opexGroups, false),
       // Totals row
       e('div',{style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#f8fafc',borderTop:'2px solid #e2e8f0'}},
         this.tdCell(null),
