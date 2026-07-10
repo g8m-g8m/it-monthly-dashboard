@@ -2218,6 +2218,16 @@ class Component extends DCLogic {
         ]
       },
     ];
+    // Recompute each project's header totals from its own sub-items (single source of truth),
+    // instead of trusting a separately-entered header value that can drift out of sync.
+    for (const p of capexProjects) {
+      if (p.subs && p.subs.length) {
+        p.budget = p.subs.reduce((s,x) => s + x.budget, 0);
+        p.actual = p.subs.reduce((s,x) => s + x.actual, 0);
+        p.commit = p.subs.reduce((s,x) => s + x.commit, 0);
+        p.pct    = p.budget > 0 ? Math.round((p.actual / p.budget) * 100) : 0;
+      }
+    }
     const capTotalBudget = capexProjects.reduce((s,p) => s + p.budget, 0);
     const capTotalActual = capexProjects.reduce((s,p) => s + p.actual, 0);
     const capTotalCommit = capexProjects.reduce((s,p) => s + p.commit, 0);
