@@ -219,13 +219,15 @@
       rb.textContent = role;
       rb.className = 'role-badge role-' + role;
 
-      if (role === 'admin') {
+      // Menu access — explicit per-user list, or role-based default when not set.
+      // User Management is only ever included in the default (or allowed to persist)
+      // when role === 'admin' — this mirrors the server-side RBAC ceiling in admin-users.html.
+      const defaultAccess = role === 'admin' ? ['dashboard','data_entry','user_management'] : (role === 'editor') ? ['dashboard','data_entry'] : ['dashboard'];
+      const access = Array.isArray(profile?.menu_access) ? profile.menu_access : defaultAccess;
+
+      if (role === 'admin' && access.includes('user_management')) {
         document.getElementById('admin-btn').style.display = 'flex';
       }
-
-      // Menu access — explicit per-user list, or role-based default when not set
-      const defaultAccess = (role === 'admin' || role === 'editor') ? ['dashboard','data_entry'] : ['dashboard'];
-      const access = Array.isArray(profile?.menu_access) ? profile.menu_access : defaultAccess;
 
       const dashBtn = document.getElementById('dash-btn');
       if (access.includes('dashboard')) {

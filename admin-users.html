@@ -348,8 +348,11 @@
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1d2d3e;cursor:pointer">
           <input type="checkbox" id="edit-menu-data_entry" style="width:auto"> Data Entry
         </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#a8b5c0;cursor:not-allowed">
+          <input type="checkbox" id="edit-menu-user_management" style="width:auto" disabled> User Management
+        </label>
       </div>
-      <div style="font-size:11px;color:#a8b5c0;margin-top:5px">User Management เห็นได้เฉพาะ Role: Admin เท่านั้น (ไม่ต้องติ๊ก)</div>
+      <div style="font-size:11px;color:#a8b5c0;margin-top:5px">User Management เปิดให้อัตโนมัติเมื่อ Role เป็น Admin เท่านั้น — ป้องกันการมอบสิทธิ์จัดการผู้ใช้ให้ Role อื่น</div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
@@ -717,15 +720,18 @@ function applyDefaultMenuAccessIfUntouched() {
   const access = defaultMenuAccess(role);
   document.getElementById('edit-menu-dashboard').checked = access.includes('dashboard');
   document.getElementById('edit-menu-data_entry').checked = access.includes('data_entry');
+  const adminBox = document.getElementById('edit-menu-user_management');
+  adminBox.disabled = role !== 'admin';
+  adminBox.checked = role === 'admin';
 }
 
 function defaultMenuAccess(role) {
-  return (role === 'admin' || role === 'editor') ? ['dashboard','data_entry'] : ['dashboard'];
+  return role === 'admin' ? ['dashboard','data_entry','user_management'] : (role === 'editor') ? ['dashboard','data_entry'] : ['dashboard'];
 }
 
 function menuAccessLabel(p) {
   const access = Array.isArray(p.menu_access) ? p.menu_access : defaultMenuAccess(p.role || 'viewer');
-  const names = { dashboard: 'Dashboard', data_entry: 'Data Entry' };
+  const names = { dashboard: 'Dashboard', data_entry: 'Data Entry', user_management: 'User Management' };
   const list = access.map(k => names[k]).filter(Boolean);
   return list.length ? list.join(', ') : 'ไม่มีเมนู';
 }
@@ -739,6 +745,10 @@ function openEditModal(profile) {
   const access = Array.isArray(profile.menu_access) ? profile.menu_access : defaultMenuAccess(profile.role || 'viewer');
   document.getElementById('edit-menu-dashboard').checked = access.includes('dashboard');
   document.getElementById('edit-menu-data_entry').checked = access.includes('data_entry');
+  const adminBox = document.getElementById('edit-menu-user_management');
+  const isAdminRole = (profile.role || 'viewer') === 'admin';
+  adminBox.disabled = !isAdminRole;
+  adminBox.checked = isAdminRole && access.includes('user_management');
   avatarData.edit = profile.avatar_url || null;
   const img = document.getElementById('edit-avatar-img');
   const placeholder = document.getElementById('edit-avatar-placeholder');
@@ -754,6 +764,9 @@ async function saveEdit() {
   const menuAccess = [
     ...(document.getElementById('edit-menu-dashboard').checked ? ['dashboard'] : []),
     ...(document.getElementById('edit-menu-data_entry').checked ? ['data_entry'] : []),
+    // RBAC ceiling: User Management can only ever be granted alongside the admin role,
+    // regardless of checkbox state — never trust a disabled/stale checkbox value.
+    ...(role === 'admin' ? ['user_management'] : []),
   ];
   const errEl = document.getElementById('edit-error');
   const btn = document.getElementById('edit-btn');
