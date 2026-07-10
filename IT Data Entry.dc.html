@@ -1579,7 +1579,7 @@ class Component extends DCLogic {
     );
 
     // ── MA (Maintenance) Data Entry ───────────────────────────────
-    const { maData } = this.state;
+    const { maData = { maSub: [], maDet: [] } } = this.state;
     const updMA    = (sec, idx, field, val) => { const a=[...this.state.maData[sec]]; a[idx]={...a[idx],[field]:val}; this.setState({maData:{...this.state.maData,[sec]:a}}); };
     const MA_STATUSES = ['Completed','In Progress','Not Started','On-Hold'];
     const maStCfg  = { 'Completed':{ color:'#16a34a',bg:'#f0fdf4',border:'#bbf7d0',ic:'M5 13l4 4L19 7' }, 'In Progress':{ color:'#d97706',bg:'#fffbeb',border:'#fde68a',ic:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }, 'Not Started':{ color:'#e11d48',bg:'#fff1f2',border:'#fecdd3',ic:'M6 18L18 6M6 6l12 12' }, 'On-Hold':{ color:'#6b7280',bg:'#f9fafb',border:'#e5e7eb',ic:'M10 9v6m4-6v6' } };
@@ -1654,11 +1654,11 @@ class Component extends DCLogic {
     // ── Software Subscription (grouped by Q1–Q4, items add/delete within each quarter) ──
     const COL_MA_DET = '1fr 90px 130px 130px 150px 44px';
     const updMADetGroup = (gIdx, field, val) => { const a=[...this.state.maData.maDet]; a[gIdx]={...a[gIdx],[field]:val}; this.setState({maData:{...this.state.maData,maDet:a}}); };
-    const updMADetItem  = (gIdx, iIdx, field, val) => { const a=[...this.state.maData.maDet]; const items=[...a[gIdx].items]; items[iIdx]={...items[iIdx],[field]:val}; a[gIdx]={...a[gIdx],items}; this.setState({maData:{...this.state.maData,maDet:a}}); };
-    const addMADetItem  = (gIdx) => { const a=[...this.state.maData.maDet]; a[gIdx]={...a[gIdx],items:[...a[gIdx].items,{id:Date.now(),n:'New Subscription',type:'OpEx',budget:0,actual:0}]}; this.setState({maData:{...this.state.maData,maDet:a}}); };
+    const updMADetItem  = (gIdx, iIdx, field, val) => { const a=[...this.state.maData.maDet]; const items=[...(a[gIdx].items||[])]; items[iIdx]={...items[iIdx],[field]:val}; a[gIdx]={...a[gIdx],items}; this.setState({maData:{...this.state.maData,maDet:a}}); };
+    const addMADetItem  = (gIdx) => { const a=[...this.state.maData.maDet]; a[gIdx]={...a[gIdx],items:[...(a[gIdx].items||[]),{id:Date.now(),n:'New Subscription',type:'OpEx',budget:0,actual:0}]}; this.setState({maData:{...this.state.maData,maDet:a}}); };
 
     const mkMADetCard = (title, color) => {
-      const groups = maData.maDet||[];
+      const groups = (maData.maDet||[]).map(g => g.items ? g : { ...g, items: [{ id: (g.id||Date.now())+1, n: g.sub || 'Item 1', type: g.type || 'OpEx', budget: g.bg||0, actual: g.act||0 }] });
       const groupTotals = groups.map(g => ({ bg: g.items.reduce((s,it)=>s+(it.budget||0),0), act: g.items.reduce((s,it)=>s+(it.actual||0),0) }));
       const totalBdg = groupTotals.reduce((s,g)=>s+g.bg,0);
       const totalAct = groupTotals.reduce((s,g)=>s+g.act,0);
@@ -2487,7 +2487,7 @@ class Component extends DCLogic {
       () => {
         if (confirmDeleteMA.sec === 'maDet' && confirmDeleteMA.gIdx !== undefined) {
           const a=[...this.state.maData.maDet];
-          const items=[...a[confirmDeleteMA.gIdx].items];
+          const items=[...(a[confirmDeleteMA.gIdx].items||[])];
           items.splice(confirmDeleteMA.itemIdx,1);
           a[confirmDeleteMA.gIdx]={...a[confirmDeleteMA.gIdx],items};
           this.setState({maData:{...this.state.maData,maDet:a},confirmDeleteMA:null});
