@@ -566,6 +566,27 @@ class Component extends DCLogic {
     // Structured the same way as Data Entry: Type → Parent (project/card) → Category (sub-project/item).
     const _sdCap = this._savedData && this._savedData.capexProjects;
     const _sdMA  = this._savedData && this._savedData.maData;
+    // Normalize once: sub-project budget/actual/commit are derived from their payment
+    // schedule in Data Entry (not stored directly) — recompute here so every panel that
+    // reads capexProjects sees the same real numbers Data Entry shows.
+    if (_sdCap) {
+      _sdCap.forEach(p => {
+        (p.subs||[]).forEach(sub => {
+          if (sub.payments && sub.payments.length) {
+            sub.budget = sub.payments.reduce((s,pm)=>s+(pm.amt||0),0);
+            sub.actual = sub.payments.reduce((s,pm)=>s+(pm.actualAmt||0),0);
+            sub.commit = sub.payments.filter(pm=>!pm.done).reduce((s,pm)=>s+(pm.amt||0),0);
+            sub.pct = sub.budget>0 ? Math.round((sub.actual/sub.budget)*100) : 0;
+          }
+        });
+        if (p.subs && p.subs.length) {
+          p.budget = p.subs.reduce((s,x)=>s+(x.budget||0),0);
+          p.actual = p.subs.reduce((s,x)=>s+(x.actual||0),0);
+          p.commit = p.subs.reduce((s,x)=>s+(x.commit||0),0);
+          p.pct = p.budget>0 ? Math.round((p.actual/p.budget)*100) : 0;
+        }
+      });
+    }
     const _hasRealBudget = !!((_sdCap && _sdCap.length) || (_sdMA && ((_sdMA.maSub&&_sdMA.maSub.length)||(_sdMA.maDet&&_sdMA.maDet.length))));
     const _budColors = ['#2563eb','#0ea5e9','#8b5cf6','#10b981','#f59e0b','#f97316','#64748b','#84cc16','#ec4899','#14b8a6'];
     let _bci = 0;
