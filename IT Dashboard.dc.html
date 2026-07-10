@@ -1306,8 +1306,8 @@ class Component extends DCLogic {
               ),
               e('div', { style: { fontSize: 13, fontWeight: 700, color: pPct > 85 ? '#ef4444' : '#475569', textAlign: 'right' } }, pPct + '%')
             ));
-            // Category rows (indented, colored dot + mini bar)
-            g.categories.forEach((b, idx) => {
+            // Category rows (indented, colored dot + mini bar) — skip for OpEx per spec
+            if (ty === 'CapEx') g.categories.forEach((b, idx) => {
               const pct = b.bg > 0 ? Math.round((b.sp / b.bg) * 100) : 0;
               rows.push(e('div', { key: ty+'-c-'+g.parent+'-'+idx, style: { display: 'grid', gridTemplateColumns: cols, gap: '0 6px', padding: '4px 6px 4px 22px', borderBottom: idx < g.categories.length - 1 ? '1px solid #f8fafc' : 'none', alignItems: 'center', marginBottom: idx === g.categories.length - 1 ? 4 : 0 } },
                 e('div', { style: { display: 'flex', alignItems: 'center', gap: 5 } },
