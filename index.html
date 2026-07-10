@@ -222,22 +222,32 @@
       // Menu access — explicit per-user list, or role-based default when not set.
       // User Management is only ever included in the default (or allowed to persist)
       // when role === 'admin' — this mirrors the server-side RBAC ceiling in admin-users.html.
-      const defaultAccess = role === 'admin' ? ['dashboard','data_entry','user_management'] : (role === 'editor') ? ['dashboard','data_entry'] : ['dashboard'];
-      const access = Array.isArray(profile?.menu_access) ? profile.menu_access : defaultAccess;
+      const DASH_TABS = ['overview','projects','uptime','network','security','budget'];
+      const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq'];
+      const defaultAccess = role === 'admin'
+        ? { dashboard: DASH_TABS, data_entry: ENTRY_TABS, user_management: true }
+        : role === 'editor'
+          ? { dashboard: DASH_TABS, data_entry: ENTRY_TABS, user_management: false }
+          : { dashboard: DASH_TABS, data_entry: [], user_management: false };
+      const raw = profile?.menu_access;
+      const access = !raw ? defaultAccess
+        : Array.isArray(raw) // back-compat with the old flat-array format
+          ? { dashboard: raw.includes('dashboard') ? DASH_TABS : [], data_entry: raw.includes('data_entry') ? ENTRY_TABS : [], user_management: raw.includes('user_management') }
+          : { dashboard: raw.dashboard || [], data_entry: raw.data_entry || [], user_management: !!raw.user_management };
 
-      if (role === 'admin' && access.includes('user_management')) {
+      if (role === 'admin' && access.user_management) {
         document.getElementById('admin-btn').style.display = 'flex';
       }
 
       const dashBtn = document.getElementById('dash-btn');
-      if (access.includes('dashboard')) {
+      if (access.dashboard && access.dashboard.length) {
         dashBtn.classList.remove('disabled');
         document.getElementById('dash-sub').textContent = 'ดูรายงานและ KPI รายเดือน';
       } else {
         dashBtn.classList.add('disabled');
         document.getElementById('dash-sub').textContent = 'ไม่ได้รับสิทธิ์เข้าเมนูนี้';
       }
-      if (access.includes('data_entry')) {
+      if (access.data_entry && access.data_entry.length) {
         document.getElementById('entry-btn').classList.remove('disabled');
         document.getElementById('entry-sub').textContent = 'กรอกข้อมูลรายงานประจำเดือน';
       } else {

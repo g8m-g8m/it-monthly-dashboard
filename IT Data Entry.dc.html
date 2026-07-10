@@ -102,7 +102,7 @@ class Component extends DCLogic {
     copyFromYear: new Date().getMonth() === 0 ? new Date().getFullYear()-1 : new Date().getFullYear(),
     copyStatus: '',
     showAppMenu: false,
-    session: null, user: null, userRole: null, userName: '',
+    session: null, user: null, userRole: null, userName: '', menuAccess: null,
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     realtimeNotice: '', showHistory: false, historyVersions: [], loadingData: false,
     duePicker: null,
@@ -429,9 +429,37 @@ class Component extends DCLogic {
     });
   }
 
+  _defaultMenuAccess(role) {
+    const DASH_TABS = ['overview','projects','uptime','network','security','budget'];
+    const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq'];
+    if (role === 'admin')  return { dashboard: DASH_TABS.slice(), data_entry: ENTRY_TABS.slice(), user_management: true };
+    if (role === 'editor') return { dashboard: DASH_TABS.slice(), data_entry: ENTRY_TABS.slice(), user_management: false };
+    return { dashboard: DASH_TABS.slice(), data_entry: [], user_management: false };
+  }
+
+  _normalizeMenuAccess(raw, role) {
+    const def = this._defaultMenuAccess(role);
+    if (!raw) return def;
+    if (Array.isArray(raw)) { // back-compat with the old flat-array format
+      return {
+        dashboard: raw.includes('dashboard') ? def.dashboard : [],
+        data_entry: raw.includes('data_entry') ? def.data_entry : [],
+        user_management: raw.includes('user_management'),
+      };
+    }
+    return {
+      dashboard: Array.isArray(raw.dashboard) ? raw.dashboard : [],
+      data_entry: Array.isArray(raw.data_entry) ? raw.data_entry : [],
+      user_management: !!raw.user_management,
+    };
+  }
+
   async _onSignIn(session) {
     const { data: profile } = await this._sb.from('profiles').select('*').eq('id', session.user.id).single();
-    this.setState({ session, user: session.user, userRole: profile?.role || 'viewer', userName: profile?.full_name || session.user.email, loginError: '' });
+    const role = profile?.role || 'viewer';
+    const menuAccess = this._normalizeMenuAccess(profile?.menu_access, role);
+    const nextTab = menuAccess.data_entry.includes(this.state.tab) ? this.state.tab : (menuAccess.data_entry[0] || 'period');
+    this.setState({ session, user: session.user, userRole: role, userName: profile?.full_name || session.user.email, menuAccess, tab: nextTab, loginError: '' });
     // Always load latest period + data from DB on sign-in
     try {
       const { data: rows } = await this._sb.from('it_reports')
@@ -763,6 +791,8 @@ class Component extends DCLogic {
       { id: 'uptime',    label: 'Uptime',        num: '11', d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
       { id: 'changereq', label: 'Change Req',   num: '12', d: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
     ];
+    const _menuAccess = this.state.menuAccess || this._defaultMenuAccess(this.state.userRole || 'viewer');
+    const tabsVisible = tabs.filter(t => _menuAccess.data_entry.includes(t.id));
     const progRowStyle = (active, clickable) => ({
       display: 'flex', alignItems: 'center', gap: sidebarOpen ? 10 : 0,
       padding: sidebarOpen ? '9px 10px' : '10px', justifyContent: sidebarOpen ? 'flex-start' : 'center',
@@ -784,7 +814,7 @@ class Component extends DCLogic {
         sidebarOpen ? e('span', null, 'Data Entry') : null
       ),
       e('div', { style: sidebarOpen ? { marginLeft: 20, paddingLeft: 10, borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } : { display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } },
-        ...tabs.map(t => {
+        ...tabsVisible.map(t => {
         const on = t.id === tab;
         return e('button', {
           key: t.id,
@@ -811,7 +841,7 @@ class Component extends DCLogic {
       })
       ),
       // User Management (admin only)
-      this.state.userRole === 'admin' ? e('div', {
+      (this.state.userRole === 'admin' && _menuAccess.user_management) ? e('div', {
         onClick: () => { window.location.href = './admin-users.html'; },
         style: progRowStyle(false, true), title: !sidebarOpen ? 'User Management' : ''
       },

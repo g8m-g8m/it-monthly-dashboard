@@ -66,7 +66,7 @@
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
   state = { tab: 'overview', tip: null, sidebarOpen: false, filterMonth: new Date().getMonth() + 1, filterYear: new Date().getFullYear(), filterOpen: false, showAppMenu: false,
-    session: null, user: null, userRole: null, userName: '',
+    session: null, user: null, userRole: null, userName: '', menuAccess: null,
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     supabaseData: null, loadingData: false };
 
@@ -98,9 +98,37 @@ class Component extends DCLogic {
     // Period changes are handled directly in the picker onClick — no action needed here
   }
 
+  _defaultMenuAccess(role) {
+    const DASH_TABS = ['overview','projects','uptime','network','security','budget'];
+    const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq'];
+    if (role === 'admin')  return { dashboard: DASH_TABS.slice(), data_entry: ENTRY_TABS.slice(), user_management: true };
+    if (role === 'editor') return { dashboard: DASH_TABS.slice(), data_entry: ENTRY_TABS.slice(), user_management: false };
+    return { dashboard: DASH_TABS.slice(), data_entry: [], user_management: false };
+  }
+
+  _normalizeMenuAccess(raw, role) {
+    const def = this._defaultMenuAccess(role);
+    if (!raw) return def;
+    if (Array.isArray(raw)) { // back-compat with the old flat-array format
+      return {
+        dashboard: raw.includes('dashboard') ? def.dashboard : [],
+        data_entry: raw.includes('data_entry') ? def.data_entry : [],
+        user_management: raw.includes('user_management'),
+      };
+    }
+    return {
+      dashboard: Array.isArray(raw.dashboard) ? raw.dashboard : [],
+      data_entry: Array.isArray(raw.data_entry) ? raw.data_entry : [],
+      user_management: !!raw.user_management,
+    };
+  }
+
   async _onSignIn(session) {
     const { data: profile } = await this._sb.from('profiles').select('*').eq('id', session.user.id).single();
-    this.setState({ session, user: session.user, userRole: profile?.role || 'viewer', userName: profile?.full_name || session.user.email, loginError: '' });
+    const role = profile?.role || 'viewer';
+    const menuAccess = this._normalizeMenuAccess(profile?.menu_access, role);
+    const nextTab = menuAccess.dashboard.includes(this.state.tab) ? this.state.tab : (menuAccess.dashboard[0] || 'overview');
+    this.setState({ session, user: session.user, userRole: role, userName: profile?.full_name || session.user.email, menuAccess, tab: nextTab, loginError: '' });
     // Load latest period + data from DB (same logic as Data Entry)
     try {
       const { data: rows } = await this._sb.from('it_reports')
@@ -389,7 +417,9 @@ class Component extends DCLogic {
       { id: 'security',  label: 'Security',              d: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
       { id: 'budget',    label: 'Cost & Budget',         d: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     ];
-    const navItems = navDefs.map(n => {
+    const _menuAccess = this.state.menuAccess || this._defaultMenuAccess(this.state.userRole || 'viewer');
+    const navDefsVisible = navDefs.filter(n => _menuAccess.dashboard.includes(n.id));
+    const navItems = navDefsVisible.map(n => {
       const on = n.id === tab;
       return {
         label: n.label,
@@ -3063,7 +3093,7 @@ class Component extends DCLogic {
         sidebarOpen ? React.createElement('span', null, 'Data Entry') : null
       ),
       // User Management (admin only)
-      userRole === 'admin' ? React.createElement('div', {
+      (userRole === 'admin' && _menuAccess.user_management) ? React.createElement('div', {
         onClick: () => { window.location.href = './admin-users.html'; },
         style: progRowStyle(false, true), title: !sidebarOpen ? 'User Management' : ''
       },

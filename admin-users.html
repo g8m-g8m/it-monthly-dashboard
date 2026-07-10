@@ -315,7 +315,7 @@
 
 <!-- Edit Role Modal -->
 <div class="overlay" id="edit-modal">
-  <div class="modal" onclick="event.stopPropagation()">
+  <div class="modal" style="width:600px;max-height:88vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div class="modal-title">Edit User</div>
     <div class="modal-sub" id="edit-modal-sub">แก้ไขข้อมูลและสิทธิ์การเข้าถึง</div>
     <div id="edit-error" class="modal-error"></div>
@@ -340,14 +340,43 @@
       </select>
     </div>
     <div class="field">
-      <label>Menu ที่มองเห็น</label>
-      <div style="display:flex;flex-direction:column;gap:8px;padding:10px 13px;border:1px solid #d1d9e0;border-radius:8px">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1d2d3e;cursor:pointer">
-          <input type="checkbox" id="edit-menu-dashboard" style="width:auto"> IT Dashboard
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1d2d3e;cursor:pointer">
-          <input type="checkbox" id="edit-menu-data_entry" style="width:auto"> Data Entry
-        </label>
+      <label>Menu &amp; Sub-menu ที่มองเห็น</label>
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div style="border:1px solid #d1d9e0;border-radius:8px;padding:10px 13px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#1d2d3e;cursor:pointer;margin-bottom:8px">
+            <input type="checkbox" id="edit-menu-dashboard-all" onchange="toggleMenuGroup('dashboard', this.checked)" style="width:auto"> IT Dashboard
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;padding-left:22px">
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-dash" data-tab="overview" onchange="syncMenuGroupMaster('dashboard')" style="width:auto"> Overview</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-dash" data-tab="projects" onchange="syncMenuGroupMaster('dashboard')" style="width:auto"> Projects &amp; Changes</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-dash" data-tab="uptime" onchange="syncMenuGroupMaster('dashboard')" style="width:auto"> Uptime &amp; Availability</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-dash" data-tab="network" onchange="syncMenuGroupMaster('dashboard')" style="width:auto"> Network &amp; Infra</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-dash" data-tab="security" onchange="syncMenuGroupMaster('dashboard')" style="width:auto"> Security</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-dash" data-tab="budget" onchange="syncMenuGroupMaster('dashboard')" style="width:auto"> Cost &amp; Budget</label>
+          </div>
+        </div>
+
+        <div style="border:1px solid #d1d9e0;border-radius:8px;padding:10px 13px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#1d2d3e;cursor:pointer;margin-bottom:8px">
+            <input type="checkbox" id="edit-menu-data_entry-all" onchange="toggleMenuGroup('data_entry', this.checked)" style="width:auto"> Data Entry
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;padding-left:22px">
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="period" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Period</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="projects" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Projects</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="inhouse" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> In-house</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="budget" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Budget</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="security" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Security</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="secevents" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Sec Events</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="network" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Network</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="netkpis" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Net KPIs</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="bizsvcs" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Biz Services</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="statusovr" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Status KPIs</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="uptime" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Uptime</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="changereq" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Change Req</label>
+          </div>
+        </div>
+
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#a8b5c0;cursor:not-allowed">
           <input type="checkbox" id="edit-menu-user_management" style="width:auto" disabled> User Management
         </label>
@@ -715,25 +744,73 @@ async function inviteUser() {
 
 
 
+const DASH_TABS = ['overview','projects','uptime','network','security','budget'];
+const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq'];
+
+function toggleMenuGroup(group, checked) {
+  const cls = group === 'dashboard' ? 'edit-menu-dash' : 'edit-menu-entry';
+  document.querySelectorAll('.' + cls).forEach(cb => cb.checked = checked);
+}
+
+function syncMenuGroupMaster(group) {
+  const cls = group === 'dashboard' ? 'edit-menu-dash' : 'edit-menu-entry';
+  const boxes = [...document.querySelectorAll('.' + cls)];
+  document.getElementById('edit-menu-' + group + '-all').checked = boxes.every(cb => cb.checked);
+}
+
+function setMenuGroupChecked(group, tabs) {
+  const cls = group === 'dashboard' ? 'edit-menu-dash' : 'edit-menu-entry';
+  const boxes = [...document.querySelectorAll('.' + cls)];
+  boxes.forEach(cb => cb.checked = tabs.includes(cb.dataset.tab));
+  document.getElementById('edit-menu-' + group + '-all').checked = boxes.length>0 && boxes.every(cb => cb.checked);
+}
+
+function getMenuGroupChecked(group) {
+  const cls = group === 'dashboard' ? 'edit-menu-dash' : 'edit-menu-entry';
+  return [...document.querySelectorAll('.' + cls)].filter(cb => cb.checked).map(cb => cb.dataset.tab);
+}
+
 function applyDefaultMenuAccessIfUntouched() {
   const role = document.getElementById('edit-role').value;
   const access = defaultMenuAccess(role);
-  document.getElementById('edit-menu-dashboard').checked = access.includes('dashboard');
-  document.getElementById('edit-menu-data_entry').checked = access.includes('data_entry');
+  setMenuGroupChecked('dashboard', access.dashboard);
+  setMenuGroupChecked('data_entry', access.data_entry);
   const adminBox = document.getElementById('edit-menu-user_management');
   adminBox.disabled = role !== 'admin';
   adminBox.checked = role === 'admin';
 }
 
 function defaultMenuAccess(role) {
-  return role === 'admin' ? ['dashboard','data_entry','user_management'] : (role === 'editor') ? ['dashboard','data_entry'] : ['dashboard'];
+  if (role === 'admin')  return { dashboard: DASH_TABS.slice(),  data_entry: ENTRY_TABS.slice(), user_management: true };
+  if (role === 'editor') return { dashboard: DASH_TABS.slice(),  data_entry: ENTRY_TABS.slice(), user_management: false };
+  return { dashboard: DASH_TABS.slice(), data_entry: [], user_management: false };
 }
 
 function menuAccessLabel(p) {
-  const access = Array.isArray(p.menu_access) ? p.menu_access : defaultMenuAccess(p.role || 'viewer');
-  const names = { dashboard: 'Dashboard', data_entry: 'Data Entry', user_management: 'User Management' };
-  const list = access.map(k => names[k]).filter(Boolean);
-  return list.length ? list.join(', ') : 'ไม่มีเมนู';
+  const access = normalizeMenuAccess(p.menu_access, p.role || 'viewer');
+  const parts = [];
+  parts.push('Dashboard (' + access.dashboard.length + '/' + DASH_TABS.length + ')');
+  parts.push('Data Entry (' + access.data_entry.length + '/' + ENTRY_TABS.length + ')');
+  if (access.user_management) parts.push('User Mgmt');
+  return parts.join(' · ');
+}
+
+// Accepts either the new structured object, the old flat array (back-compat), or nothing (role default)
+function normalizeMenuAccess(raw, role) {
+  const def = defaultMenuAccess(role);
+  if (!raw) return def;
+  if (Array.isArray(raw)) {
+    return {
+      dashboard: raw.includes('dashboard') ? def.dashboard : [],
+      data_entry: raw.includes('data_entry') ? def.data_entry : [],
+      user_management: raw.includes('user_management'),
+    };
+  }
+  return {
+    dashboard: Array.isArray(raw.dashboard) ? raw.dashboard : [],
+    data_entry: Array.isArray(raw.data_entry) ? raw.data_entry : [],
+    user_management: !!raw.user_management,
+  };
 }
 
 function openEditModal(profile) {
@@ -742,13 +819,13 @@ function openEditModal(profile) {
   document.getElementById('edit-name').value = profile.full_name || '';
   document.getElementById('edit-role').value = profile.role || 'viewer';
   document.getElementById('edit-modal-sub').textContent = profile.email || '';
-  const access = Array.isArray(profile.menu_access) ? profile.menu_access : defaultMenuAccess(profile.role || 'viewer');
-  document.getElementById('edit-menu-dashboard').checked = access.includes('dashboard');
-  document.getElementById('edit-menu-data_entry').checked = access.includes('data_entry');
+  const access = normalizeMenuAccess(profile.menu_access, profile.role || 'viewer');
+  setMenuGroupChecked('dashboard', access.dashboard);
+  setMenuGroupChecked('data_entry', access.data_entry);
   const adminBox = document.getElementById('edit-menu-user_management');
   const isAdminRole = (profile.role || 'viewer') === 'admin';
   adminBox.disabled = !isAdminRole;
-  adminBox.checked = isAdminRole && access.includes('user_management');
+  adminBox.checked = isAdminRole && access.user_management;
   avatarData.edit = profile.avatar_url || null;
   const img = document.getElementById('edit-avatar-img');
   const placeholder = document.getElementById('edit-avatar-placeholder');
@@ -761,13 +838,13 @@ async function saveEdit() {
   const id = document.getElementById('edit-uid').value;
   const name = document.getElementById('edit-name').value.trim();
   const role = document.getElementById('edit-role').value;
-  const menuAccess = [
-    ...(document.getElementById('edit-menu-dashboard').checked ? ['dashboard'] : []),
-    ...(document.getElementById('edit-menu-data_entry').checked ? ['data_entry'] : []),
+  const menuAccess = {
+    dashboard: getMenuGroupChecked('dashboard'),
+    data_entry: getMenuGroupChecked('data_entry'),
     // RBAC ceiling: User Management can only ever be granted alongside the admin role,
     // regardless of checkbox state — never trust a disabled/stale checkbox value.
-    ...(role === 'admin' ? ['user_management'] : []),
-  ];
+    user_management: role === 'admin',
+  };
   const errEl = document.getElementById('edit-error');
   const btn = document.getElementById('edit-btn');
 
