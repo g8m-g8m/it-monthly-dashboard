@@ -201,6 +201,9 @@
     <!-- Top bar -->
     <div class="topbar">
       <span class="topbar-title">User Management</span>
+      <button class="btn-signout" id="svc-key-btn" onclick="openSvcKeyModal()" title="Service Key" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Service Key
+      </button>
       <div class="user-chip" id="user-chip" style="display:none">
         <div class="avatar" id="topbar-avatar">A</div>
         <div>
@@ -359,6 +362,49 @@
   </div>
 </div>
 
+<!-- Reset Password Modal -->
+<div class="overlay" id="resetpass-modal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Reset Password</div>
+    <div class="modal-sub" id="resetpass-modal-sub">ตั้งรหัสผ่านใหม่ให้ผู้ใช้งาน</div>
+    <div id="resetpass-error" class="modal-error"></div>
+    <div id="resetpass-success" style="background:#e8f9f0;border:1px solid #a3e6c0;border-radius:8px;padding:10px 14px;font-size:12px;color:#0a6640;margin-bottom:16px;display:none"></div>
+    <input type="hidden" id="resetpass-uid">
+    <div class="field">
+      <label>New Password</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="resetpass-pass" placeholder="อย่างน้อย 8 ตัวอักษร" style="flex:1">
+        <button class="btn btn-ghost btn-sm" type="button" onclick="generateResetPass()">Generate</button>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#1d2d3e;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" id="resetpass-force" checked style="width:auto">
+      บังคับให้เปลี่ยนรหัสผ่านตอน login ครั้งถัดไป
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('resetpass-modal')">Cancel</button>
+      <button class="btn btn-primary" id="resetpass-btn" onclick="confirmResetPass()">Reset Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Service Key Modal -->
+<div class="overlay" id="svckey-modal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Supabase Service Key</div>
+    <div class="modal-sub">จำเป็นสำหรับ Reset Password และ Remove User — เก็บไว้บนเบราว์เซอร์นี้เท่านั้น (localStorage) ไม่ถูกส่งไปที่ใด</div>
+    <div id="svckey-error" class="modal-error"></div>
+    <div class="field">
+      <label>service_role key</label>
+      <input type="password" id="svckey-input" placeholder="eyJhbGciOi...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('svckey-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSvcKey()">Save Key</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const sb = window.getSupabaseClient ? window.getSupabaseClient() : null;
 let currentUser = null;
@@ -444,6 +490,7 @@ async function onSignIn(session) {
 
   if (profile?.role === 'admin') {
     document.getElementById('admin-content').style.display = 'block';
+    document.getElementById('svc-key-btn').style.display = 'inline-flex';
     await loadUsers();
   } else {
     document.getElementById('access-denied').style.display = 'block';
@@ -490,6 +537,10 @@ async function loadUsers() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>
             Edit
           </button>
+          <button class="btn btn-ghost btn-sm" onclick="openResetPassModal('${p.id}','${(p.full_name||p.email||'').replace(/'/g,"\\'")}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Reset PW
+          </button>
           ${!isSelf ? `<button class="btn btn-danger btn-sm" onclick="openDeleteModal('${p.id}','${p.full_name||p.email}')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
             Remove
@@ -507,7 +558,79 @@ async function loadUsers() {
   </table>`;
 }
 
-function saveSvcKey() {}
+function openSvcKeyModal() {
+  document.getElementById('svckey-error').style.display = 'none';
+  document.getElementById('svckey-input').value = localStorage.getItem('sb_svc_key') || '';
+  document.getElementById('svckey-modal').classList.add('open');
+}
+
+function saveSvcKey() {
+  const val = document.getElementById('svckey-input').value.trim();
+  if (!val) { localStorage.removeItem('sb_svc_key'); }
+  else { localStorage.setItem('sb_svc_key', val); }
+  closeModal('svckey-modal');
+}
+
+function generateResetPass() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$';
+  let out = '';
+  for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('resetpass-pass').value = out;
+}
+
+function openResetPassModal(id, name) {
+  document.getElementById('resetpass-error').style.display = 'none';
+  document.getElementById('resetpass-success').style.display = 'none';
+  document.getElementById('resetpass-uid').value = id;
+  document.getElementById('resetpass-modal-sub').textContent = 'ตั้งรหัสผ่านใหม่ให้: ' + name;
+  document.getElementById('resetpass-force').checked = true;
+  generateResetPass();
+  document.getElementById('resetpass-modal').classList.add('open');
+}
+
+async function confirmResetPass() {
+  const id = document.getElementById('resetpass-uid').value;
+  const pass = document.getElementById('resetpass-pass').value;
+  const force = document.getElementById('resetpass-force').checked;
+  const errEl = document.getElementById('resetpass-error');
+  const sucEl = document.getElementById('resetpass-success');
+  const btn = document.getElementById('resetpass-btn');
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+
+  if (!pass || pass.length < 8) { errEl.textContent = 'Password ต้องมีอย่างน้อย 8 ตัวอักษร'; errEl.style.display = 'block'; return; }
+  const svcKey = localStorage.getItem('sb_svc_key');
+  if (!svcKey) {
+    errEl.innerHTML = 'ยังไม่ได้ตั้งค่า Service Key — กดปุ่ม "Service Key" ที่มุมขวาบนก่อน';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.textContent = 'Resetting…'; btn.disabled = true;
+  try {
+    const sbUrl = (sb.supabaseUrl || '').replace(/\/$/, '');
+    const res = await fetch(sbUrl + '/auth/v1/admin/users/' + id, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'Bearer ' + svcKey,
+        'apikey': svcKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ password: pass })
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body?.msg || body?.message || ('HTTP ' + res.status));
+
+    await sb.from('profiles').update({ must_change_password: force, updated_at: new Date().toISOString() }).eq('id', id);
+
+    sucEl.textContent = '✓ ตั้งรหัสผ่านใหม่สำเร็จ' + (force ? ' — ผู้ใช้ต้องเปลี่ยนรหัสผ่านตอน login ครั้งถัดไป' : '');
+    sucEl.style.display = 'block';
+    await loadUsers();
+  } catch (err) {
+    errEl.textContent = '❌ ' + err.message;
+    errEl.style.display = 'block';
+  }
+  btn.textContent = 'Reset Password'; btn.disabled = false;
+}
 
 function openInviteModal() {
   document.getElementById('invite-error').style.display = 'none';
@@ -557,6 +680,7 @@ async function inviteUser() {
     await sb.from('profiles').upsert({
       id: userId, email, full_name: name, role,
       avatar_url: avatarData.inv || null,
+      must_change_password: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
