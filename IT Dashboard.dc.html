@@ -808,14 +808,14 @@ class Component extends DCLogic {
     ];
     const _deptColors = ['#2563eb','#10b981','#8b5cf6','#f59e0b','#0ea5e9','#ef4444','#f97316','#84cc16','#94a3b8'];
     const _prjGanttBase = (_savedProjects && _savedProjects.length) ? _savedProjects.map(p => ({
-      n: p.name, type: p.type||'Other', ld: p.lead, st: p.status,
+      n: p.name, type: p.type||'Other', ld: p.lead, dept: p.dept||'IT', st: p.status,
       p: p.progress||0,
       s: p.startDate ? _parseM(p.startDate) : 4,
       e: p.due ? _parseM(p.due) : 9,
       ms: p.milestones ? p.milestones.split(',').map(m=>{ const MNAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const i=MNAMES.indexOf(m.trim()); return i>=0?i+1:null; }).filter(Boolean) : [],
       c: _ganttColors[p.type] || '#94a3b8'
     })) : _savedInhouse ? _savedInhouse.map((p, i) => ({
-      n: p.name, type: p.dept||'Other', ld: p.lead||'', st: _ihStatusMap[p.status]||'not-started',
+      n: p.name, type: p.dept||'Other', ld: p.lead||'', dept: p.dept||'Other', st: _ihStatusMap[p.status]||'not-started',
       p: p.progress||0, s: 1, e: p.due ? _parseM(p.due) : 12, ms: [],
       c: _deptColors[i % _deptColors.length]
     })) : _prjGanttFallback;
@@ -891,7 +891,7 @@ class Component extends DCLogic {
           })();
           return e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat('+Math.min(depts.length,8)+',1fr)', gap: 4 } },
           ...depts.map(dept => e('div', { key: dept.d, style: { background: '#fff', borderRadius: 8, padding: '8px 6px', textAlign: 'center', border: '1px solid ' + dept.c + '30' } },
-            e('div', { style: { fontSize: 13, fontWeight: 600, color: dept.c, marginBottom: 4 } }, dept.d),
+            e('div', { style: { fontSize: 13, fontWeight: 700, color: dept.c, marginBottom: 4, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1.15 } }, dept.d),
             e('div', { style: { fontSize: 28, fontWeight: 700, color: '#0f172a', lineHeight: 1 } }, dept.total),
             e('div', { style: { width: '80%', height: 3, background: '#e2e8f0', borderRadius: 2, margin: '4px auto' } },
               e('div', { style: { height: '100%', width: (dept.total>0?Math.round(dept.finish/dept.total*100):0)+'%', background: dept.c, borderRadius: 2 } })
@@ -1253,7 +1253,7 @@ class Component extends DCLogic {
     // Dynamic grid columns for left info panel
     const INFO_COLS = '32px 1fr 90px 110px 110px 72px';
     const HDR_S = { position: 'sticky', top: 0, zIndex: 2, fontSize: 14, fontWeight: 600, color: '#dee2e6', background: '#212529', padding: '8px 6px', borderBottom: '2px solid #dee2e6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' };
-    const hdrDefs = [['#','center'],['Project','left'],['Type','left'],['Lead','left'],['Status','left'],['%','left']];
+    const hdrDefs = [['#','center'],['Project','left'],['Type','left'],['Dept','left'],['Status','left'],['%','left']];
 
     // Single flat grid: header + data rows together for perfect column alignment
     const p4LeftCells = [
@@ -1269,7 +1269,7 @@ class Component extends DCLogic {
           cell(e('span', { style: { fontSize: 14, color: '#6c757d', width: '100%', textAlign: 'center' } }, idx + 1)),
           cell(e('span', { title: p2.n, style: { fontSize: 14, fontWeight: 600, color: '#212529', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' } }, p2.n), { overflow: 'hidden' }),
           cell(e('span', { style: { fontSize: 13, fontWeight: 500, color: p2.c, background: p2.c + '20', padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', border: '1px solid ' + p2.c + '40' } }, p2.type)),
-          cell(e('span', { title: p2.ld, style: { fontSize: 14, color: '#495057', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' } }, p2.ld), { overflow: 'hidden' }),
+          cell(e('span', { title: p2.dept, style: { fontSize: 14, fontWeight: 600, color: '#495057', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' } }, p2.dept), { overflow: 'hidden' }),
           cell(e('span', { style: { fontSize: 11, fontWeight: 700, color: pctColor, background: pctColor + '20', padding: '3px 6px', borderRadius: 4, whiteSpace: 'nowrap', border: '1px solid ' + pctColor + '40' } }, stLabel)),
           cell(e('div', null,
             e('div', { style: { fontSize: 14, fontWeight: 700, color: pctColor, lineHeight: 1 } }, p2.p + '%'),
