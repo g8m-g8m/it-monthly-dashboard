@@ -882,8 +882,12 @@ async function confirmDelete() {
     } catch(_) {}
   }
   // Delete profile row
-  await sb.from('profiles').delete().eq('id', id);
+  const { error } = await sb.from('profiles').delete().eq('id', id);
   btn.textContent = 'Remove User'; btn.disabled = false;
+  if (error) {
+    alert('ลบผู้ใช้ไม่สำเร็จ: ' + error.message);
+    return;
+  }
   closeModal('delete-modal');
   await loadUsers();
 }
