@@ -1524,7 +1524,7 @@ class Component extends DCLogic {
     const totalPrgAll = _kpiSrc.length || 19;
     const finishAll   = _kpiSrc.filter(p=>p.status==='completed'||p.status==='Completed'||(p.progress||0)>=100).length;
     const wipAll      = _kpiSrc.filter(p=>p.status==='in-progress'||p.status==='In Progress').length;
-    const waitAll     = _kpiSrc.filter(p=>p.status==='not-started'||p.status==='Not Started'||(p.progress||0)===0).length;
+    const waitAll     = _kpiSrc.filter(p=>p.status==='not-started'||p.status==='Not Started').length;
     const pipelinePct = Math.round(_kpiSrc.reduce((s,p)=>s+(p.progress||0),0)/(_kpiSrc.length||1));
     const readyRate   = Math.round(_kpiSrc.filter(p=>p.status!=='delayed'&&p.status!=='Delayed'&&p.status!=='on-hold'&&p.status!=='On Hold').length/(_kpiSrc.length||1)*100);
     const notReadyRate= 100 - readyRate;
@@ -1581,7 +1581,7 @@ class Component extends DCLogic {
         kpiSep,
         kpiCell(kpiIcon('M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', '#f59e0b'), 'In Progress (WIP)', wipAll, 'โครงการ', '#f59e0b', '#f59e0b'),
         kpiSep,
-        kpiCell(kpiIcon('M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', '#94a3b8'), 'Wait for Start', waitAll, 'โครงการ', '#94a3b8'),
+        kpiCell(kpiIcon('M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', '#94a3b8'), 'Not started', waitAll, 'โครงการ', '#94a3b8'),
         kpiSep,
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', flexShrink: 0 } },
           miniDonut,
