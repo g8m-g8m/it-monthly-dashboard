@@ -327,6 +327,23 @@ class Component extends DCLogic {
   thCell(txt) { return this.e('div', { style: { fontSize: 10.5, fontWeight: 600, color: '#9ca3af', padding: '10px 12px', background: 'transparent', borderBottom: '1px solid #f3f4f6', textTransform: 'uppercase', letterSpacing: '.07em' } }, txt); }
   tdCell(content) { return this.e('div', { style: { padding: '8px 10px', display: 'flex', alignItems: 'center', minHeight: 44 } }, content); }
 
+  // Format a number with thousands separators, always 2 decimal places
+  fmtNum(n) { return (parseFloat(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  // Shared formatted number input: shows "1,234.56" at rest, raw digits while focused
+  numField(val, onChange, style) {
+    const fmt = (n) => this.fmtNum(n);
+    return this.e('input', {
+      type: 'text',
+      inputMode: 'decimal',
+      value: fmt(val),
+      onChange: (ev) => { const raw = ev.target.value.replace(/,/g, ''); onChange(parseFloat(raw) || 0); },
+      onFocus: (ev) => { ev.target.value = String(parseFloat(val) || 0); },
+      onBlur: (ev) => { ev.target.value = fmt(parseFloat(ev.target.value.replace(/,/g, '')) || 0); },
+      style: Object.assign({ fontFamily: "'72','Inter','Kanit',sans-serif", border: 'none', background: 'transparent', outline: 'none' }, style || {})
+    });
+  }
+
   updateProject(idx, field, val) {
     const projects = this.state.projects.map((p, i) => i === idx ? Object.assign({}, p, { [field]: val }) : p);
     this.setState({ projects });
@@ -1308,17 +1325,10 @@ class Component extends DCLogic {
     const deriveSubBudget = (sub) => sub.payments.reduce((s,pm)=>s+(pm.amt||0),0);
     const updSub   = (pi, si, field, val) => { const a=[...this.state.capexProjects]; const s=[...a[pi].subs]; s[si]={...s[si],[field]:val}; a[pi]={...a[pi],subs:s}; this.setState({capexProjects:a}); };
     const updPmt   = (pi, si, pmi, field, val) => { const a=[...this.state.capexProjects]; const s=[...a[pi].subs]; const pm=[...s[si].payments]; pm[pmi]={...pm[pmi],[field]:val}; s[si]={...s[si],payments:pm}; a[pi]={...a[pi],subs:s}; this.setState({capexProjects:a}); };
-    const fmtB = (n) => (parseFloat(n)||0).toLocaleString('en-US');
-    // Formatted number input — shows thousands separator, parses on change
+    const fmtB = (n) => this.fmtNum(n);
+    // Formatted number input — shows thousands separator + 2 decimals, parses on change
     const numInp = (val, onChange, style) =>
-      e('input', {
-        type: 'text',
-        value: fmtB(val),
-        onChange: (ev) => { const n = parseFloat(ev.target.value.replace(/,/g,''))||0; onChange(n); },
-        onFocus: (ev) => { ev.target.value = String(val); },
-        onBlur:  (ev) => { ev.target.value = fmtB(parseFloat(ev.target.value.replace(/,/g,''))||0); },
-        style: Object.assign({ fontFamily:"'72','Inter','Kanit',sans-serif", border:'none', background:'transparent', outline:'none', textAlign:'right' }, style||{})
-      });
+      this.numField(val, onChange, Object.assign({ textAlign:'right' }, style||{}));
     const stCfg2 = { 'Completed':{ color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0' }, 'In Progress':{ color:'#d97706', bg:'#fffbeb', border:'#fde68a' }, 'Not Started':{ color:'#6b7280', bg:'#f9fafb', border:'#e5e7eb' } };
     const cycleStB = (cur) => { const o=['In Progress','Completed','Not Started']; return o[(o.indexOf(cur)+1)%o.length]; };
 
@@ -1671,11 +1681,11 @@ class Component extends DCLogic {
             )),
             this.tdCell(typeToggle(r.type||'OpEx', ()=>updMA(sec,idx,'type',(r.type||'OpEx')==='CapEx'?'OpEx':'CapEx'))),
             this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
-              numInp(r.bg||0,(v)=>updMA(sec,idx,'bg',v),{fontSize:13,fontWeight:600,color:'#334155',width:100}),
+              numInp(r.bg||0,(v)=>updMA(sec,idx,'bg',v),{fontSize:13,fontWeight:600,color:'#334155',width:112}),
               e('span',{style:{fontSize:11,color:'#9ca3af'}})
             )),
             this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
-              numInp(r.act||0,(v)=>updMA(sec,idx,'act',v),{fontSize:13,fontWeight:700,color:'#10b981',width:100}),
+              numInp(r.act||0,(v)=>updMA(sec,idx,'act',v),{fontSize:13,fontWeight:700,color:'#10b981',width:112}),
               e('span',{style:{fontSize:11,color:'#9ca3af'}})
             )),
             this.tdCell(e('div',{
@@ -1766,10 +1776,10 @@ class Component extends DCLogic {
               this.tdCell(e('input',{type:'text',value:it.n||'',onChange:(ev)=>updMADetItem(gIdx,iIdx,'n',ev.target.value),style:{fontSize:13,fontWeight:500,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',paddingLeft:14,fontFamily:"'72','Inter','Kanit',sans-serif"}})),
               this.tdCell(typeToggle(it.type||'OpEx', ()=>updMADetItem(gIdx,iIdx,'type',(it.type||'OpEx')==='CapEx'?'OpEx':'CapEx'))),
               this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
-                numInp(it.budget||0,(v)=>updMADetItem(gIdx,iIdx,'budget',v),{fontSize:13,fontWeight:600,color:'#334155',width:100})
+                numInp(it.budget||0,(v)=>updMADetItem(gIdx,iIdx,'budget',v),{fontSize:13,fontWeight:600,color:'#334155',width:112})
               )),
               this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}},
-                numInp(it.actual||0,(v)=>updMADetItem(gIdx,iIdx,'actual',v),{fontSize:13,fontWeight:700,color:'#10b981',width:100})
+                numInp(it.actual||0,(v)=>updMADetItem(gIdx,iIdx,'actual',v),{fontSize:13,fontWeight:700,color:'#10b981',width:112})
               )),
               this.tdCell(e('span',{style:{fontSize:12,color:'#cbd5e1'}},'–')),
               this.tdCell(e('button',{title:'Delete',className:'del-btn',onClick:()=>this.setState({confirmDeleteMA:{sec:'maDet',gIdx,itemIdx:iIdx,name:it.n||'รายการนี้'}}),style:{background:'transparent',border:'none',cursor:'pointer',color:'#ef4444',padding:'4px',display:'flex',alignItems:'center',borderRadius:6}},
@@ -1848,7 +1858,7 @@ class Component extends DCLogic {
             e('div',{style:{fontSize:10,color:'#9ca3af',marginTop:1}}, f.target)
           )),
           this.tdCell(e('div',{style:{display:'flex',alignItems:'baseline',gap:3}},
-            e('input',{type:'number',value:val,min:0,step:1,onChange:(ev)=>this.updateSecurity(f.key,parseFloat(ev.target.value)||0),style:{width:70,fontSize:24,fontWeight:700,color,border:'none',background:'transparent',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+            this.numField(val,(v)=>this.updateSecurity(f.key,v),{width:104,fontSize:24,fontWeight:700,color}),
             f.unit ? e('span',{style:{fontSize:11,color:'#9ca3af'}},f.unit) : null
           )),
           this.tdCell(ok!==null ? e('div',{style:{display:'inline-flex',alignItems:'center',gap:6,background:ok?'#f0fdf4':'#fff1f2',border:'1px solid '+(ok?'#bbf7d0':'#fecdd3'),borderRadius:20,padding:'5px 12px'}},
@@ -1892,7 +1902,7 @@ class Component extends DCLogic {
               e('div',{style:{height:'100%',width:Math.min((n.latency/100)*100,100)+'%',background:latC,borderRadius:99}})
             ),
             e('div',{style:{display:'flex',alignItems:'center',gap:6,background:latC+'10',border:'1px solid '+latC+'30',borderRadius:10,padding:'4px 8px'}},
-              e('input',{type:'number',value:n.latency,min:0,step:1,onChange:(ev)=>this.updateNetwork(idx,'latency',parseFloat(ev.target.value)||0),style:{flex:1,fontSize:26,fontWeight:700,color:latC,border:'none',background:'transparent',outline:'none',textAlign:'center',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+              this.numField(n.latency,(v)=>this.updateNetwork(idx,'latency',v),{flex:1,fontSize:26,fontWeight:700,color:latC,textAlign:'center'}),
               e('span',{style:{fontSize:11,fontWeight:600,color:latC,flexShrink:0}},'ms')
             )
           )),
@@ -1901,7 +1911,7 @@ class Component extends DCLogic {
               e('div',{style:{height:'100%',width:Math.min(n.packetLoss*100,100)+'%',background:pktC,borderRadius:99}})
             ),
             e('div',{style:{display:'flex',alignItems:'center',gap:6,background:pktC+'10',border:'1px solid '+pktC+'30',borderRadius:10,padding:'4px 8px'}},
-              e('input',{type:'number',value:n.packetLoss,min:0,step:0.01,onChange:(ev)=>this.updateNetwork(idx,'packetLoss',parseFloat(ev.target.value)||0),style:{flex:1,fontSize:26,fontWeight:700,color:pktC,border:'none',background:'transparent',outline:'none',textAlign:'center',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+              this.numField(n.packetLoss,(v)=>this.updateNetwork(idx,'packetLoss',v),{flex:1,fontSize:26,fontWeight:700,color:pktC,textAlign:'center'}),
               e('span',{style:{fontSize:11,fontWeight:600,color:pktC,flexShrink:0}},'%')
             )
           )),
@@ -1945,7 +1955,7 @@ class Component extends DCLogic {
           this.tdCell(e('input',{type:'text',value:d.label,onChange:(ev)=>updUptimeItem(d.key,'label',ev.target.value),style:{fontSize:14,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
           this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:2}},
             e('span',{style:{fontSize:12,color:'#9ca3af'}},'≥ '),
-            e('input',{type:'number',value:d.target,min:0,max:100,step:0.1,onChange:(ev)=>updUptimeItem(d.key,'target',parseFloat(ev.target.value)||0),style:{width:50,fontSize:13,fontWeight:600,color:'#374151',border:'none',background:'transparent',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+            this.numField(d.target,(v)=>updUptimeItem(d.key,'target',Math.min(100,v)),{width:66,fontSize:13,fontWeight:600,color:'#374151'}),
             e('span',{style:{fontSize:12,color:'#9ca3af'}},'%')
           )),
           this.tdCell(e('div',{style:{width:'100%'}},
@@ -1953,7 +1963,7 @@ class Component extends DCLogic {
               e('div',{style:{height:'100%',width:Math.min(val,100)+'%',background:c,borderRadius:99,transition:'width .3s'}})
             ),
             e('div',{style:{display:'flex',alignItems:'baseline',gap:3}},
-              e('input',{type:'number',value:val,min:0,max:100,step:0.01,onChange:(ev)=>this.updateUptime(d.key,Math.min(100,Math.max(0,parseFloat(ev.target.value)||0))),style:{fontSize:22,fontWeight:700,color:c,border:'none',background:'transparent',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",width:75}}),
+              this.numField(val,(v)=>this.updateUptime(d.key,Math.min(100,Math.max(0,v))),{fontSize:22,fontWeight:700,color:c,width:100}),
               e('span',{style:{fontSize:12,color:'#9ca3af'}},'%')
             )
           )),
@@ -2138,7 +2148,7 @@ class Component extends DCLogic {
         return e('div', { key:k, className:'row-tr', style:{ display:'grid', gridTemplateColumns:COL_VULN, gap:0, background:'#fff' } },
           this.tdCell(e('div',{style:{width:14,height:14,borderRadius:'50%',background:color,flexShrink:0}})),
           this.tdCell(e('span',{style:{fontSize:13,fontWeight:600,color:'#111827'}}, label)),
-          this.tdCell(e('input',{type:'number',value:val,min:0,step:1,onChange:(ev)=>{ const v=parseInt(ev.target.value)||0; isSec ? this.updateSecurity(k,v) : this.setState({vulns:{...this.state.vulns,[k]:v}}); },style:{width:60,fontSize:20,fontWeight:700,color,border:'none',background:'transparent',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
+          this.tdCell(this.numField(val,(v)=>{ isSec ? this.updateSecurity(k,v) : this.setState({vulns:{...this.state.vulns,[k]:v}}); },{width:96,fontSize:20,fontWeight:700,color})),
           this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:8,width:'100%'}},
             e('div',{style:{flex:1,height:6,background:'#f3f4f6',borderRadius:99,overflow:'hidden'}},
               e('div',{style:{height:'100%',width:pct+'%',background:color,borderRadius:99}})
@@ -2287,7 +2297,7 @@ class Component extends DCLogic {
           this.tdCell(e('input',{type:'text',value:f.label,onChange:(ev)=>updNetKpiDef(f.key,'label',ev.target.value),style:{fontSize:14,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
           this.tdCell(e('input',{type:'text',value:f.unit,onChange:(ev)=>updNetKpiDef(f.key,'unit',ev.target.value),placeholder:'unit',style:{fontSize:13,color:'#6b7280',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
           this.tdCell(e('div',{style:{display:'flex',alignItems:'baseline',gap:4}},
-            e('input',{type:'number',value:val,min:0,onChange:(ev)=>this.setState({networkKpis:Object.assign({},this.state.networkKpis,{[f.key]:parseFloat(ev.target.value)||0})}),style:{width:120,fontSize:26,fontWeight:700,color:f.color,border:'none',background:'transparent',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+            this.numField(val,(v)=>this.setState({networkKpis:Object.assign({},this.state.networkKpis,{[f.key]:v})}),{width:130,fontSize:26,fontWeight:700,color:f.color}),
             e('span',{style:{fontSize:12,color:'#9ca3af'}},f.unit)
           )),
           this.tdCell(e('button',{title:'Delete KPI',className:'del-btn',onClick:()=>this.setState({confirmDeleteNetKpi:{key:f.key,label:f.label}}),style:{background:'transparent',border:'none',cursor:'pointer',color:'#9ca3af',display:'flex',alignItems:'center',justifyContent:'center',width:32,height:32,borderRadius:8}},
@@ -2347,7 +2357,7 @@ class Component extends DCLogic {
               e('div',{style:{height:'100%',width:Math.min(s.availability,100)+'%',background:avOk?'#22c55e':'#f59e0b',borderRadius:99}})
             ),
             e('div',{style:{display:'flex',alignItems:'center',gap:6,background:(avOk?'#22c55e':'#f59e0b')+'12',border:'1px solid '+(avOk?'#22c55e':'#f59e0b')+'30',borderRadius:10,padding:'4px 8px'}},
-              e('input',{type:'number',value:s.availability,min:0,max:100,step:0.01,onChange:(ev)=>updBS('availability',parseFloat(ev.target.value)||0),style:{flex:1,fontSize:22,fontWeight:700,color:avOk?'#16a34a':'#d97706',border:'none',background:'transparent',outline:'none',textAlign:'center',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+              this.numField(s.availability,(v)=>updBS('availability',Math.min(100,v)),{flex:1,fontSize:22,fontWeight:700,color:avOk?'#16a34a':'#d97706',textAlign:'center'}),
               e('span',{style:{fontSize:11,fontWeight:600,color:avOk?'#16a34a':'#d97706',flexShrink:0}},'%')
             )
           )),
@@ -2419,7 +2429,7 @@ class Component extends DCLogic {
             )),
             this.tdCell(e('input',{type:'text',value:f.unit,onChange:(ev)=>this.setState({stabilityKpiDefs:this.state.stabilityKpiDefs.map(d=>d.key===f.key?Object.assign({},d,{unit:ev.target.value}):d)}),placeholder:'unit',style:{fontSize:13,color:'#6b7280',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
             this.tdCell(e('div',{style:{display:'flex',alignItems:'baseline',gap:3}},
-              e('input',{type:'number',value:val,min:0,step:f.unit==='%'?0.1:1,onChange:(ev)=>updSK(f.key,ev.target.value),style:{width:80,fontSize:24,fontWeight:700,color,border:'none',background:'transparent',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+              this.numField(val,(v)=>updSK(f.key,v),{width:104,fontSize:24,fontWeight:700,color}),
               f.unit?e('span',{style:{fontSize:11,color:'#9ca3af'}},f.unit):null
             )),
             this.tdCell(ok!==null?e('div',{style:{display:'inline-flex',alignItems:'center',gap:5,background:ok?'#f0fdf4':'#fff1f2',border:'1px solid '+(ok?'#bbf7d0':'#fecdd3'),borderRadius:20,padding:'4px 10px'}},
@@ -2453,7 +2463,7 @@ class Component extends DCLogic {
                 e('span',{style:{fontSize:13,fontWeight:600,color:'#374151'}},l)
               ),
               e('div',{style:{display:'flex',alignItems:'center',gap:8}},
-                e('input',{type:'number',value:statusKpis[k]||0,min:0,step:1,onChange:(ev)=>this.setState({statusKpis:Object.assign({},this.state.statusKpis,{[k]:parseInt(ev.target.value)||0})}),style:{width:80,fontSize:36,fontWeight:800,color:c,border:'none',background:'transparent',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+                this.numField(statusKpis[k]||0,(v)=>this.setState({statusKpis:Object.assign({},this.state.statusKpis,{[k]:v})}),{width:120,fontSize:36,fontWeight:800,color:c}),
                 e('span',{style:{fontSize:13,color:'#9ca3af'}},statusKpis[k]===1?'incident':'incidents')
               )
             )
