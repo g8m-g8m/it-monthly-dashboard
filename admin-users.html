@@ -209,9 +209,6 @@
     <!-- Top bar -->
     <div class="topbar">
       <span class="topbar-title">User Management</span>
-      <button class="btn-signout" id="svc-key-btn" onclick="openSvcKeyModal()" title="Service Key" style="display:none">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Service Key
-      </button>
       <div class="user-chip" id="user-chip" style="display:none">
         <div class="avatar" id="topbar-avatar">A</div>
         <div>
@@ -493,23 +490,6 @@
   </div>
 </div>
 
-<!-- Service Key Modal -->
-<div class="overlay" id="svckey-modal">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-title">Supabase Service Key</div>
-    <div class="modal-sub">จำเป็นสำหรับ Reset Password และ Remove User — เก็บไว้บนเบราว์เซอร์นี้เท่านั้น (localStorage) ไม่ถูกส่งไปที่ใด</div>
-    <div id="svckey-error" class="modal-error"></div>
-    <div class="field">
-      <label>service_role key</label>
-      <input type="password" id="svckey-input" placeholder="eyJhbGciOi...">
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('svckey-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSvcKey()">Save Key</button>
-    </div>
-  </div>
-</div>
-
 <!-- Branding History Modal -->
 <div class="overlay" id="brand-history-modal">
   <div class="modal" style="width:480px;max-height:80vh;overflow-y:auto" onclick="event.stopPropagation()">
@@ -616,7 +596,6 @@ async function onSignIn(session) {
 
   if (profile?.role === 'admin') {
     document.getElementById('admin-content').style.display = 'block';
-    document.getElementById('svc-key-btn').style.display = 'inline-flex';
     await loadUsers();
     await loadBranding();
   } else {
@@ -799,19 +778,6 @@ async function loadUsers() {
   </table>`;
 }
 
-function openSvcKeyModal() {
-  document.getElementById('svckey-error').style.display = 'none';
-  document.getElementById('svckey-input').value = localStorage.getItem('sb_svc_key') || '';
-  document.getElementById('svckey-modal').classList.add('open');
-}
-
-function saveSvcKey() {
-  const val = document.getElementById('svckey-input').value.trim();
-  if (!val) { localStorage.removeItem('sb_svc_key'); }
-  else { localStorage.setItem('sb_svc_key', val); }
-  closeModal('svckey-modal');
-}
-
 function generateResetPass() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$';
   let out = '';
@@ -839,29 +805,14 @@ async function confirmResetPass() {
   errEl.style.display = 'none'; sucEl.style.display = 'none';
 
   if (!pass || pass.length < 8) { errEl.textContent = 'Password ต้องมีอย่างน้อย 8 ตัวอักษร'; errEl.style.display = 'block'; return; }
-  const svcKey = localStorage.getItem('sb_svc_key');
-  if (!svcKey) {
-    errEl.innerHTML = 'ยังไม่ได้ตั้งค่า Service Key — กดปุ่ม "Service Key" ที่มุมขวาบนก่อน';
-    errEl.style.display = 'block';
-    return;
-  }
 
   btn.textContent = 'Resetting…'; btn.disabled = true;
   try {
-    const sbUrl = (sb.supabaseUrl || '').replace(/\/$/, '');
-    const res = await fetch(sbUrl + '/auth/v1/admin/users/' + id, {
-      method: 'PUT',
-      headers: {
-        'Authorization': 'Bearer ' + svcKey,
-        'apikey': svcKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ password: pass })
+    const { data, error } = await sb.functions.invoke('admin-reset-password', {
+      body: { userId: id, newPassword: pass, forceChange: force }
     });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body?.msg || body?.message || ('HTTP ' + res.status));
-
-    await sb.from('profiles').update({ must_change_password: force, updated_at: new Date().toISOString() }).eq('id', id);
+    if (error) throw new Error(error.message || 'Request failed');
+    if (data?.error) throw new Error(data.error);
 
     sucEl.textContent = '✓ ตั้งรหัสผ่านใหม่สำเร็จ' + (force ? ' — ผู้ใช้ต้องเปลี่ยนรหัสผ่านตอน login ครั้งถัดไป' : '');
     sucEl.style.display = 'block';
@@ -1063,26 +1014,12 @@ function openDeleteModal(id, name) {
 async function confirmDelete() {
   const id = document.getElementById('delete-uid').value;
   const btn = document.getElementById('del-btn');
-  const svcKey = localStorage.getItem('sb_svc_key');
   btn.textContent = 'Removing…'; btn.disabled = true;
 
-  // Delete from Supabase Auth (requires service_role key)
-  if (svcKey) {
-    try {
-      const sbUrl = (sb.supabaseUrl || '').replace(/\/$/, '');
-      await fetch(sbUrl + '/auth/v1/admin/users/' + id, {
-        method: 'DELETE',
-        headers: { 'Authorization': 'Bearer ' + svcKey, 'apikey': svcKey }
-      });
-    } catch(_) {}
-  }
-  // Delete profile row
-  const { error } = await sb.from('profiles').delete().eq('id', id);
+  const { data, error } = await sb.functions.invoke('admin-delete-user', { body: { userId: id } });
   btn.textContent = 'Remove User'; btn.disabled = false;
-  if (error) {
-    showToast('ลบผู้ใช้ไม่สำเร็จ: ' + error.message, 'error');
-    return;
-  }
+  if (error) { showToast('ลบผู้ใช้ไม่สำเร็จ: ' + error.message, 'error'); return; }
+  if (data?.error) { showToast('ลบผู้ใช้ไม่สำเร็จ: ' + data.error, 'error'); return; }
   closeModal('delete-modal');
   await loadUsers();
 }
