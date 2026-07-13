@@ -70,7 +70,7 @@ class Component extends DCLogic {
     session: null, user: null, userRole: null, userName: '', userAvatar: '', menuAccess: null,
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     supabaseData: null, loadingData: false, trendMonths: [],
-    orgSettings: { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' },
+    orgSettings: (function() { try { const c = JSON.parse(localStorage.getItem('it_org_branding')); if (c && c.companyName) return c; } catch(_) {} return { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' }; })(),
     showProfileModal: false, profileName: '', profileAvatarPreview: '', profileSaving: false, profileError: '', profileSuccess: '',
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '' };
 
@@ -226,13 +226,15 @@ class Component extends DCLogic {
     try {
       const { data } = await this._sb.from('app_settings').select('*').eq('id', 1).maybeSingle();
       if (data) {
-        this.setState({ orgSettings: {
+        const orgSettings = {
           companyName: data.company_name || 'Pacificpipe PLC',
           divisionName: data.division_name || 'IT Division',
           logoLetter: data.logo_letter || 'P',
           logoColor: data.logo_color || '#2563eb',
           logoUrl: data.logo_url || ''
-        } });
+        };
+        this.setState({ orgSettings });
+        try { localStorage.setItem('it_org_branding', JSON.stringify(orgSettings)); } catch(_) {}
       }
     } catch (_) { /* keep defaults on failure */ }
   }

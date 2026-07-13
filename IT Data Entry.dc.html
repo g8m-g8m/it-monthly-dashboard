@@ -108,7 +108,7 @@ class Component extends DCLogic {
     realtimeNotice: '', showHistory: false, historyVersions: [], loadingData: false,
     showProfileModal: false, profileName: '', profileAvatarPreview: '', profileSaving: false, profileError: '', profileSuccess: '',
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '',
-    orgSettings: { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' },
+    orgSettings: (function() { try { const c = JSON.parse(localStorage.getItem('it_org_branding')); if (c && c.companyName) return c; } catch(_) {} return { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' }; })(),
     dirty: false,
     duePicker: null,
     customTypes: [],
@@ -691,13 +691,15 @@ class Component extends DCLogic {
     try {
       const { data } = await this._sb.from('app_settings').select('*').eq('id', 1).maybeSingle();
       if (data) {
-        this.setState({ orgSettings: {
+        const orgSettings = {
           companyName: data.company_name || 'Pacificpipe PLC',
           divisionName: data.division_name || 'IT Division',
           logoLetter: data.logo_letter || 'P',
           logoColor: data.logo_color || '#2563eb',
           logoUrl: data.logo_url || ''
-        } });
+        };
+        this.setState({ orgSettings });
+        try { localStorage.setItem('it_org_branding', JSON.stringify(orgSettings)); } catch(_) {}
       }
     } catch (_) { /* keep defaults on failure */ }
   }
@@ -760,8 +762,33 @@ class Component extends DCLogic {
   async loadHistory() {
     if (!this._sb || !this.state.session) return;
     const { period } = this.state;
-    const { data } = await this._sb.from('it_report_versions').select('id, saved_by_name, saved_at, version_note').eq('period_year', period.year).eq('period_month', period.month).order('saved_at', { ascending: false }).limit(30);
-    this.setState({ historyVersions: data || [], showHistory: true });
+    const { data } = await this._sb.from('it_report_versions').select('id, saved_by_name, saved_at, version_note, data').eq('period_year', period.year).eq('period_month', period.month).order('saved_at', { ascending: false }).limit(30);
+    const rows = data || [];
+    const DIFF_LABELS = {
+      projects: 'Projects', inhouse: 'In-house Dev', budget: 'Budget', capexProjects: 'CapEx Projects',
+      maData: 'M&A/Subscription', security: 'Security KPIs', vulns: 'Vulnerabilities', securityEvents: 'Security Events',
+      network: 'Network', networkKpis: 'Network KPIs', networkKpiDefs: 'Network KPI Defs', bizServices: 'Business Services',
+      statusKpis: 'Status Overall', uptime: 'Uptime', uptimeItems: 'Uptime Domains', stabilityKpiDefs: 'Stability KPIs',
+      changeRequests: 'Change Requests'
+    };
+    const versions = rows.map((v, idx) => {
+      const older = rows[idx + 1]; // next-older version (rows are newest-first)
+      let changes = [];
+      if (!older) {
+        changes = ['บันทึกครั้งแรกของเดือนนี้'];
+      } else if (v.data && older.data) {
+        Object.keys(DIFF_LABELS).forEach(k => {
+          const a = JSON.stringify(v.data[k] ?? null);
+          const b = JSON.stringify(older.data[k] ?? null);
+          if (a !== b) changes.push(DIFF_LABELS[k]);
+        });
+        if (!changes.length) changes = ['ไม่มีการเปลี่ยนแปลงข้อมูล'];
+      } else {
+        changes = ['ไม่สามารถเทียบข้อมูลเก่าได้'];
+      }
+      return { id: v.id, saved_by_name: v.saved_by_name, saved_at: v.saved_at, version_note: v.version_note, changes };
+    });
+    this.setState({ historyVersions: versions, showHistory: true });
   }
 
   async restoreVersion(versionId) {
@@ -3091,6 +3118,9 @@ class Component extends DCLogic {
               e('div',{style:{fontSize:11,color:'#94a3b8'}},new Date(v.saved_at).toLocaleString('th-TH'))
             ),
             v.version_note?e('div',{style:{fontSize:12,color:'#64748b',marginBottom:8}},v.version_note):null,
+            v.changes && v.changes.length ? e('div',{style:{display:'flex',flexWrap:'wrap',gap:5,marginBottom:10}},
+              ...v.changes.map((c,i)=>e('span',{key:i,style:{fontSize:10.5,fontWeight:600,color:'#2563eb',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:12,padding:'2px 8px'}},c))
+            ) : null,
             userRole!=='viewer'?e('button',{onClick:()=>this.restoreVersion(v.id),style:{background:'#eff6ff',border:'none',borderRadius:8,padding:'5px 12px',cursor:'pointer',fontSize:11,color:'#2563eb',fontWeight:600}},'Restore'):null
           ))
         )
