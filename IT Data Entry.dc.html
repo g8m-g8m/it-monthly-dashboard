@@ -329,7 +329,7 @@ class Component extends DCLogic {
   }
 
   thCell(txt) { return this.e('div', { style: { fontSize: 10.5, fontWeight: 600, color: '#9ca3af', padding: '10px 12px', background: 'transparent', borderBottom: '1px solid #f3f4f6', textTransform: 'uppercase', letterSpacing: '.07em' } }, txt); }
-  tdCell(content) { return this.e('div', { style: { padding: '8px 10px', display: 'flex', alignItems: 'center', minHeight: 44 } }, content); }
+  tdCell(content) { return this.e('div', { style: { padding: '8px 10px', display: 'flex', alignItems: 'center', minHeight: 44, minWidth: 0 } }, content); }
 
   // Friendly empty state row spanning the full table width
   emptyRow(colCount, message) {
@@ -1114,7 +1114,7 @@ class Component extends DCLogic {
     const avatarGrads = ['linear-gradient(135deg,#6366f1,#8b5cf6)','linear-gradient(135deg,#14b8a6,#0891b2)','linear-gradient(135deg,#f97316,#ef4444)','linear-gradient(135deg,#22c55e,#16a34a)','linear-gradient(135deg,#f59e0b,#ea580c)','linear-gradient(135deg,#ec4899,#8b5cf6)','linear-gradient(135deg,#38bdf8,#6366f1)'];
     const getInitials = (name) => name.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
     const cycleStatus = (cur) => { const ord = ['not-started','in-progress','on-hold','delayed','completed']; return ord[(ord.indexOf(cur)+1)%ord.length]; };
-    const COL_P = '36px minmax(100px,1fr) 90px 90px 130px 100px 130px 95px 95px 155px 36px';
+    const COL_P = '36px minmax(100px,1fr) 85px 85px 125px 95px 125px 105px 105px 150px 36px';
     const GANTT_COLORS = { 'Infra':'#2563eb','ERP/App':'#f59e0b','Security':'#8b5cf6','Cloud':'#0ea5e9','Continuity':'#10b981','Asset':'#84cc16','Other':'#94a3b8' };
     // Parse "Apr 2026" → month index 1-12
     const parseMonth = (s) => { const m = DUE_MONTHS.indexOf((s||'').split(' ')[0]); return m>=0 ? m+1 : 1; };
@@ -1281,13 +1281,13 @@ class Component extends DCLogic {
             )
           )),
                     // Start Date picker
-          this.tdCell(e('div',{style:{position:'relative'}},
+          this.tdCell(e('div',{style:{position:'relative', minWidth:0, width:'100%'}},
             e('button',{
               onClick:(ev)=>{ ev.stopPropagation(); this.setState({startPicker:this.state.startPicker===idx?null:idx}); },
-              style:{display:'flex',alignItems:'center',gap:5,background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:8,padding:'5px 9px',cursor:'pointer',fontSize:12,color:'#374151',fontFamily:"'72','Inter','Kanit',sans-serif",fontWeight:500,whiteSpace:'nowrap'}
+              style:{display:'flex',alignItems:'center',gap:5,background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:8,padding:'5px 9px',cursor:'pointer',fontSize:12,color:'#374151',fontFamily:"'72','Inter','Kanit',sans-serif",fontWeight:500,whiteSpace:'nowrap',width:'100%',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}
             },
-              e('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'})),
-              p.startDate||'Start'
+              e('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round',style:{flexShrink:0}},e('path',{d:'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'})),
+              e('span',{style:{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, p.startDate||'Start')
             ),
             this.state.startPicker===idx ? e('div',{onClick:(ev)=>ev.stopPropagation(),style:{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:100,background:'#fff',border:'1px solid #e5e7eb',borderRadius:14,boxShadow:'0 8px 32px rgba(15,23,42,.14)',padding:'16px',minWidth:220}},
               e('div',{style:{fontSize:12,fontWeight:700,color:'#374151',marginBottom:12,textAlign:'center'}},'Start Date'),
@@ -1311,14 +1311,14 @@ class Component extends DCLogic {
               )
             ):null
           )),
-          this.tdCell(e('div', { style:{ position:'relative' } },
+          this.tdCell(e('div', { style:{ position:'relative', minWidth:0, width:'100%' } },
             // Trigger button
             e('button', {
               onClick:(ev)=>{ ev.stopPropagation(); this.setState({ duePicker: this.state.duePicker===idx ? null : idx }); },
-              style:{ display:'flex', alignItems:'center', gap:6, background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:'5px 10px', cursor:'pointer', fontSize:12, color:'#374151', fontFamily:"'72','Inter','Kanit',sans-serif", fontWeight:500, whiteSpace:'nowrap' }
+              style:{ display:'flex', alignItems:'center', gap:6, background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:'5px 10px', cursor:'pointer', fontSize:12, color:'#374151', fontFamily:"'72','Inter','Kanit',sans-serif", fontWeight:500, whiteSpace:'nowrap', width:'100%', overflow:'hidden', textOverflow:'ellipsis', boxSizing:'border-box' }
             },
-              e('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'})),
-              p.due || 'Select date'
+              e('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round',style:{flexShrink:0}}, e('path',{d:'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'})),
+              e('span',{style:{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, p.due || 'Due date')
             ),
             // Popup picker
             this.state.duePicker===idx ? e('div', {
@@ -1356,10 +1356,10 @@ class Component extends DCLogic {
               )
             ) : null
           )),
-          this.tdCell(e('div',{style:{display:'flex',flexDirection:'row',alignItems:'center',gap:4,flexWrap:'nowrap',overflow:'hidden'}},
-            e('input',{type:'text',value:p.milestones||'',onChange:(ev)=>this.updateProject(idx,'milestones',ev.target.value),placeholder:'Jun,Sep',style:{fontSize:12,color:'#374151',border:'1px solid #e5e7eb',borderRadius:8,padding:'4px 7px',background:'#f8fafc',outline:'none',width:68,flexShrink:0,fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+          this.tdCell(e('div',{style:{display:'flex',flexDirection:'row',alignItems:'center',gap:4,flexWrap:'nowrap',overflow:'hidden',minWidth:0,width:'100%'}},
+            e('input',{type:'text',value:p.milestones||'',onChange:(ev)=>this.updateProject(idx,'milestones',ev.target.value),placeholder:'Jun,Sep',style:{fontSize:12,color:'#374151',border:'1px solid #e5e7eb',borderRadius:8,padding:'4px 7px',background:'#f8fafc',outline:'none',width:60,flexShrink:0,fontFamily:"'72','Inter','Kanit',sans-serif"}}),
             parseMilestones(p.milestones).length > 0 ? e('span',{style:{color:'#d1d5db',fontSize:12,margin:'0 1px',flexShrink:0}},'|') : null,
-            e('div',{style:{display:'flex',gap:3,flexWrap:'nowrap',overflow:'hidden'}},
+            e('div',{style:{display:'flex',gap:3,flexWrap:'nowrap',overflow:'hidden',minWidth:0}},
               ...parseMilestones(p.milestones).map(m=>
                 e('div',{key:m,style:{fontSize:10,fontWeight:700,color:'#fff',background:GANTT_COLORS[p.type]||'#94a3b8',borderRadius:10,padding:'2px 6px',flexShrink:0}},DUE_MONTHS[m-1])
               )
