@@ -122,6 +122,13 @@
     .avatar-upload:hover .avatar-upload-hint { opacity: 1; }
     .avatar-img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 
+    /* ── Toast notifications ── */
+    #toast-stack { position: fixed; top: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: #1d2d3e; color: #fff; font-size: 13px; padding: 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); max-width: 340px; animation: toastIn .18s ease; }
+    .toast.error { background: #c9190b; }
+    .toast.success { background: #0a6640; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
     /* ── Access denied ── */
     #access-denied { display: none; text-align: center; padding: 80px 24px; }
     #access-denied .icon { font-size: 48px; margin-bottom: 16px; }
@@ -137,6 +144,7 @@
   </style>
 </head>
 <body>
+<div id="toast-stack"></div>
 
 <!-- Auth overlay -->
 <div id="auth-overlay">
@@ -454,6 +462,15 @@ const sb = window.getSupabaseClient ? window.getSupabaseClient() : null;
 let currentUser = null;
 const avatarData = { inv: null, edit: null };
 
+function showToast(message, kind) {
+  const stack = document.getElementById('toast-stack');
+  const t = document.createElement('div');
+  t.className = 'toast' + (kind ? ' ' + kind : '');
+  t.textContent = message;
+  stack.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .2s'; setTimeout(() => t.remove(), 200); }, 4000);
+}
+
 function avatarHtml(p, size) {
   const initial = (p.full_name || p.email || '?').charAt(0).toUpperCase();
   if (p.avatar_url) return `<img class="avatar-img" style="width:${size}px;height:${size}px" src="${p.avatar_url}">`;
@@ -495,13 +512,13 @@ async function handleAvatarSelect(ev, prefix) {
     img.style.display = 'block';
     placeholder.style.display = 'none';
   } catch (_) {
-    alert('ไม่สามารถอ่านรูปภาพนี้ได้');
+    showToast('ไม่สามารถอ่านรูปภาพนี้ได้', 'error');
   }
   ev.target.value = '';
 }
 
 async function init() {
-  if (!sb) { alert('Supabase not connected'); return; }
+  if (!sb) { showToast('Supabase not connected', 'error'); return; }
   const { data: { session } } = await sb.auth.getSession();
   if (session) await onSignIn(session);
   sb.auth.onAuthStateChange(async (event, session) => {
@@ -885,7 +902,7 @@ async function confirmDelete() {
   const { error } = await sb.from('profiles').delete().eq('id', id);
   btn.textContent = 'Remove User'; btn.disabled = false;
   if (error) {
-    alert('ลบผู้ใช้ไม่สำเร็จ: ' + error.message);
+    showToast('ลบผู้ใช้ไม่สำเร็จ: ' + error.message, 'error');
     return;
   }
   closeModal('delete-modal');

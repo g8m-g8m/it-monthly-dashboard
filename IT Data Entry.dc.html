@@ -39,6 +39,7 @@
     .prog-wrap:hover .prog-tooltip { display:block; }
     input:focus { outline: none; }
     select:focus { outline: none; }
+    input:focus-visible, select:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px solid #2563eb !important; outline-offset: 2px; border-radius: 4px; }
   </style>
 </helmet>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -83,7 +84,7 @@
 
   </div>
 </div>
-{{ authOverlay }}{{ historyPanel }}{{ realtimeBanner }}{{ addDeptModal }}
+{{ authOverlay }}{{ historyPanel }}{{ realtimeBanner }}{{ addDeptModal }}{{ profileModal }}
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{
@@ -102,9 +103,12 @@ class Component extends DCLogic {
     copyFromYear: new Date().getMonth() === 0 ? new Date().getFullYear()-1 : new Date().getFullYear(),
     copyStatus: '',
     showAppMenu: false,
-    session: null, user: null, userRole: null, userName: '', menuAccess: null,
+    session: null, user: null, userRole: null, userName: '', userAvatar: '', menuAccess: null,
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     realtimeNotice: '', showHistory: false, historyVersions: [], loadingData: false,
+    showProfileModal: false, profileName: '', profileAvatarPreview: '', profileSaving: false, profileError: '', profileSuccess: '',
+    pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '',
+    dirty: false,
     duePicker: null,
     customTypes: [],
     addTypePopup: null,
@@ -327,6 +331,16 @@ class Component extends DCLogic {
   thCell(txt) { return this.e('div', { style: { fontSize: 10.5, fontWeight: 600, color: '#9ca3af', padding: '10px 12px', background: 'transparent', borderBottom: '1px solid #f3f4f6', textTransform: 'uppercase', letterSpacing: '.07em' } }, txt); }
   tdCell(content) { return this.e('div', { style: { padding: '8px 10px', display: 'flex', alignItems: 'center', minHeight: 44 } }, content); }
 
+  // Friendly empty state row spanning the full table width
+  emptyRow(colCount, message) {
+    return this.e('div', { style: { gridColumn: '1 / -1', padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#94a3b8' } },
+      this.e('svg', { width: 28, height: 28, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' },
+        this.e('path', { d: 'M9 17H5a2 2 0 00-2 2v0a2 2 0 002 2h14a2 2 0 002-2v0a2 2 0 00-2-2h-4M12 3v14M8 7l4-4 4 4' })
+      ),
+      this.e('div', { style: { fontSize: 13, fontWeight: 500 } }, message || 'ยังไม่มีข้อมูล — กด "+ Add" ด้านล่างเพื่อเริ่มกรอก')
+    );
+  }
+
   // Format a number with thousands separators; decimals=0 → integer, decimals=2 → always 2 decimal places
   fmtNum(n, decimals) {
     const d = decimals || 0;
@@ -377,6 +391,7 @@ class Component extends DCLogic {
     if (!changed) return;
     // Don't auto-save when only the period changed (switching periods — we're loading, not editing)
     if (prevState.period !== this.state.period) return;
+    if (!this.state.dirty) this.setState({ dirty: true });
     if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
     this._autoSaveTimer = setTimeout(() => {
       try {
@@ -390,6 +405,8 @@ class Component extends DCLogic {
   }
 
   async componentDidMount() {
+    this._beforeUnload = (ev) => { if (this.state.dirty) { ev.preventDefault(); ev.returnValue = ''; } };
+    window.addEventListener('beforeunload', this._beforeUnload);
     this._closePicker = () => {
       const upd = {};
       if(this.state.duePicker !== null) upd.duePicker = null;
@@ -446,7 +463,7 @@ class Component extends DCLogic {
     if (session) await this._onSignIn(session);
     sb.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') await this._onSignIn(session);
-      if (event === 'SIGNED_OUT') this.setState({ session: null, user: null, userRole: null, userName: '' });
+      if (event === 'SIGNED_OUT') this.setState({ session: null, user: null, userRole: null, userName: '', userAvatar: '' });
     });
   }
 
@@ -480,7 +497,7 @@ class Component extends DCLogic {
     const role = profile?.role || 'viewer';
     const menuAccess = this._normalizeMenuAccess(profile?.menu_access, role);
     const nextTab = menuAccess.data_entry.includes(this.state.tab) ? this.state.tab : (menuAccess.data_entry[0] || 'period');
-    this.setState({ session, user: session.user, userRole: role, userName: profile?.full_name || session.user.email, menuAccess, tab: nextTab, loginError: '' });
+    this.setState({ session, user: session.user, userRole: role, userName: profile?.full_name || session.user.email, userAvatar: profile?.avatar_url || '', menuAccess, tab: nextTab, loginError: '' });
     // Always load latest period + data from DB on sign-in
     try {
       const { data: rows } = await this._sb.from('it_reports')
@@ -667,6 +684,61 @@ class Component extends DCLogic {
     if (this._sb) await this._sb.auth.signOut();
   }
 
+  openProfileModal() {
+    this.setState({ showProfileModal: true, profileName: this.state.userName, profileAvatarPreview: this.state.userAvatar, profileError: '', profileSuccess: '', pwNew: '', pwConfirm: '', pwError: '', pwSuccess: '' });
+  }
+
+  _resizeAvatarFile(file, size) {
+    size = size || 160;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = size; canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          const s = Math.min(img.width, img.height);
+          const sx = (img.width - s) / 2, sy = (img.height - s) / 2;
+          ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = reject;
+        img.src = ev.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async handleProfileAvatarFile(file) {
+    if (!file) return;
+    try {
+      const dataUrl = await this._resizeAvatarFile(file, 160);
+      this.setState({ profileAvatarPreview: dataUrl });
+    } catch (_) {}
+  }
+
+  async saveProfile() {
+    if (!this._sb || !this.state.user) return;
+    const name = (this.state.profileName || '').trim();
+    if (!name) { this.setState({ profileError: 'กรุณากรอกชื่อ' }); return; }
+    this.setState({ profileSaving: true, profileError: '', profileSuccess: '' });
+    const { error } = await this._sb.from('profiles').update({ full_name: name, avatar_url: this.state.profileAvatarPreview || null }).eq('id', this.state.user.id);
+    if (error) { this.setState({ profileSaving: false, profileError: error.message }); return; }
+    this.setState({ profileSaving: false, profileSuccess: 'บันทึกโปรไฟล์แล้ว', userName: name, userAvatar: this.state.profileAvatarPreview || '' });
+  }
+
+  async changeMyPassword() {
+    const { pwNew, pwConfirm } = this.state;
+    if (!pwNew || pwNew.length < 6) { this.setState({ pwError: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร', pwSuccess: '' }); return; }
+    if (pwNew !== pwConfirm) { this.setState({ pwError: 'รหัสผ่านไม่ตรงกัน', pwSuccess: '' }); return; }
+    this.setState({ pwSaving: true, pwError: '', pwSuccess: '' });
+    const { error } = await this._sb.auth.updateUser({ password: pwNew });
+    if (error) { this.setState({ pwSaving: false, pwError: error.message }); return; }
+    this.setState({ pwSaving: false, pwSuccess: 'เปลี่ยนรหัสผ่านแล้ว', pwNew: '', pwConfirm: '' });
+  }
+
   async loadHistory() {
     if (!this._sb || !this.state.session) return;
     const { period } = this.state;
@@ -689,7 +761,7 @@ class Component extends DCLogic {
     const { error } = await this._sb.from('it_reports').upsert({ period_year: period.year, period_month: period.month, data, updated_by: user.id, updated_by_name: userName, updated_at: new Date().toISOString() }, { onConflict: 'period_year,period_month' });
     if (!error) {
       await this._sb.from('it_report_versions').insert({ period_year: period.year, period_month: period.month, data, saved_by: user.id, saved_by_name: userName });
-      this.setState({ saveStatus: '✓ Saved to Supabase · ' + new Date().toLocaleTimeString() });
+      this.setState({ saveStatus: '✓ Saved to Supabase · ' + new Date().toLocaleTimeString(), dirty: false });
     } else {
       this.setState({ saveStatus: '✗ ' + error.message });
     }
@@ -704,7 +776,7 @@ class Component extends DCLogic {
     if (this._sb && this.state.session && this.state.userRole !== 'viewer') {
       this._saveToSupabase(data);
     } else {
-      this.setState({ saveStatus: '✓ Saved locally · ' + new Date().toLocaleTimeString() });
+      this.setState({ saveStatus: '✓ Saved locally · ' + new Date().toLocaleTimeString(), dirty: false });
       setTimeout(() => this.setState({ saveStatus: '' }), 4000);
     }
   }
@@ -712,7 +784,7 @@ class Component extends DCLogic {
   renderVals() {
     const e = this.e;
     const { tab, period, projects, budget, security, network, uptime } = this.state;
-    const saveStatus = this.state.saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report';
+    const saveStatus = this.state.saveStatus || (this.state.dirty ? '● มีการเปลี่ยนแปลงที่ยังไม่บันทึก' : 'กรุณากรอกข้อมูลและกด Submit Report');
     const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const DEF_IC = 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
     const TRASH_IC = 'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6';
@@ -1146,6 +1218,7 @@ class Component extends DCLogic {
         ...['Type','Lead','Dept','Status','Progress %','Start','Due Date','Milestones',''].map(h => this.thCell(h))
       ),
       // Rows
+      projects.length===0 ? this.emptyRow(10,'ยังไม่มีโครงการ — กด "+ Add Project" ด้านล่างเพื่อเริ่มกรอก') : null,
       ...projects.map((p, idx) =>
         e('div', { key: p.id, className: 'row-tr', style: { display: 'grid', gridTemplateColumns: COL_P, gap: 0, background: '#fff' } },
           this.tdCell(e('span', { style: { fontSize: 13, color: '#9ca3af', fontWeight: 500 } }, idx+1)),
@@ -1891,6 +1964,7 @@ class Component extends DCLogic {
       e('div', { style:{ display:'grid', gridTemplateColumns:COL_N, gap:0 } },
         ...['Plant','Latency (ms)','Packet Loss (%)','Status'].map(h=>this.thCell(h))
       ),
+      network.length===0 ? this.emptyRow(4,'ยังไม่มีข้อมูล Network') : null,
       ...network.map((n, idx) => {
         const latC  = n.latency>50?'#e11d48':n.latency>30?'#d97706':'#16a34a';
         const pktC  = n.packetLoss>1?'#e11d48':n.packetLoss>0.5?'#d97706':'#16a34a';
@@ -1949,6 +2023,7 @@ class Component extends DCLogic {
       e('div',{style:{display:'grid',gridTemplateColumns:COL_UT,gap:0}},
         ...['','Domain','Target (%)','Uptime %','Status',''].map(h=>this.thCell(h))
       ),
+      uptimeDomains.length===0 ? this.emptyRow(6,'ยังไม่มี Domain — กด "+ Add Domain" ด้านล่าง') : null,
       ...uptimeDomains.map(d=>{
         const val=uptime[d.key]||0; const ok=val>=d.target;
         const c=ok?'#16a34a':'#e11d48';
@@ -2192,6 +2267,7 @@ class Component extends DCLogic {
         ...['Date','Description','Severity','Resolved',''].map(h=>this.thCell(h))
       ),
       // Rows
+      securityEvents.length===0 ? this.emptyRow(5,'ยังไม่มี Security Event ที่บันทึกไว้') : null,
       ...securityEvents.map((ev, idx) => {
         const updSE = (field, val) => { const a=[...this.state.securityEvents]; a[idx]={...a[idx],[field]:val}; this.setState({securityEvents:a}); };
         const sc = sevCfg[ev.severity] || sevCfg['low'];
@@ -2346,6 +2422,7 @@ class Component extends DCLogic {
       e('div', { style:{ display:'grid', gridTemplateColumns:COL_BS, gap:0 } },
         ...['#','Service Name','Availability %','Status','Impact',''].map(h=>this.thCell(h))
       ),
+      bizServices.length===0 ? this.emptyRow(6,'ยังไม่มี Service — กด "+ Add Service" ด้านล่าง') : null,
       ...bizServices.map((s, idx) => {
         const updBS = (field, val) => { const a=[...this.state.bizServices]; a[idx]={...a[idx],[field]:val}; this.setState({bizServices:a}); };
         const sc = bizStatusCfg[s.status] || bizStatusCfg['Online'];
@@ -2948,7 +3025,8 @@ class Component extends DCLogic {
 
     const loadLatestBtn = iconBtn('M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', 'Load Latest', () => this._loadLatestFromDB(), '#f0fdf4', '#166534');
     // ── Auth UI ───────────────────────────────────────────────────
-    const { session, userRole, userName, loginEmail, loginPassword, loginLoading, loginError, realtimeNotice, showHistory, historyVersions } = this.state;
+    const { session, userRole, userName, userAvatar, loginEmail, loginPassword, loginLoading, loginError, realtimeNotice, showHistory, historyVersions,
+      showProfileModal, profileName, profileAvatarPreview, profileSaving, profileError, profileSuccess, pwNew, pwConfirm, pwSaving, pwError, pwSuccess } = this.state;
 
     const authOverlay = !session ? e('div',{style:{position:'fixed',inset:0,background:'#f0f2f5',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'72','Segoe UI','Kanit',sans-serif"}},
       e('div',{style:{width:420,maxWidth:'94vw'}},
@@ -3000,7 +3078,8 @@ class Component extends DCLogic {
     ):null;
 
     const userBadge = session?e('div',{style:{display:'flex',alignItems:'center',gap:8}},
-      e('div',{style:{display:'flex',alignItems:'center',gap:8,background:'#f1f5f9',borderRadius:20,padding:'5px 12px'}},
+      e('div',{onClick:()=>this.openProfileModal(),title:'My Profile',tabIndex:0,onKeyDown:(ev)=>{ if(ev.key==='Enter') this.openProfileModal(); },style:{display:'flex',alignItems:'center',gap:8,background:'#f1f5f9',borderRadius:20,padding:'5px 12px',cursor:'pointer'}},
+        userAvatar ? e('img',{src:userAvatar,style:{width:26,height:26,borderRadius:'50%',objectFit:'cover',flexShrink:0}}) :
         e('div',{style:{width:26,height:26,borderRadius:'50%',background:'linear-gradient(135deg,#1e40af,#3b82f6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff'}},(userName||'?').charAt(0).toUpperCase()),
         e('div',null,
           e('div',{style:{fontSize:11,fontWeight:600,color:'#0f172a',lineHeight:1.2}},userName),
@@ -3029,7 +3108,36 @@ class Component extends DCLogic {
 
     const clockDisplay = e('div', { style: { fontSize: 12, color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap', letterSpacing: '.01em' } }, this.state.clockStr);
 
-    return { periodBadge, tabNav, sidebarStyle, sidebarHeader, sidebarFooter, formContent, saveBtn, loadLatestBtn, submitBtn, saveStatus: saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report', authOverlay, historyPanel, realtimeBanner, userBadge, appMenuBtn, clockDisplay, addTypeModal, addDeptModal };
+    // ── My Profile modal (self-service: name, avatar, password) ───
+    const profileModal = showProfileModal ? e('div',{onClick:()=>this.setState({showProfileModal:false}),style:{position:'fixed',inset:0,background:'rgba(15,23,42,.4)',zIndex:600,display:'flex',alignItems:'center',justifyContent:'center'}},
+      e('div',{onClick:ev=>ev.stopPropagation(),style:{background:'#fff',borderRadius:16,padding:'28px',boxShadow:'0 20px 60px rgba(15,23,42,.2)',width:400,maxWidth:'92vw',fontFamily:"'72','Inter','Kanit',sans-serif"}},
+        e('div',{style:{fontSize:17,fontWeight:700,color:'#0f172a',marginBottom:18}},'My Profile'),
+        // Avatar
+        e('div',{style:{display:'flex',justifyContent:'center',marginBottom:18}},
+          e('div',{onClick:()=>document.getElementById('profile-avatar-input').click(),title:'เปลี่ยนรูป',style:{position:'relative',width:72,height:72,borderRadius:'50%',background:'#f1f5f9',border:'2px dashed #cbd5e1',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',overflow:'hidden'}},
+            profileAvatarPreview ? e('img',{src:profileAvatarPreview,style:{width:'100%',height:'100%',objectFit:'cover'}}) :
+            e('span',{style:{fontSize:24,fontWeight:700,color:'#94a3b8'}},(profileName||'?').charAt(0).toUpperCase()),
+            e('input',{id:'profile-avatar-input',type:'file',accept:'image/*',style:{display:'none'},onChange:(ev)=>this.handleProfileAvatarFile(ev.target.files && ev.target.files[0])})
+          )
+        ),
+        this.label('Full Name'),
+        e('input',{type:'text',value:profileName,onChange:(ev)=>this.setState({profileName:ev.target.value}),style:{fontSize:14,color:'#374151',background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:8,padding:'8px 10px',width:'100%',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",marginBottom:10}}),
+        profileError ? e('div',{style:{fontSize:12,color:'#e11d48',marginBottom:8}},profileError) : null,
+        profileSuccess ? e('div',{style:{fontSize:12,color:'#16a34a',marginBottom:8}},profileSuccess) : null,
+        e('button',{onClick:()=>this.saveProfile(),disabled:profileSaving,style:{width:'100%',fontSize:14,fontWeight:600,color:'#fff',background:'#2563eb',border:'none',borderRadius:10,padding:'10px',cursor:'pointer',marginBottom:22}}, profileSaving?'Saving…':'Save Profile'),
+        e('div',{style:{borderTop:'1px solid #f1f5f9',paddingTop:18}},
+          e('div',{style:{fontSize:13,fontWeight:700,color:'#0f172a',marginBottom:10}},'Change Password'),
+          e('input',{type:'password',placeholder:'New password',value:pwNew,onChange:(ev)=>this.setState({pwNew:ev.target.value}),style:{fontSize:14,color:'#374151',background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:8,padding:'8px 10px',width:'100%',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",marginBottom:8}}),
+          e('input',{type:'password',placeholder:'Confirm new password',value:pwConfirm,onChange:(ev)=>this.setState({pwConfirm:ev.target.value}),style:{fontSize:14,color:'#374151',background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:8,padding:'8px 10px',width:'100%',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",marginBottom:10}}),
+          pwError ? e('div',{style:{fontSize:12,color:'#e11d48',marginBottom:8}},pwError) : null,
+          pwSuccess ? e('div',{style:{fontSize:12,color:'#16a34a',marginBottom:8}},pwSuccess) : null,
+          e('button',{onClick:()=>this.changeMyPassword(),disabled:pwSaving,style:{width:'100%',fontSize:14,fontWeight:600,color:'#374151',background:'#f3f4f6',border:'none',borderRadius:10,padding:'10px',cursor:'pointer'}}, pwSaving?'Updating…':'Update Password')
+        ),
+        e('button',{onClick:()=>this.setState({showProfileModal:false}),style:{marginTop:16,width:'100%',fontSize:13,color:'#94a3b8',background:'none',border:'none',cursor:'pointer'}},'Close')
+      )
+    ) : null;
+
+    return { periodBadge, tabNav, sidebarStyle, sidebarHeader, sidebarFooter, formContent, saveBtn, loadLatestBtn, submitBtn, saveStatus: saveStatus || 'กรุณากรอกข้อมูลและกด Submit Report', authOverlay, historyPanel, realtimeBanner, userBadge, appMenuBtn, clockDisplay, addTypeModal, addDeptModal, profileModal };
   }
 }
 
