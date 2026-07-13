@@ -263,6 +263,59 @@
       </div>
     </div>
 
+    <!-- Branding -->
+    <div class="card" id="branding-card">
+      <div class="card-hd">
+        <div>
+          <div class="card-hd-title">Organization Branding</div>
+          <div class="card-hd-sub">ชื่อบริษัทและโลโก้ที่แสดงใน Sidebar ของ Dashboard และ Data Entry</div>
+        </div>
+      </div>
+      <div style="padding:24px">
+        <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+            <div class="avatar-upload" id="brand-logo-upload" onclick="document.getElementById('brand-logo-input').click()" style="border-radius:12px">
+              <div class="avatar-upload-placeholder" id="brand-logo-placeholder" style="font-size:22px;font-weight:700;color:#fff;background:#2563eb;width:100%;height:100%;border-radius:10px" id="brand-logo-letter-preview">P</div>
+              <img id="brand-logo-img" style="display:none;border-radius:10px">
+              <div class="avatar-upload-hint">เปลี่ยนรูป</div>
+            </div>
+            <input type="file" id="brand-logo-input" accept="image/*" style="display:none" onchange="handleBrandLogoFile(event)">
+            <button class="btn btn-ghost btn-sm" onclick="clearBrandLogo()" style="font-size:11px">ใช้ตัวอักษรแทนรูป</button>
+          </div>
+          <div style="flex:1;min-width:260px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="field" style="margin-bottom:0">
+              <label>Company Name</label>
+              <input type="text" id="brand-company-name" placeholder="Pacificpipe PLC">
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Division / Subtitle</label>
+              <input type="text" id="brand-division-name" placeholder="IT Division">
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Logo Letter (ใช้เมื่อไม่มีรูป)</label>
+              <input type="text" id="brand-logo-letter" maxlength="2" placeholder="P" oninput="updateBrandPreview()">
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Logo Color</label>
+              <div style="display:flex;gap:8px">
+                <div class="swatch" data-color="#2563eb" onclick="setBrandColor('#2563eb')" style="width:32px;height:32px;border-radius:8px;background:#2563eb;cursor:pointer;border:2px solid transparent"></div>
+                <div class="swatch" data-color="#16a34a" onclick="setBrandColor('#16a34a')" style="width:32px;height:32px;border-radius:8px;background:#16a34a;cursor:pointer;border:2px solid transparent"></div>
+                <div class="swatch" data-color="#7c3aed" onclick="setBrandColor('#7c3aed')" style="width:32px;height:32px;border-radius:8px;background:#7c3aed;cursor:pointer;border:2px solid transparent"></div>
+                <div class="swatch" data-color="#ea580c" onclick="setBrandColor('#ea580c')" style="width:32px;height:32px;border-radius:8px;background:#ea580c;cursor:pointer;border:2px solid transparent"></div>
+                <div class="swatch" data-color="#0f172a" onclick="setBrandColor('#0f172a')" style="width:32px;height:32px;border-radius:8px;background:#0f172a;cursor:pointer;border:2px solid transparent"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="brand-error" class="modal-error" style="margin-top:16px"></div>
+        <div id="brand-success" style="background:#e8f9f0;border:1px solid #a3e6c0;border-radius:8px;padding:10px 14px;font-size:12px;color:#0a6640;margin-top:16px;display:none"></div>
+        <div style="margin-top:20px;text-align:right;display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn btn-ghost" onclick="openBrandHistory()">View History</button>
+          <button class="btn btn-primary" id="brand-save-btn" onclick="saveBranding()">Save Branding</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Users table -->
     <div class="card">
       <div class="card-hd">
@@ -457,6 +510,18 @@
   </div>
 </div>
 
+<!-- Branding History Modal -->
+<div class="overlay" id="brand-history-modal">
+  <div class="modal" style="width:480px;max-height:80vh;overflow-y:auto" onclick="event.stopPropagation()">
+    <div class="modal-title">Branding History</div>
+    <div class="modal-sub">ประวัติการเปลี่ยนแปลงชื่อบริษัทและโลโก้</div>
+    <div id="brand-history-list"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('brand-history-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const sb = window.getSupabaseClient ? window.getSupabaseClient() : null;
 let currentUser = null;
@@ -553,9 +618,122 @@ async function onSignIn(session) {
     document.getElementById('admin-content').style.display = 'block';
     document.getElementById('svc-key-btn').style.display = 'inline-flex';
     await loadUsers();
+    await loadBranding();
   } else {
     document.getElementById('access-denied').style.display = 'block';
   }
+}
+
+// ── Organization Branding ─────────────────────────────────────────
+let brandLogoData = null; // data URL if a new logo image was picked this session
+
+function setBrandColor(color) {
+  document.querySelectorAll('#branding-card .swatch').forEach(sw => {
+    sw.style.border = sw.dataset.color === color ? '2px solid #1d2d3e' : '2px solid transparent';
+  });
+  document.getElementById('branding-card').dataset.color = color;
+  updateBrandPreview();
+}
+
+function updateBrandPreview() {
+  const letter = (document.getElementById('brand-logo-letter').value || 'P').charAt(0).toUpperCase();
+  const color = document.getElementById('branding-card').dataset.color || '#2563eb';
+  const placeholder = document.getElementById('brand-logo-placeholder');
+  placeholder.textContent = letter;
+  placeholder.style.background = color;
+}
+
+async function handleBrandLogoFile(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await fileToResizedDataUrl(file, 160);
+    brandLogoData = dataUrl;
+    const img = document.getElementById('brand-logo-img');
+    const placeholder = document.getElementById('brand-logo-placeholder');
+    img.src = dataUrl;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  } catch (_) {
+    showToast('ไม่สามารถอ่านรูปภาพนี้ได้', 'error');
+  }
+  ev.target.value = '';
+}
+
+function clearBrandLogo() {
+  brandLogoData = '';
+  document.getElementById('brand-logo-img').style.display = 'none';
+  document.getElementById('brand-logo-placeholder').style.display = 'flex';
+}
+
+async function loadBranding() {
+  if (!sb) return;
+  const { data } = await sb.from('app_settings').select('*').eq('id', 1).maybeSingle();
+  const s = data || {};
+  document.getElementById('brand-company-name').value = s.company_name || 'Pacificpipe PLC';
+  document.getElementById('brand-division-name').value = s.division_name || 'IT Division';
+  document.getElementById('brand-logo-letter').value = s.logo_letter || 'P';
+  const color = s.logo_color || '#2563eb';
+  document.getElementById('branding-card').dataset.color = color;
+  setBrandColor(color);
+  brandLogoData = s.logo_url || '';
+  const img = document.getElementById('brand-logo-img');
+  const placeholder = document.getElementById('brand-logo-placeholder');
+  if (s.logo_url) { img.src = s.logo_url; img.style.display = 'block'; placeholder.style.display = 'none'; }
+  else { img.style.display = 'none'; placeholder.style.display = 'flex'; }
+}
+
+async function saveBranding() {
+  const errEl = document.getElementById('brand-error');
+  const okEl = document.getElementById('brand-success');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+  const btn = document.getElementById('brand-save-btn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  const payload = {
+    id: 1,
+    company_name: document.getElementById('brand-company-name').value.trim() || 'Pacificpipe PLC',
+    division_name: document.getElementById('brand-division-name').value.trim() || 'IT Division',
+    logo_letter: (document.getElementById('brand-logo-letter').value.trim() || 'P').slice(0, 2),
+    logo_color: document.getElementById('branding-card').dataset.color || '#2563eb',
+    logo_url: brandLogoData || null,
+    updated_by: currentUser ? currentUser.id : null,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await sb.from('app_settings').upsert(payload, { onConflict: 'id' });
+  if (!error) {
+    await sb.from('app_settings_history').insert({
+      company_name: payload.company_name,
+      division_name: payload.division_name,
+      logo_letter: payload.logo_letter,
+      logo_color: payload.logo_color,
+      logo_url: payload.logo_url,
+      changed_by: currentUser ? currentUser.id : null,
+      changed_by_name: currentUser ? (currentUser.full_name || currentUser.email) : null
+    });
+  }
+  btn.textContent = 'Save Branding'; btn.disabled = false;
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+  okEl.textContent = 'บันทึกแล้ว — รีเฟรช Dashboard/Data Entry เพื่อดูการเปลี่ยนแปลง';
+  okEl.style.display = 'block';
+  setTimeout(() => { okEl.style.display = 'none'; }, 4000);
+}
+
+async function openBrandHistory() {
+  const listEl = document.getElementById('brand-history-list');
+  listEl.innerHTML = '<div style="text-align:center;color:#a8b5c0;padding:24px 0">Loading…</div>';
+  document.getElementById('brand-history-modal').classList.add('open');
+  const { data, error } = await sb.from('app_settings_history').select('*').order('changed_at', { ascending: false }).limit(30);
+  if (error) { listEl.innerHTML = '<div style="color:#c9190b;font-size:13px">' + error.message + '</div>'; return; }
+  if (!data || !data.length) { listEl.innerHTML = '<div style="text-align:center;color:#a8b5c0;padding:24px 0">ยังไม่มีประวัติการเปลี่ยนแปลง</div>'; return; }
+  listEl.innerHTML = data.map(h => `
+    <div style="border:1px solid #edf0f3;border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;gap:12px;align-items:center">
+      <div style="width:34px;height:34px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px;${h.logo_url ? `background-image:url(${h.logo_url});background-size:cover;background-position:center` : `background:${h.logo_color || '#2563eb'}`}">${h.logo_url ? '' : (h.logo_letter || 'P')}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;color:#1d2d3e;font-size:13px">${h.company_name || ''} <span style="font-weight:400;color:#6b7c8d">· ${h.division_name || ''}</span></div>
+        <div style="font-size:12px;color:#6b7c8d;margin-top:2px">${h.changed_by_name || 'Unknown'} · ${new Date(h.changed_at).toLocaleString('th-TH')}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 async function loadUsers() {

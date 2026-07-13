@@ -70,6 +70,7 @@ class Component extends DCLogic {
     session: null, user: null, userRole: null, userName: '', userAvatar: '', menuAccess: null,
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     supabaseData: null, loadingData: false, trendMonths: [],
+    orgSettings: { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' },
     showProfileModal: false, profileName: '', profileAvatarPreview: '', profileSaving: false, profileError: '', profileSuccess: '',
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '' };
 
@@ -132,6 +133,7 @@ class Component extends DCLogic {
     const menuAccess = this._normalizeMenuAccess(profile?.menu_access, role);
     const nextTab = menuAccess.dashboard.includes(this.state.tab) ? this.state.tab : (menuAccess.dashboard[0] || 'overview');
     this.setState({ session, user: session.user, userRole: role, userName: profile?.full_name || session.user.email, userAvatar: profile?.avatar_url || '', menuAccess, tab: nextTab, loginError: '' });
+    this._loadOrgSettings();
     // Load latest period + data from DB (same logic as Data Entry)
     try {
       const { data: rows } = await this._sb.from('it_reports')
@@ -217,6 +219,22 @@ class Component extends DCLogic {
   async doLogout() {
     if (this._rtChannel) this._rtChannel.unsubscribe();
     if (this._sb) await this._sb.auth.signOut();
+  }
+
+  async _loadOrgSettings() {
+    if (!this._sb) return;
+    try {
+      const { data } = await this._sb.from('app_settings').select('*').eq('id', 1).maybeSingle();
+      if (data) {
+        this.setState({ orgSettings: {
+          companyName: data.company_name || 'Pacificpipe PLC',
+          divisionName: data.division_name || 'IT Division',
+          logoLetter: data.logo_letter || 'P',
+          logoColor: data.logo_color || '#2563eb',
+          logoUrl: data.logo_url || ''
+        } });
+      }
+    } catch (_) { /* keep defaults on failure */ }
   }
 
   openProfileModal() {
@@ -465,13 +483,15 @@ class Component extends DCLogic {
           React.createElement('div', {
             onClick: sidebarToggle,
             title: sidebarOpen ? 'Collapse menu' : 'Expand menu',
-            style: { width: 36, height: 36, background: '#2563eb', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(37,99,235,.4)', cursor: 'pointer' }
+            style: { width: 36, height: 36, background: this.state.orgSettings.logoColor, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px ' + this.state.orgSettings.logoColor + '66', cursor: 'pointer', overflow: 'hidden' }
           },
-            React.createElement('span', { style: { color: '#fff', fontSize: 17, fontWeight: 600 } }, 'P')
+            this.state.orgSettings.logoUrl
+              ? React.createElement('img', { src: this.state.orgSettings.logoUrl, style: { width: '100%', height: '100%', objectFit: 'cover' } })
+              : React.createElement('span', { style: { color: '#fff', fontSize: 17, fontWeight: 600 } }, (this.state.orgSettings.logoLetter || 'P').charAt(0).toUpperCase())
           ),
           sidebarOpen ? React.createElement('div', { style: { overflow: 'hidden' } },
-            React.createElement('div', { style: { fontSize: 16, fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap' } }, 'Pacificpipe PLC'),
-            React.createElement('div', { style: { fontSize: 12, color: '#94a3b8', marginTop: 1 } }, 'IT Division')
+            React.createElement('div', { style: { fontSize: 16, fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap' } }, this.state.orgSettings.companyName),
+            React.createElement('div', { style: { fontSize: 12, color: '#94a3b8', marginTop: 1 } }, this.state.orgSettings.divisionName)
           ) : null
         ),
         sidebarOpen ? React.createElement('div', {
@@ -579,7 +599,7 @@ class Component extends DCLogic {
       ) : null
     );
 
-    const headerSubtitle = 'Pacificpipe PLC · IT Department · ' + MONTH_FULL[filterMonth-1] + ' ' + filterYear;
+    const headerSubtitle = this.state.orgSettings.companyName + ' · IT Department · ' + MONTH_FULL[filterMonth-1] + ' ' + filterYear;
 
     // ── Icon paths ────────────────────────────────────────────────
     const I = {
