@@ -173,10 +173,10 @@
     <div class="sidebar-header">
       <div class="sidebar-header-row">
         <div class="sidebar-header-left">
-          <div class="sidebar-logo" onclick="toggleSidebar()" title="Toggle menu">P</div>
+          <div class="sidebar-logo" id="sidebar-logo" onclick="toggleSidebar()" title="Toggle menu">P</div>
           <div class="sidebar-brand">
-            <div class="sidebar-brand-name">Pacificpipe PLC</div>
-            <div class="sidebar-brand-sub">IT Division</div>
+            <div class="sidebar-brand-name" id="sidebar-brand-name">Pacificpipe PLC</div>
+            <div class="sidebar-brand-sub" id="sidebar-brand-sub">IT Division</div>
           </div>
         </div>
         <div class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Collapse">
@@ -645,10 +645,29 @@ function clearBrandLogo() {
   document.getElementById('brand-logo-placeholder').style.display = 'flex';
 }
 
+function applySidebarBranding(s) {
+  const logo = document.getElementById('sidebar-logo');
+  const letter = (s.logo_letter || 'P').charAt(0).toUpperCase();
+  const color = s.logo_color || '#0070f2';
+  if (s.logo_url) {
+    logo.style.backgroundImage = `url(${s.logo_url})`;
+    logo.style.backgroundSize = 'cover';
+    logo.style.backgroundPosition = 'center';
+    logo.textContent = '';
+  } else {
+    logo.style.backgroundImage = '';
+    logo.style.background = color;
+    logo.textContent = letter;
+  }
+  document.getElementById('sidebar-brand-name').textContent = s.company_name || 'Pacificpipe PLC';
+  document.getElementById('sidebar-brand-sub').textContent = s.division_name || 'IT Division';
+}
+
 async function loadBranding() {
   if (!sb) return;
   const { data } = await sb.from('app_settings').select('*').eq('id', 1).maybeSingle();
   const s = data || {};
+  applySidebarBranding(s);
   document.getElementById('brand-company-name').value = s.company_name || 'Pacificpipe PLC';
   document.getElementById('brand-division-name').value = s.division_name || 'IT Division';
   document.getElementById('brand-logo-letter').value = s.logo_letter || 'P';
@@ -680,6 +699,7 @@ async function saveBranding() {
   };
   const { error } = await sb.from('app_settings').upsert(payload, { onConflict: 'id' });
   if (!error) {
+    applySidebarBranding({ company_name: payload.company_name, division_name: payload.division_name, logo_letter: payload.logo_letter, logo_color: payload.logo_color, logo_url: payload.logo_url });
     await sb.from('app_settings_history').insert({
       company_name: payload.company_name,
       division_name: payload.division_name,
