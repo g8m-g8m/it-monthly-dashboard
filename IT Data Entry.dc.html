@@ -1707,7 +1707,7 @@ class Component extends DCLogic {
 
     // Auto-computed totals per card — sourced from the CapEx Projects, MA+Subscription Detail and
     // Software Subscription cards below (no manual key-in here; this panel is read-only).
-    const COL_TY = '110px 1fr 150px 150px 150px 100px';
+    const COL_TY = '1fr 1fr 90px 110px';
     const _maD2 = this.state.maData || { maSub: [], maDet: [] };
     const _maSubBdg = (_maD2.maSub||[]).reduce((s,r)=>s+(r.bg||0),0);
     const _maSubAct = (_maD2.maSub||[]).reduce((s,r)=>s+(r.act||0),0);
@@ -1732,9 +1732,27 @@ class Component extends DCLogic {
     const totalActualTy = _allCats.reduce((s,c)=>s+c.actual,0);
     const totalCommitTy = _allCats.reduce((s,c)=>s+c.commit,0);
     const toM = (n) => (n/1e6);
-    const rowCell = (v, c, bold) => e('span',{style:{fontSize:14,fontWeight:bold?700:500,color:c||'#334155',textAlign:'right',display:'block'}}, v);
+    // Financial-style utilization bar cell: name + progress bar + "฿actual / ฿budget" subtext
+    const utilCell = (bg, ac, barColor) => {
+      const pct = bg>0 ? Math.round((ac/bg)*100) : 0;
+      return e('div', null,
+        e('div', { style:{ height:7, background:'#e2e8f0', borderRadius:4, overflow:'hidden' } },
+          e('div', { style:{ height:'100%', width:Math.min(pct,100)+'%', background: pct>85?'#dc2626':barColor, borderRadius:4 } })
+        ),
+        e('div', { style:{ fontSize:10.5, color:'#94a3b8', marginTop:3 } }, '฿'+toM(ac).toFixed(2)+'M / ฿'+toM(bg).toFixed(2)+'M')
+      );
+    };
+    const varianceCell = (bg, ac) => {
+      const v = bg - ac;
+      const favorable = v >= 0;
+      return e('span', { style:{ fontSize:12.5, fontWeight:700, color: favorable?'#16a34a':'#dc2626' } }, (favorable?'+':'−') + '฿'+toM(Math.abs(v)).toFixed(2)+'M');
+    };
+    const pctCell = (bg, ac, bold) => {
+      const pct = bg>0 ? Math.round((ac/bg)*100) : 0;
+      return e('span', { style:{ fontSize: bold?14:13, fontWeight: bold?800:700, color: pct>85?'#dc2626':'#2563eb' } }, pct+'%');
+    };
 
-    // Type → Parent (card/project) → Category (sub-project/item) — each level rolls up into the next
+    // Type → Parent (card/project) → Category (sub-project/item) — financial "variance bar" style
     const renderTypeGroup = (ty, groups, showCategories) => {
       const tc = typeCfgB[ty];
       const rows = [];
@@ -1742,45 +1760,35 @@ class Component extends DCLogic {
         if (!g.categories.length) return;
         const gb = g.categories.reduce((s,c)=>s+c.budget,0);
         const ga = g.categories.reduce((s,c)=>s+c.actual,0);
-        const gc = g.categories.reduce((s,c)=>s+c.commit,0);
-        const gp = gb>0 ? Math.round((ga/gb)*100) : 0;
-        const gok = gp<=100;
         // Parent row (project / card)
-        rows.push(e('div',{key:ty+'-p-'+g.parent,style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#fff',borderTop:'2px solid #f1f5f9'}},
-          this.tdCell(e('div',{style:{display:'inline-flex',alignItems:'center',background:tc.bg,border:'1px solid '+tc.border,borderRadius:20,padding:'4px 12px'}}, e('span',{style:{fontSize:12,fontWeight:700,color:tc.color}},ty))),
-          this.tdCell(e('span',{style:{fontSize:14,fontWeight:700,color:'#111827'}}, g.parent)),
-          this.tdCell(rowCell('฿'+toM(gb).toFixed(2)+'M', '#111827', true)),
-          this.tdCell(rowCell('฿'+toM(ga).toFixed(2)+'M', gok?'#16a34a':'#e11d48', true)),
-          this.tdCell(rowCell('฿'+toM(gc).toFixed(2)+'M', '#f97316', true)),
-          this.tdCell(rowCell(gp+'%', gok?'#16a34a':'#e11d48', true))
+        rows.push(e('div',{key:ty+'-p-'+g.parent,style:{display:'grid',gridTemplateColumns:COL_TY,gap:'0 10px',padding:'9px 10px',alignItems:'center',background:'#f8fafc',borderRadius:8,marginTop:6}},
+          e('div',{style:{display:'flex',alignItems:'center',gap:8,minWidth:0}},
+            e('span',{style:{fontSize:11,fontWeight:700,color:tc.color,background:tc.bg,border:'1px solid '+tc.border,borderRadius:20,padding:'2px 9px',flexShrink:0}},ty),
+            e('span',{style:{fontSize:14,fontWeight:700,color:'#111827',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, g.parent)
+          ),
+          utilCell(gb, ga, '#2563eb'),
+          e('div',{style:{textAlign:'right'}}, pctCell(gb, ga, true)),
+          e('div',{style:{textAlign:'right'}}, varianceCell(gb, ga))
         ));
         // Category rows (indented, roll up into the parent above) — optional
         if (showCategories) {
           g.categories.forEach((c, ci) => {
-            const cp = c.budget>0 ? Math.round((c.actual/c.budget)*100) : 0;
-            const cok = cp<=100;
-            rows.push(e('div',{key:ty+'-c-'+g.parent+'-'+ci,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#fff'}},
-              this.tdCell(null),
-              this.tdCell(e('span',{style:{fontSize:13,fontWeight:500,color:'#64748b',paddingLeft:18}}, c.name)),
-              this.tdCell(rowCell('฿'+toM(c.budget).toFixed(2)+'M', '#475569')),
-              this.tdCell(rowCell('฿'+toM(c.actual).toFixed(2)+'M', cok?'#16a34a':'#e11d48')),
-              this.tdCell(rowCell('฿'+toM(c.commit).toFixed(2)+'M', '#f97316')),
-              this.tdCell(rowCell(cp+'%', cok?'#16a34a':'#e11d48'))
+            rows.push(e('div',{key:ty+'-c-'+g.parent+'-'+ci,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_TY,gap:'0 10px',padding:'8px 10px 8px 24px',alignItems:'center'}},
+              e('span',{style:{fontSize:13,fontWeight:500,color:'#64748b',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, c.name),
+              utilCell(c.budget, c.actual, '#6366f1'),
+              e('div',{style:{textAlign:'right'}}, pctCell(c.budget, c.actual, false)),
+              e('div',{style:{textAlign:'right'}}, varianceCell(c.budget, c.actual))
             ));
           });
         }
       });
       const tb = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.budget,0),0);
       const ta = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.actual,0),0);
-      const tcm = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.commit,0),0);
-      const tp = tb>0 ? Math.round((ta/tb)*100) : 0;
-      rows.push(e('div',{key:ty+'-subtotal',style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:tc.bg,borderTop:'1px solid '+tc.border,borderBottom:'1px solid '+tc.border}},
-        this.tdCell(null),
-        this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:tc.color}}, ty+' Subtotal')),
-        this.tdCell(rowCell('฿'+toM(tb).toFixed(2)+'M', tc.color, true)),
-        this.tdCell(rowCell('฿'+toM(ta).toFixed(2)+'M', tc.color, true)),
-        this.tdCell(rowCell('฿'+toM(tcm).toFixed(2)+'M', tc.color, true)),
-        this.tdCell(rowCell(tp+'%', tc.color, true))
+      rows.push(e('div',{key:ty+'-subtotal',style:{display:'grid',gridTemplateColumns:COL_TY,gap:'0 10px',padding:'9px 10px',alignItems:'center',background:tc.bg,borderTop:'1px solid '+tc.border,borderBottom:'1px solid '+tc.border,borderRadius:8,marginTop:2}},
+        e('span',{style:{fontSize:13,fontWeight:700,color:tc.color}}, ty+' Subtotal'),
+        utilCell(tb, ta, tc.color),
+        e('div',{style:{textAlign:'right'}}, pctCell(tb, ta, true)),
+        e('div',{style:{textAlign:'right'}}, varianceCell(tb, ta))
       ));
       return rows;
     };
@@ -1796,19 +1804,28 @@ class Component extends DCLogic {
           e('div',{style:{background:'#ede9fe',border:'1px solid #ddd6fe',borderRadius:20,padding:'4px 14px',fontSize:12,color:'#6d28d9',fontWeight:700}}, 'OpEx ฿'+toM(_opBdg).toFixed(1)+'M / ฿'+toM(_opAct).toFixed(1)+'M')
         )
       ),
-      e('div', { style:{ display:'grid', gridTemplateColumns:COL_TY, gap:0 } },
-        ...['Type','Category','Budget (M฿)','Actual (M฿)','Commit (M฿)','% Actual'].map(h=>this.thCell(h))
+      e('div', { style:{ display:'grid', gridTemplateColumns:COL_TY, gap:'0 10px', padding:'0 10px' } },
+        ...['Account','Utilization','% Used','Variance'].map(h=>this.thCell(h))
       ),
       ...renderTypeGroup('CapEx', capexGroups, true),
       ...renderTypeGroup('OpEx', opexGroups, false),
       // Totals row
-      e('div',{style:{display:'grid',gridTemplateColumns:COL_TY,gap:0,background:'#f8fafc',borderTop:'2px solid #e2e8f0'}},
-        this.tdCell(null),
-        this.tdCell(e('span',{style:{fontSize:13,fontWeight:700,color:'#111827'}},'TOTAL')),
-        this.tdCell(rowCell('฿'+toM(totalBudgetTy).toFixed(2)+'M', '#2563eb', true)),
-        this.tdCell(rowCell('฿'+toM(totalActualTy).toFixed(2)+'M', '#2563eb', true)),
-        this.tdCell(rowCell('฿'+toM(totalCommitTy).toFixed(2)+'M', '#2563eb', true)),
-        this.tdCell(rowCell(totalBudgetTy>0?Math.round((totalActualTy/totalBudgetTy)*100)+'%':'—', '#2563eb', true))
+      e('div',{style:{display:'grid',gridTemplateColumns:COL_TY,gap:'0 10px',padding:'11px 10px',alignItems:'center',background:'#0f172a',borderRadius:8,marginTop:8}},
+        e('span',{style:{fontSize:14,fontWeight:800,color:'#fff'}},'TOTAL'),
+        (()=>{
+          const pct = totalBudgetTy>0 ? Math.round((totalActualTy/totalBudgetTy)*100) : 0;
+          return e('div', null,
+            e('div', { style:{ height:8, background:'rgba(255,255,255,.15)', borderRadius:4, overflow:'hidden' } },
+              e('div', { style:{ height:'100%', width:Math.min(pct,100)+'%', background:'#60a5fa', borderRadius:4 } })
+            ),
+            e('div', { style:{ fontSize:10.5, color:'#94a3b8', marginTop:3 } }, '฿'+toM(totalActualTy).toFixed(2)+'M / ฿'+toM(totalBudgetTy).toFixed(2)+'M')
+          );
+        })(),
+        e('div',{style:{textAlign:'right'}}, e('span',{style:{fontSize:14,fontWeight:800,color:'#60a5fa'}}, (totalBudgetTy>0?Math.round((totalActualTy/totalBudgetTy)*100):0)+'%')),
+        e('div',{style:{textAlign:'right'}}, (()=>{
+          const v = totalBudgetTy - totalActualTy; const favorable = v>=0;
+          return e('span',{style:{fontSize:13,fontWeight:700,color:favorable?'#4ade80':'#f87171'}}, (favorable?'+':'−')+'฿'+toM(Math.abs(v)).toFixed(2)+'M');
+        })())
       ),
       e('div',{style:{marginTop:10,fontSize:11,color:'#9ca3af'}},'ℹ️ ตัวเลขคำนวณอัตโนมัติ ไม่ต้องกรอกข้อมูลซ้ำที่นี่ — แก้ไขได้ที่การ์ด CapEx Projects และ OpEx Project ด้านล่าง')
     );
