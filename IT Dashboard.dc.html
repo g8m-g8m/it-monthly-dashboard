@@ -69,7 +69,7 @@ class Component extends DCLogic {
   state = { tab: 'overview', tip: null, sidebarOpen: false, filterMonth: new Date().getMonth() + 1, filterYear: new Date().getFullYear(), filterOpen: false, showAppMenu: false,
     session: null, user: null, userRole: null, userName: '', userAvatar: '', menuAccess: null,
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
-    supabaseData: null, loadingData: false, trendMonths: [],
+    supabaseData: null, loadingData: false, trendMonths: [], budgetHistoryRaw: [], budgetViewMode: 'cumulative',
     orgSettings: (function() { try { const c = JSON.parse(localStorage.getItem('it_org_branding')); if (c && c.companyName) return c; } catch(_) {} return { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' }; })(),
     showProfileModal: false, profileName: '', profileAvatarPreview: '', profileSaving: false, profileError: '', profileSuccess: '',
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '' };
@@ -197,8 +197,51 @@ class Component extends DCLogic {
           allIncidents: sec.allIncidents || 0, criticalIncidents: sec.criticalIncidents || 0
         };
       });
-      this.setState({ trendMonths: months });
+      this.setState({ trendMonths: months, budgetHistoryRaw: rows || [] });
     } catch(_) { /* keep previous trend data on failure */ }
+  }
+
+  // Pure re-derivation of the Budget card's budGroups shape from a raw report `data` object —
+  // shared by the current-month card and by historical snapshots (for MoM/QoQ comparison).
+  _computeBudGroupsFromData(data) {
+    const sdCap = data && data.capexProjects;
+    const sdMA  = data && data.maData;
+    if (sdCap) {
+      sdCap.forEach(p => {
+        (p.subs||[]).forEach(sub => {
+          if (sub.payments && sub.payments.length) {
+            sub.budget = sub.payments.reduce((s,pm)=>s+(pm.amt||0),0);
+            sub.actual = sub.payments.reduce((s,pm)=>s+(pm.actualAmt||0),0);
+          }
+        });
+      });
+    }
+    const budColors = ['#2563eb','#0ea5e9','#8b5cf6','#10b981','#f59e0b','#f97316','#64748b','#84cc16','#ec4899','#14b8a6'];
+    let bci = 0;
+    const nextColor = () => budColors[(bci++) % budColors.length];
+    const capexBudGroups = (sdCap||[]).map(p => {
+      const subs = p.subs||[];
+      const categories = subs.length
+        ? subs.map(s => ({ n: s.n, bg: (s.budget||0)/1e6, sp: (s.actual||0)/1e6, c: nextColor() }))
+        : [];
+      return { parent: p.n, type: 'CapEx', categories };
+    });
+    const opexBudGroups = sdMA ? [
+      { parent: 'MA+Subscription Detail', type: 'OpEx', categories: (sdMA.maSub||[]).map(r => ({ n: r.n, bg: (r.bg||0)/1e6, sp: (r.act||0)/1e6, c: nextColor() })) },
+      { parent: 'Software Subscription',  type: 'OpEx', categories: (sdMA.maDet||[]).map(g => {
+          const b = g.items ? g.items.reduce((s,it)=>s+(it.budget||0),0) : (g.bg||0);
+          const a = g.items ? g.items.reduce((s,it)=>s+(it.actual||0),0) : (g.act||0);
+          return { n: g.n, bg: b/1e6, sp: a/1e6, c: nextColor() };
+        }) },
+    ].filter(g => g.categories.length) : [];
+    return [...capexBudGroups, ...opexBudGroups];
+  }
+
+  // Find a matching {n, bg, sp} category by parent+name across a different period's budGroups
+  _findBudCategory(budGroups, parentName, catName) {
+    const g = (budGroups||[]).find(g => g.parent === parentName);
+    if (!g) return null;
+    return (g.categories||[]).find(c => c.n === catName) || null;
   }
 
   _subscribeRealtime() {
@@ -764,6 +807,58 @@ class Component extends DCLogic {
     const bud = budGroups.flatMap(g => g.categories.map(c => Object.assign({}, c, { type: g.type })));
     const tBg = bud.reduce((s, b) => s + b.bg, 0);
     const tSp = bud.reduce((s, b) => s + b.sp, 0);
+
+    // ── Budget comparison modes (MoM / QoQ) — real history from it_reports, incremental spend only ──
+    const budgetViewMode = this.state.budgetViewMode || 'cumulative';
+    const _bhRaw = this.state.budgetHistoryRaw || []; // ascending, ends at filterMonth/filterYear
+    const _bhByKey = {};
+    _bhRaw.forEach(r => { _bhByKey[r.period_year + '-' + r.period_month] = r.data; });
+    const _monthKey = (y, m) => { let yy=y, mm=m; if (mm<1) { mm=12; yy--; } if (mm>12) { mm=1; yy++; } return { y: yy, m: mm, key: yy+'-'+mm }; };
+    // Incremental (this-period-only) budGroups for a given year/month = cumulative(this) − cumulative(prev)
+    const _incrementalBudGroups = (y, m) => {
+      const cur = _bhByKey[y+'-'+m];
+      if (!cur) return null;
+      const { key: prevKey } = _monthKey(y, m-1);
+      const prevData = _bhByKey[prevKey];
+      const curGroups = this._computeBudGroupsFromData(cur);
+      if (!prevData) return curGroups; // first-ever month on record — nothing to subtract
+      const prevGroups = this._computeBudGroupsFromData(prevData);
+      return curGroups.map(g => ({ ...g, categories: g.categories.map(c => {
+        const prevCat = this._findBudCategory(prevGroups, g.parent, c.n);
+        return { ...c, sp: c.sp - (prevCat ? prevCat.sp : 0) };
+      }) }));
+    };
+    const thisMonthIncGroups = _incrementalBudGroups(filterYear, filterMonth);
+    const { key: lastMonthKey, y: lmY, m: lmM } = _monthKey(filterYear, filterMonth - 1);
+    const lastMonthIncGroups = _incrementalBudGroups(lmY, lmM);
+    const momReady = !!(thisMonthIncGroups && lastMonthIncGroups);
+    // Quarter helpers: Q boundaries are calendar quarters (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec)
+    const _quarterMonths = (y, m) => { const qStart = Math.floor((m-1)/3)*3 + 1; return [0,1,2].map(i => _monthKey(y, qStart+i)); };
+    const _sumIncGroupsOverMonths = (monthList) => {
+      let merged = null;
+      for (const mk of monthList) {
+        const g = _incrementalBudGroups(mk.y, mk.m);
+        if (!g) continue;
+        if (!merged) { merged = g.map(gr => ({ ...gr, categories: gr.categories.map(c => ({ ...c })) })); continue; }
+        g.forEach(gr => {
+          let mgr = merged.find(x => x.parent === gr.parent);
+          if (!mgr) { mgr = { ...gr, categories: [] }; merged.push(mgr); }
+          gr.categories.forEach(c => {
+            let mc = mgr.categories.find(x => x.n === c.n);
+            if (!mc) { mc = { ...c, sp: 0, bg: 0 }; mgr.categories.push(mc); }
+            mc.sp += c.sp;
+          });
+        });
+      }
+      return merged;
+    };
+    const curQMonths = _quarterMonths(filterYear, filterMonth).filter(mk => (mk.y < filterYear) || (mk.y === filterYear && mk.m <= filterMonth));
+    const { y: pqY, m: pqM } = _monthKey(filterYear, filterMonth - 3); // a month inside the previous quarter
+    const prevQMonths = _quarterMonths(pqY, pqM);
+    const thisQuarterIncGroups = _sumIncGroupsOverMonths(curQMonths);
+    const prevQuarterIncGroups = _sumIncGroupsOverMonths(prevQMonths);
+    const qoqReady = !!(thisQuarterIncGroups && prevQuarterIncGroups && prevQMonths.every(mk => _bhByKey[mk.key]));
+    const _deltaPct = (cur, prev) => prev === 0 ? (cur === 0 ? 0 : null) : Math.round(((cur - prev) / Math.abs(prev)) * 100);
     const _savedProjects = this._savedData && this._savedData.projects;
     const _savedInhouse = (this._savedData && this._savedData.inhouse && this._savedData.inhouse.length) ? this._savedData.inhouse : null;
     const _ihStatusMap = { 'Completed':'completed','In Progress':'in-progress','On Hold':'on-hold','Delayed':'delayed','Not Started':'not-started','COMPLETED':'completed','ON-PLAN':'in-progress','ON-HOLD':'on-hold','DELAYED':'delayed','NOT STARTED':'not-started' };
@@ -1405,16 +1500,90 @@ class Component extends DCLogic {
 
     // ── Panel 5: IT Budget FY2026 — Budget vs Actual ────────────
 
+    // Comparison rows renderer (MoM / QoQ) — same visual tree, but shows incremental Actual vs prior period + delta
+    const _renderBudCompareRows = (curGroups, prevGroups) => {
+      const cols = '1fr 1fr 44px';
+      const rows = [];
+      const findPrev = (parent, n) => this._findBudCategory(prevGroups, parent, n);
+      ['CapEx','OpEx'].forEach(ty => {
+        const groups = (curGroups||[]).filter(g => g.type === ty);
+        if (!groups.length) return;
+        const gCur = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0);
+        const gPrev = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>{ const pc=findPrev(g.parent,c.n); return ss+(pc?pc.sp:0); },0),0);
+        const gDelta = _deltaPct(gCur, gPrev);
+        const gDeltaColor = gDelta===null ? '#94a3b8' : gDelta > 0 ? '#e11d48' : gDelta < 0 ? '#16a34a' : '#94a3b8';
+        rows.push(e('div', { key: ty+'-hd', style: { display:'grid', gridTemplateColumns:cols, gap:'0 6px', padding:'6px 6px 3px', background:'#f1f5f9', borderRadius:5, marginBottom:1, alignItems:'center' } },
+          e('div', { style:{ fontSize:14, fontWeight:700, color:'#0f172a' } }, ty),
+          e('div', { style:{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4, flexWrap:'wrap' } },
+            e('span', { style:{ fontSize:13, color:'#94a3b8' } }, '฿'+gPrev.toFixed(2)+'M'),
+            e('span', { style:{ fontSize:13, color:'#cbd5e1' } }, '→'),
+            e('span', { style:{ fontSize:13, fontWeight:600, color:'#2563eb' } }, '฿'+gCur.toFixed(2)+'M')
+          ),
+          e('div', { style:{ fontSize:13, fontWeight:700, color:gDeltaColor, textAlign:'right' } }, gDelta===null?'—':(gDelta>0?'▲':gDelta<0?'▼':'') + Math.abs(gDelta)+'%')
+        ));
+        groups.forEach(g => {
+          const pCur = g.categories.reduce((s,c)=>s+c.sp,0);
+          const pPrev = g.categories.reduce((s,c)=>{ const pc=findPrev(g.parent,c.n); return s+(pc?pc.sp:0); },0);
+          const pDelta = _deltaPct(pCur, pPrev);
+          const pDeltaColor = pDelta===null ? '#94a3b8' : pDelta > 0 ? '#e11d48' : pDelta < 0 ? '#16a34a' : '#94a3b8';
+          rows.push(e('div', { key: ty+'-p-'+g.parent, style:{ display:'grid', gridTemplateColumns:cols, gap:'0 6px', padding:'5px 6px 5px 10px', alignItems:'center' } },
+            e('div', { style:{ fontSize:14, fontWeight:700, color:'#334155', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' } }, g.parent),
+            e('div', { style:{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4, flexWrap:'wrap' } },
+              e('span', { style:{ fontSize:13, color:'#cbd5e1' } }, '฿'+pPrev.toFixed(2)+'M'),
+              e('span', { style:{ fontSize:13, color:'#cbd5e1' } }, '→'),
+              e('span', { style:{ fontSize:13, fontWeight:600, color:'#475569' } }, '฿'+pCur.toFixed(2)+'M')
+            ),
+            e('div', { style:{ fontSize:13, fontWeight:700, color:pDeltaColor, textAlign:'right' } }, pDelta===null?'—':(pDelta>0?'▲':pDelta<0?'▼':'') + Math.abs(pDelta)+'%')
+          ));
+          if (ty === 'CapEx') g.categories.forEach((c, idx) => {
+            const prevCat = findPrev(g.parent, c.n);
+            const prevSp = prevCat ? prevCat.sp : 0;
+            const delta = _deltaPct(c.sp, prevSp);
+            const deltaColor = delta===null ? '#94a3b8' : delta > 0 ? '#e11d48' : delta < 0 ? '#16a34a' : '#94a3b8';
+            rows.push(e('div', { key: ty+'-c-'+g.parent+'-'+idx, style:{ display:'grid', gridTemplateColumns:cols, gap:'0 6px', padding:'4px 6px 4px 22px', borderBottom: idx < g.categories.length - 1 ? '1px solid #f8fafc' : 'none', alignItems:'center', marginBottom: idx === g.categories.length - 1 ? 4 : 0 } },
+              e('div', { style:{ display:'flex', alignItems:'center', gap:5 } },
+                e('div', { style:{ width:6, height:6, borderRadius:2, background:c.c, flexShrink:0 } }),
+                e('span', { style:{ fontSize:14, color:'#475569', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' } }, c.n)
+              ),
+              e('div', { style:{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4, flexWrap:'wrap' } },
+                e('span', { style:{ fontSize:14, color:'#94a3b8' } }, '฿'+prevSp.toFixed(2)+'M'),
+                e('span', { style:{ fontSize:13, color:'#cbd5e1' } }, '→'),
+                e('span', { style:{ fontSize:14, fontWeight:600, color:c.c } }, '฿'+c.sp.toFixed(2)+'M')
+              ),
+              e('div', { style:{ fontSize:14, fontWeight:700, color:deltaColor, textAlign:'right' } }, delta===null?'—':(delta>0?'▲':delta<0?'▼':'') + Math.abs(delta)+'%')
+            ));
+          });
+        });
+      });
+      return rows;
+    };
+
+    const budTogglePill = (mode, label) => e('div', {
+      onClick: () => this.setState({ budgetViewMode: mode }),
+      style: { fontSize: 10.5, fontWeight: 700, padding: '5px 9px', borderRadius: 6, cursor: 'pointer', color: budgetViewMode===mode?'#0f172a':'#64748b', background: budgetViewMode===mode?'#fff':'transparent', boxShadow: budgetViewMode===mode?'0 1px 2px rgba(0,0,0,.08)':'none' }
+    }, label);
+    const budToggle = e('div', { style: { display:'flex', gap:4, background:'#f1f5f9', borderRadius:9, padding:3, flexShrink:0 } },
+      budTogglePill('cumulative','Cumulative'), budTogglePill('mom','MoM'), budTogglePill('qoq','QoQ')
+    );
+    const budNotReadyMsg = (label) => e('div', { style:{ padding:'20px 10px', textAlign:'center', fontSize:12.5, color:'#94a3b8' } }, 'ยังมีข้อมูลไม่พอสำหรับเทียบ ' + label + ' (ต้องมีข้อมูลเดือนก่อนหน้าที่บันทึกไว้)');
+
     const p5 = panelBox([
-      panelHead('IT Budget FY2026 — Budget vs Actual', 'Technology Dept. · Pacificpipe PLC · ' + MONTH_FULL[filterMonth-1]),
+      e('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom: 2 } },
+        panelHead('IT Budget FY2026 — Budget vs Actual', 'Technology Dept. · Pacificpipe PLC · ' + MONTH_FULL[filterMonth-1]),
+        budToggle
+      ),
       // Header row
-      e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 44px', gap: '0 6px', padding: '4px 6px', background: '#f8fafc', borderRadius: 6, marginBottom: 2 } },
+      budgetViewMode === 'cumulative' ? e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 44px', gap: '0 6px', padding: '4px 6px', background: '#f8fafc', borderRadius: 6, marginBottom: 2 } },
         e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b' } }, 'Category'),
         e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', textAlign: 'right' } }, 'Budget → Actual'),
         e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', textAlign: 'right' } }, '%Used'),
+      ) : e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 44px', gap: '0 6px', padding: '4px 6px', background: '#f8fafc', borderRadius: 6, marginBottom: 2 } },
+        e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b' } }, 'Category'),
+        e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', textAlign: 'right' } }, budgetViewMode==='mom' ? 'Last Month → This Month' : 'Prior Quarter → This Quarter'),
+        e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', textAlign: 'right' } }, 'Δ'),
       ),
       // Budget rows grouped Type → Parent → Category
-      ...((() => {
+      budgetViewMode === 'cumulative' ? [...((() => {
         const cols = '1fr 1fr 44px';
         const rows = [];
         ['CapEx','OpEx'].forEach(ty => {
@@ -1470,9 +1639,11 @@ class Component extends DCLogic {
           });
         });
         return rows;
-      })()),
+      })())] : budgetViewMode === 'mom'
+        ? (momReady ? _renderBudCompareRows(thisMonthIncGroups, lastMonthIncGroups) : [budNotReadyMsg('Month-over-Month')])
+        : (qoqReady ? _renderBudCompareRows(thisQuarterIncGroups, prevQuarterIncGroups) : [budNotReadyMsg('Quarter-over-Quarter')]),
       // Total row
-      e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 44px', gap: '0 6px', padding: '6px 6px 2px', borderTop: '2px solid #e2e8f0', marginTop: 2, alignItems: 'center' } },
+      budgetViewMode === 'cumulative' ? e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 44px', gap: '0 6px', padding: '6px 6px 2px', borderTop: '2px solid #e2e8f0', marginTop: 2, alignItems: 'center' } },
         e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a' } }, 'TOTAL'),
         e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, flexWrap: 'wrap' } },
           e('span', { style: { fontSize: 15, color: '#64748b' } }, '฿' + tBg.toFixed(1) + 'M'),
@@ -1480,7 +1651,23 @@ class Component extends DCLogic {
           e('span', { style: { fontSize: 15, fontWeight: 700, color: '#2563eb' } }, '฿' + tSp.toFixed(1) + 'M')
         ),
         e('div', { style: { fontSize: 15, fontWeight: 700, color: '#2563eb', textAlign: 'right' } }, (tBg>0?Math.round((tSp/tBg)*100):0) + '%')
-      ),
+      ) : (budgetViewMode==='mom' ? momReady : qoqReady) ? (() => {
+        const curG = budgetViewMode==='mom' ? thisMonthIncGroups : thisQuarterIncGroups;
+        const prevG = budgetViewMode==='mom' ? lastMonthIncGroups : prevQuarterIncGroups;
+        const curTotal = curG.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0);
+        const prevTotal = prevG.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0);
+        const delta = _deltaPct(curTotal, prevTotal);
+        const deltaColor = delta===null ? '#94a3b8' : delta > 0 ? '#f87171' : delta < 0 ? '#4ade80' : '#94a3b8';
+        return e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 44px', gap: '0 6px', padding: '6px 6px 2px', borderTop: '2px solid #e2e8f0', marginTop: 2, alignItems: 'center' } },
+          e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a' } }, 'TOTAL'),
+          e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, flexWrap: 'wrap' } },
+            e('span', { style: { fontSize: 15, color: '#94a3b8' } }, '฿' + prevTotal.toFixed(2) + 'M'),
+            e('span', { style: { fontSize: 13, color: '#cbd5e1' } }, '→'),
+            e('span', { style: { fontSize: 15, fontWeight: 700, color: '#2563eb' } }, '฿' + curTotal.toFixed(2) + 'M')
+          ),
+          e('div', { style: { fontSize: 15, fontWeight: 700, color: deltaColor, textAlign: 'right' } }, delta===null?'—':(delta>0?'▲':delta<0?'▼':'') + Math.abs(delta)+'%')
+        );
+      })() : null,
     ]);
 
     // ── Middle table: All projects ────────────────────────────────
