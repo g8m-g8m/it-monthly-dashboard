@@ -288,11 +288,11 @@ class Component extends DCLogic {
       { key:'security',    label:'Security',             target:100,  ic:'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
     ],
     stabilityKpiDefs: [
-      { key:'availabilityPct', label:'System Uptime',  unit:'%',  target:'≥ 99.5%', thresholdOp:'gte', thresholdVal:99.5, passColor:'#16a34a', failColor:'#e11d48', ic:'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-      { key:'capacityUtil',    label:'Capacity Util.', unit:'%',  target:'< 80%',   thresholdOp:'lt',  thresholdVal:80,   passColor:'#16a34a', failColor:'#d97706', ic:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-      { key:'wanLatency',      label:'WAN Latency',    unit:'ms', target:'≤ 50ms',  thresholdOp:'lte', thresholdVal:50,   passColor:'#2563eb', failColor:'#e11d48', ic:'M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0' },
-      { key:'packetLoss',      label:'Packet Loss',    unit:'%',  target:'≤ 1%',    thresholdOp:'lte', thresholdVal:1,    passColor:'#16a34a', failColor:'#e11d48', ic:'M13 10V3L4 14h7v7l9-11h-7z' },
-      { key:'openVulns',       label:'Open Vulns',     unit:'',   target:'Track',   thresholdOp:null,  thresholdVal:null, passColor:'#f97316', failColor:'#f97316', ic:'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+      { key:'availabilityPct', label:'System Uptime',  unit:'%',  target:'≥ 99.5%', thresholdOp:'gte', thresholdVal:99.5, passColor:'#16a34a', failColor:'#e11d48', th:'เปอร์เซนต์เวลาที่ระบบพร้อมใช้งาน', ic:'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+      { key:'capacityUtil',    label:'Capacity Util.', unit:'%',  target:'< 80%',   thresholdOp:'lt',  thresholdVal:80,   passColor:'#16a34a', failColor:'#d97706', th:'เปอร์เซนต์การใช้งานทริพยากรเซิฟเวอร์/ระบบ', ic:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+      { key:'wanLatency',      label:'WAN Latency',    unit:'ms', target:'≤ 50ms',  thresholdOp:'lte', thresholdVal:50,   passColor:'#2563eb', failColor:'#e11d48', th:'เวลาหน่วงการทำงานเครือข่ะ WAN', ic:'M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0' },
+      { key:'packetLoss',      label:'Packet Loss',    unit:'%',  target:'≤ 1%',    thresholdOp:'lte', thresholdVal:1,    passColor:'#16a34a', failColor:'#e11d48', th:'% ข้อมูลสูญหายระหว่งส่งผ่านเครือข่าย', ic:'M13 10V3L4 14h7v7l9-11h-7z' },
+      { key:'openVulns',       label:'Open Vulns',     unit:'',   target:'Track',   thresholdOp:null,  thresholdVal:null, passColor:'#f97316', failColor:'#f97316', th:'จำนวงช่องโหว่ที่ยังเปิดอยู่', ic:'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     ],
   };
 
@@ -759,6 +759,57 @@ class Component extends DCLogic {
     this.setState({ pwSaving: false, pwSuccess: 'เปลี่ยนรหัสผ่านแล้ว', pwNew: '', pwConfirm: '' });
   }
 
+  _fieldLabel(key) {
+    const MAP = {
+      criticalIncidents:'Critical Incidents', allIncidents:'Security Incidents (All)', endpointProtection:'Endpoint Protection',
+      patchOS:'Patch Compliance (OS)', patchApps:'Patch Compliance (Apps)', criticalVulns:'Critical Vulnerabilities',
+      highVulns:'High Vulnerabilities', phishingBlocked:'Phishing/Spam Blocked', availabilityPct:'System Uptime',
+      capacityUtil:'Capacity Util.', wanLatency:'WAN Latency', packetLoss:'Packet Loss', openVulns:'Open Vulns',
+      latency:'Latency', bandwidthUtil:'Bandwidth Utilization', progress:'Progress %', status:'Status', budget:'Budget',
+      actual:'Actual', name:'Name', dept:'Dept', lead:'Lead', availability:'Availability %', impact:'Impact',
+      description:'Description', severity:'Severity', resolved:'Resolved', date:'Date', due:'Due Date',
+      startDate:'Start Date', type:'Type', medium:'Medium', low:'Low', informational:'Informational'
+    };
+    return MAP[key] || key;
+  }
+
+  _fmtVal(v) { if (v === undefined || v === null || v === '') return '—'; if (typeof v === 'boolean') return v ? 'Yes' : 'No'; return String(v); }
+
+  // Field-level diff for one top-level section; returns an array of human-readable change lines
+  _diffSection(label, a, b) {
+    const out = [];
+    if (Array.isArray(a) || Array.isArray(b)) {
+      const arrA = a || [], arrB = b || [];
+      if (arrA.length !== arrB.length) out.push(label + ': ' + arrB.length + ' → ' + arrA.length + ' รายการ');
+      for (let i = 0; i < Math.min(arrA.length, arrB.length); i++) {
+        const itemA = arrA[i], itemB = arrB[i];
+        if (typeof itemA !== 'object' || itemA === null) {
+          if (JSON.stringify(itemA) !== JSON.stringify(itemB)) out.push(label + ' #' + (i+1) + ': ' + this._fmtVal(itemB) + ' → ' + this._fmtVal(itemA));
+          continue;
+        }
+        const itemName = itemA.name || itemA.n || itemA.description || itemA.label || itemA.plant || ('#' + (i+1));
+        Object.keys(itemA).forEach(k => {
+          const av = itemA[k], bv = itemB ? itemB[k] : undefined;
+          if (typeof av === 'object') return; // skip nested (e.g. payments) — too deep for a summary
+          if (JSON.stringify(av) !== JSON.stringify(bv)) {
+            out.push(label + ' · ' + itemName + ' — ' + this._fieldLabel(k) + ': ' + this._fmtVal(bv) + ' → ' + this._fmtVal(av));
+          }
+        });
+      }
+    } else if (typeof a === 'object' && a !== null) {
+      Object.keys(a).forEach(k => {
+        const av = a[k], bv = b ? b[k] : undefined;
+        if (typeof av === 'object') return;
+        if (JSON.stringify(av) !== JSON.stringify(bv)) {
+          out.push(label + ' — ' + this._fieldLabel(k) + ': ' + this._fmtVal(bv) + ' → ' + this._fmtVal(av));
+        }
+      });
+    } else if (JSON.stringify(a) !== JSON.stringify(b)) {
+      out.push(label + ': ' + this._fmtVal(b) + ' → ' + this._fmtVal(a));
+    }
+    return out;
+  }
+
   async loadHistory() {
     if (!this._sb || !this.state.session) return;
     const { period } = this.state;
@@ -778,9 +829,10 @@ class Component extends DCLogic {
         changes = ['บันทึกครั้งแรกของเดือนนี้'];
       } else if (v.data && older.data) {
         Object.keys(DIFF_LABELS).forEach(k => {
-          const a = JSON.stringify(v.data[k] ?? null);
-          const b = JSON.stringify(older.data[k] ?? null);
-          if (a !== b) changes.push(DIFF_LABELS[k]);
+          const a = v.data[k], b = older.data[k];
+          if (JSON.stringify(a ?? null) !== JSON.stringify(b ?? null)) {
+            changes.push(...this._diffSection(DIFF_LABELS[k], a, b));
+          }
         });
         if (!changes.length) changes = ['ไม่มีการเปลี่ยนแปลงข้อมูล'];
       } else {
@@ -1942,14 +1994,14 @@ class Component extends DCLogic {
     const BUG_IC      = 'M18.364 18.364A9 9 0 105.636 5.636a9 9 0 0012.728 12.728zM9 9l6 6m0-6l-6 6';
     const MAIL_IC     = 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z';
     const secFields = [
-      { key: 'criticalIncidents', label: 'Critical Incidents',        target: 'Target: 0',      ic: TRIANGLE_IC, ok: (v)=>v===0 },
-      { key: 'allIncidents',      label: 'Security Incidents (All)',  target: 'Tracked metric', ic: SHIELD_IC,   ok: null },
-      { key: 'endpointProtection',label: 'Endpoint Protection',       target: 'Target: 100%',   ic: SHIELD_IC,   ok: (v)=>v>=100, unit:'%' },
-      { key: 'patchOS',           label: 'Patch Compliance (OS)',     target: 'Target: ≥ 95%',  ic: REFRESH_IC,  ok: (v)=>v>=95,  unit:'%' },
-      { key: 'patchApps',         label: 'Patch Compliance (Apps)',   target: 'Target: ≥ 95%',  ic: REFRESH_IC,  ok: (v)=>v>=95,  unit:'%' },
-      { key: 'criticalVulns',     label: 'Critical Vulnerabilities',  target: 'Target: 0',      ic: BUG_IC,      ok: (v)=>v===0 },
-      { key: 'highVulns',         label: 'High Vulnerabilities',      target: 'Target: < 5',    ic: TRIANGLE_IC, ok: (v)=>v<5 },
-      { key: 'phishingBlocked',   label: 'Phishing/Spam Blocked',     target: 'Tracked metric', ic: MAIL_IC,     ok: null },
+      { key: 'criticalIncidents', label: 'Critical Incidents',        target: 'Target: 0',      ic: TRIANGLE_IC, ok: (v)=>v===0, th: 'จำนวนเหตุการณ์ความปลอดภัยระดับวิกฤต' },
+      { key: 'allIncidents',      label: 'Security Incidents (All)',  target: 'Tracked metric', ic: SHIELD_IC,   ok: null, th: 'จำนวนเหตุการณ์ความปลอดภัยทั้งหมด' },
+      { key: 'endpointProtection',label: 'Endpoint Protection',       target: 'Target: 100%',   ic: SHIELD_IC,   ok: (v)=>v>=100, unit:'%', th: '% อุปกรณ์ที่มีการป้องกันมัลแวร์ครบถ้วน' },
+      { key: 'patchOS',           label: 'Patch Compliance (OS)',     target: 'Target: ≥ 95%',  ic: REFRESH_IC,  ok: (v)=>v>=95,  unit:'%', th: '% เครื่องที่อัปเดตแพตช์ระบบปฏิบัติการล่าสุด' },
+      { key: 'patchApps',         label: 'Patch Compliance (Apps)',   target: 'Target: ≥ 95%',  ic: REFRESH_IC,  ok: (v)=>v>=95,  unit:'%', th: '% เครื่องที่อัปเดตแพตช์แอปพลิเคชันล่าสุด' },
+      { key: 'criticalVulns',     label: 'Critical Vulnerabilities',  target: 'Target: 0',      ic: BUG_IC,      ok: (v)=>v===0, th: 'จำนวนช่องโหว่ระดับวิกฤตที่ยังไม่แก้ไข' },
+      { key: 'highVulns',         label: 'High Vulnerabilities',      target: 'Target: < 5',    ic: TRIANGLE_IC, ok: (v)=>v<5, th: 'จำนวนช่องโหว่ระดับสูงที่ยังไม่แก้ไข' },
+      { key: 'phishingBlocked',   label: 'Phishing/Spam Blocked',     target: 'Tracked metric', ic: MAIL_IC,     ok: null, th: 'จำนวนอีเมลฟิชชิ่ง/สแปมที่ระบบบล็อกได้' },
     ];
     const COL_SEC = '44px 1fr 130px 130px';
     const secMetCnt  = secFields.filter(f => f.ok && f.ok(security[f.key])).length;
@@ -1979,6 +2031,7 @@ class Component extends DCLogic {
           )),
           this.tdCell(e('div',null,
             e('div',{style:{fontSize:13,fontWeight:600,color:'#111827'}}, f.label),
+            e('div',{style:{fontSize:10.5,color:'#64748b',marginTop:1}}, f.th),
             e('div',{style:{fontSize:10,color:'#9ca3af',marginTop:1}}, f.target)
           )),
           this.tdCell(e('div',{style:{display:'flex',alignItems:'baseline',gap:3}},
@@ -2287,11 +2340,11 @@ class Component extends DCLogic {
 
     // ── 6. Security Events ────────────────────────────────────────
     const sevCfg = {
-      high:   { color:'#e11d48', bg:'#fff1f2', border:'#fecdd3', label:'High',   ic:'M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-      medium: { color:'#d97706', bg:'#fffbeb', border:'#fde68a', label:'Medium', ic:'M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-      low:    { color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0', label:'Low',    ic:'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+      high:   { color:'#e11d48', bg:'#fff1f2', border:'#fecdd3', label:'High',   th:'สูง', ic:'M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+      medium: { color:'#d97706', bg:'#fffbeb', border:'#fde68a', label:'Medium', th:'กลาง', ic:'M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+      low:    { color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0', label:'Low',    th:'ต่ำ', ic:'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     };
-    const COL_SE = '110px 1fr 140px 120px 44px';
+    const COL_SE = '110px 1fr 165px 120px 44px';
     const seHighCnt = securityEvents.filter(e2=>e2.severity==='high').length;
     const seMedCnt  = securityEvents.filter(e2=>e2.severity==='medium').length;
     const seResCnt  = securityEvents.filter(e2=>e2.resolved).length;
@@ -2364,11 +2417,11 @@ class Component extends DCLogic {
           this.tdCell(e('input',{type:'text',value:ev.description,onChange:(ev2)=>updSE('description',ev2.target.value),style:{fontSize:13,fontWeight:400,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
           // Severity pill (click to cycle)
           this.tdCell(e('div',{
-            title:'Click to cycle severity',
+            title:'Click to cycle severity (' + sc.th + ')',
             onClick:()=>{ const ord=['high','medium','low']; updSE('severity',ord[(ord.indexOf(ev.severity)+1)%ord.length]); },
-            style:{display:'inline-flex',alignItems:'center',gap:6,background:sc.bg,border:'1px solid '+sc.border,borderRadius:20,padding:'5px 12px',cursor:'pointer',userSelect:'none'}
+            style:{display:'inline-flex',alignItems:'center',gap:6,background:sc.bg,border:'1px solid '+sc.border,borderRadius:20,padding:'5px 12px',cursor:'pointer',userSelect:'none',maxWidth:'100%',overflow:'hidden',boxSizing:'border-box'}
           },
-            e('span',{style:{fontSize:12,fontWeight:700,color:sc.color}},sc.label),
+            e('span',{style:{fontSize:12,fontWeight:700,color:sc.color,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},sc.label + ' (' + sc.th + ')'),
             e('div',{style:{width:15,height:15,borderRadius:'50%',background:sc.color,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
               e('svg',{width:9,height:9,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:sc.ic}))
             )
@@ -2552,6 +2605,7 @@ class Component extends DCLogic {
             )),
             this.tdCell(e('div',null,
               e('input',{type:'text',value:f.label,onChange:(ev)=>this.setState({stabilityKpiDefs:this.state.stabilityKpiDefs.map(d=>d.key===f.key?Object.assign({},d,{label:ev.target.value}):d)}),style:{fontSize:13,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+              e('input',{type:'text',value:f.th||'',onChange:(ev)=>this.setState({stabilityKpiDefs:this.state.stabilityKpiDefs.map(d=>d.key===f.key?Object.assign({},d,{th:ev.target.value}):d)}),placeholder:'คำอธิบายภาษาไทย',style:{fontSize:10.5,color:'#64748b',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
               e('input',{type:'text',value:f.target,onChange:(ev)=>this.setState({stabilityKpiDefs:this.state.stabilityKpiDefs.map(d=>d.key===f.key?Object.assign({},d,{target:ev.target.value}):d)}),style:{fontSize:10,color:'#9ca3af',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})
             )),
             this.tdCell(e('div',{style:{display:'flex',alignItems:'baseline',gap:3}},
@@ -3118,8 +3172,12 @@ class Component extends DCLogic {
               e('div',{style:{fontSize:11,color:'#94a3b8'}},new Date(v.saved_at).toLocaleString('th-TH'))
             ),
             v.version_note?e('div',{style:{fontSize:12,color:'#64748b',marginBottom:8}},v.version_note):null,
-            v.changes && v.changes.length ? e('div',{style:{display:'flex',flexWrap:'wrap',gap:5,marginBottom:10}},
-              ...v.changes.map((c,i)=>e('span',{key:i,style:{fontSize:10.5,fontWeight:600,color:'#2563eb',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:12,padding:'2px 8px'}},c))
+            v.changes && v.changes.length ? e('div',{style:{marginBottom:10}},
+              ...v.changes.slice(0,8).map((c,i)=>e('div',{key:i,style:{fontSize:11,color:'#374151',padding:'3px 0',display:'flex',gap:6}},
+                e('span',{style:{color:'#2563eb',flexShrink:0}},'•'),
+                e('span',null,c)
+              )),
+              v.changes.length>8 ? e('div',{style:{fontSize:10.5,color:'#94a3b8',marginTop:2}}, '+' + (v.changes.length-8) + ' รายการเปลี่ยนแปลงเพิ่มเติม') : null
             ) : null,
             userRole!=='viewer'?e('button',{onClick:()=>this.restoreVersion(v.id),style:{background:'#eff6ff',border:'none',borderRadius:8,padding:'5px 12px',cursor:'pointer',fontSize:11,color:'#2563eb',fontWeight:600}},'Restore'):null
           ))
