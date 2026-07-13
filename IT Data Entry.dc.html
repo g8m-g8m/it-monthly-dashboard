@@ -1802,27 +1802,64 @@ class Component extends DCLogic {
     const budgetForm = e('div', null, budgetCatForm, capexForm, maForm);
 
     // ── 4. Security ───────────────────────────────────────────────
+    const SHIELD_IC   = 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z';
+    const TRIANGLE_IC = 'M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z';
+    const REFRESH_IC  = 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15';
+    const BUG_IC      = 'M18.364 18.364A9 9 0 105.636 5.636a9 9 0 0012.728 12.728zM9 9l6 6m0-6l-6 6';
+    const MAIL_IC     = 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z';
     const secFields = [
-      { key: 'criticalIncidents', label: 'Critical Incidents', target: '= 0',  color: '#ef4444' },
-      { key: 'allIncidents',      label: 'Security Incidents (All)', target: 'Track', color: '#0ea5e9' },
-      { key: 'endpointProtection',label: 'Endpoint Protection %',   target: '= 100%', color: '#10b981' },
-      { key: 'patchOS',           label: 'Patch Compliance (OS) %', target: '≥ 95%',  color: '#10b981' },
-      { key: 'patchApps',         label: 'Patch Compliance (Apps) %',target: '≥ 95%', color: '#10b981' },
-      { key: 'criticalVulns',     label: 'Critical Vulnerabilities', target: '= 0',   color: '#ef4444' },
-      { key: 'highVulns',         label: 'High Vulnerabilities',     target: '< 5',   color: '#f97316' },
-      { key: 'phishingBlocked',   label: 'Phishing/Spam Blocked',    target: 'Track', color: '#8b5cf6' },
+      { key: 'criticalIncidents', label: 'Critical Incidents',        target: 'Target: 0',      ic: TRIANGLE_IC, ok: (v)=>v===0 },
+      { key: 'allIncidents',      label: 'Security Incidents (All)',  target: 'Tracked metric', ic: SHIELD_IC,   ok: null },
+      { key: 'endpointProtection',label: 'Endpoint Protection',       target: 'Target: 100%',   ic: SHIELD_IC,   ok: (v)=>v>=100, unit:'%' },
+      { key: 'patchOS',           label: 'Patch Compliance (OS)',     target: 'Target: ≥ 95%',  ic: REFRESH_IC,  ok: (v)=>v>=95,  unit:'%' },
+      { key: 'patchApps',         label: 'Patch Compliance (Apps)',   target: 'Target: ≥ 95%',  ic: REFRESH_IC,  ok: (v)=>v>=95,  unit:'%' },
+      { key: 'criticalVulns',     label: 'Critical Vulnerabilities',  target: 'Target: 0',      ic: BUG_IC,      ok: (v)=>v===0 },
+      { key: 'highVulns',         label: 'High Vulnerabilities',      target: 'Target: < 5',    ic: TRIANGLE_IC, ok: (v)=>v<5 },
+      { key: 'phishingBlocked',   label: 'Phishing/Spam Blocked',     target: 'Tracked metric', ic: MAIL_IC,     ok: null },
     ];
-    const securityForm = this.card([
-      this.sectionHead('Security KPIs', 'ข้อมูลความปลอดภัยประจำเดือน'),
-      e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 } },
-        ...secFields.map(f =>
-          e('div', { key: f.key, style: { display: 'flex', flexDirection: 'column', gap: 4 } },
-            this.label(f.label + ' (Target: ' + f.target + ')'),
-            this.inp(security[f.key], (v) => this.updateSecurity(f.key, parseFloat(v)||0), { type: 'number', min: 0, step: 1, style: { borderLeft: '3px solid ' + f.color } })
-          )
+    const COL_SEC = '44px 1fr 130px 130px';
+    const secMetCnt  = secFields.filter(f => f.ok && f.ok(security[f.key])).length;
+    const secTrackCnt = secFields.filter(f => !f.ok).length;
+    const secBelowCnt = secFields.filter(f => f.ok && !f.ok(security[f.key])).length;
+    const securityForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
+      e('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 } },
+        e('div', null,
+          e('div', { style:{ fontSize:22, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'Security KPIs'),
+          e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3 } }, 'ข้อมูลความปลอดภัยประจำเดือน')
+        ),
+        e('div', { style:{ display:'flex', gap:8 } },
+          e('div',{style:{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:20,padding:'4px 12px',fontSize:11,color:'#16a34a',fontWeight:600}}, 'Met: '+secMetCnt+'/'+(secFields.length-secTrackCnt)),
+          secBelowCnt>0 ? e('div',{style:{background:'#fff1f2',border:'1px solid #fecdd3',borderRadius:20,padding:'4px 12px',fontSize:11,color:'#e11d48',fontWeight:600}}, 'Below: '+secBelowCnt) : null
         )
-      )
-    ]);
+      ),
+      e('div', { style:{ display:'grid', gridTemplateColumns:COL_SEC, gap:0 } },
+        ...['','KPI Name','Value','Status'].map(h=>this.thCell(h))
+      ),
+      ...secFields.map(f => {
+        const val = security[f.key] || 0;
+        const ok = f.ok ? f.ok(val) : null;
+        const color = ok===null ? '#0ea5e9' : ok ? '#16a34a' : '#e11d48';
+        return e('div', { key:f.key, className:'row-tr', style:{ display:'grid', gridTemplateColumns:COL_SEC, gap:0, background:'#fff' } },
+          this.tdCell(e('div',{style:{width:32,height:32,borderRadius:'50%',background:color,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 2px 6px '+color+'40'}},
+            e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:f.ic}))
+          )),
+          this.tdCell(e('div',null,
+            e('div',{style:{fontSize:13,fontWeight:600,color:'#111827'}}, f.label),
+            e('div',{style:{fontSize:10,color:'#9ca3af',marginTop:1}}, f.target)
+          )),
+          this.tdCell(e('div',{style:{display:'flex',alignItems:'baseline',gap:3}},
+            e('input',{type:'number',value:val,min:0,step:1,onChange:(ev)=>this.updateSecurity(f.key,parseFloat(ev.target.value)||0),style:{width:70,fontSize:24,fontWeight:700,color,border:'none',background:'transparent',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+            f.unit ? e('span',{style:{fontSize:11,color:'#9ca3af'}},f.unit) : null
+          )),
+          this.tdCell(ok!==null ? e('div',{style:{display:'inline-flex',alignItems:'center',gap:6,background:ok?'#f0fdf4':'#fff1f2',border:'1px solid '+(ok?'#bbf7d0':'#fecdd3'),borderRadius:20,padding:'5px 12px'}},
+            e('div',{style:{width:6,height:6,borderRadius:'50%',background:color}}),
+            e('span',{style:{fontSize:11,fontWeight:700,color}}, ok?'Met':'Below')
+          ) : e('div',{style:{display:'inline-flex',alignItems:'center',gap:6,background:'#f0f9ff',border:'1px solid #bae6fd',borderRadius:20,padding:'5px 12px'}},
+            e('span',{style:{fontSize:11,fontWeight:700,color:'#0ea5e9'}}, 'Track')
+          ))
+        );
+      })
+    );
 
     // ── 5. Network ────────────────────────────────────────────────
     const COL_N = '80px 1fr 1fr 140px';
@@ -2078,21 +2115,39 @@ class Component extends DCLogic {
     );
 
     // ── 5. Security — add vulns ───────────────────────────────────
-    const vulnsSection = this.card([
-      this.sectionHead('Vulnerability Breakdown', 'จำนวน vulnerabilities แยกตาม severity'),
-      e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 } },
-        [['criticalVulns','Critical','#ef4444'],['highVulns','High','#f97316'],['medium','Medium','#f59e0b'],['low','Low','#6366f1'],['informational','Informational','#94a3b8']].map(([k,l,c]) =>
-          e('div', { key: k, style: { display: 'flex', flexDirection: 'column', gap: 4 } },
-            this.label(l),
-            this.inp(
-              k==='medium'||k==='low'||k==='informational' ? vulns[k] : security[k],
-              (v) => k==='medium'||k==='low'||k==='informational' ? this.setState({vulns:{...this.state.vulns,[k]:parseInt(v)||0}}) : this.updateSecurity(k, parseInt(v)||0),
-              { type:'number', min:0, step:1, style:{borderLeft:'3px solid '+c} }
-            )
-          )
-        )
-      )
-    ]);
+    const COL_VULN = '44px 1fr 100px 1fr';
+    const vulnRows = [
+      ['criticalVulns','Critical','#ef4444', true],
+      ['highVulns','High','#f97316', true],
+      ['medium','Medium','#f59e0b', false],
+      ['low','Low','#6366f1', false],
+      ['informational','Informational','#94a3b8', false],
+    ];
+    const vulnTotal = vulnRows.reduce((sum,[k,,,isSec]) => sum + (isSec ? security[k]||0 : vulns[k]||0), 0) || 1;
+    const vulnsSection = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
+      e('div', { style:{ marginBottom:20 } },
+        e('div', { style:{ fontSize:22, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'Vulnerability Breakdown'),
+        e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3 } }, 'จำนวน vulnerabilities แยกตาม severity')
+      ),
+      e('div', { style:{ display:'grid', gridTemplateColumns:COL_VULN, gap:0 } },
+        ...['','Severity','Count','Share'].map(h=>this.thCell(h))
+      ),
+      ...vulnRows.map(([k,label,color,isSec]) => {
+        const val = isSec ? (security[k]||0) : (vulns[k]||0);
+        const pct = Math.round((val/vulnTotal)*100);
+        return e('div', { key:k, className:'row-tr', style:{ display:'grid', gridTemplateColumns:COL_VULN, gap:0, background:'#fff' } },
+          this.tdCell(e('div',{style:{width:14,height:14,borderRadius:'50%',background:color,flexShrink:0}})),
+          this.tdCell(e('span',{style:{fontSize:13,fontWeight:600,color:'#111827'}}, label)),
+          this.tdCell(e('input',{type:'number',value:val,min:0,step:1,onChange:(ev)=>{ const v=parseInt(ev.target.value)||0; isSec ? this.updateSecurity(k,v) : this.setState({vulns:{...this.state.vulns,[k]:v}}); },style:{width:60,fontSize:20,fontWeight:700,color,border:'none',background:'transparent',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
+          this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:8,width:'100%'}},
+            e('div',{style:{flex:1,height:6,background:'#f3f4f6',borderRadius:99,overflow:'hidden'}},
+              e('div',{style:{height:'100%',width:pct+'%',background:color,borderRadius:99}})
+            ),
+            e('span',{style:{fontSize:11,color:'#9ca3af',width:32,textAlign:'right',flexShrink:0}}, pct+'%')
+          ))
+        );
+      })
+    );
 
     // ── 6. Security Events ────────────────────────────────────────
     const sevCfg = {
