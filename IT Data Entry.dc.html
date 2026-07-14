@@ -2209,11 +2209,11 @@ class Component extends DCLogic {
         const leadNames = [...new Set(inhouse.map(p => (p.lead||'').trim()).filter(Boolean))];
         if (!leadNames.length) return null;
         return e('div', { style:{ display:'flex', gap:10, flexWrap:'wrap', padding:'12px', background:'#f8fafc', borderRadius:12, marginBottom:16 } },
-          ...leadNames.map(name => {
+          ...leadNames.map((name, i) => {
             const tasks = inhouse.filter(p => (p.lead||'').trim() === name);
             const done = tasks.filter(p => p.status === 'Completed').length;
             return e('div', { key:name, style:{ display:'flex', alignItems:'center', gap:8, background:'#fff', border:'1px solid #e5e7eb', borderRadius:20, padding:'6px 12px 6px 6px' } },
-              e('div',{style:{width:30,height:30,borderRadius:'50%',background:'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,fontWeight:700,color:'#6b7280'}},getInitials(name)),
+              e('div',{style:{width:30,height:30,borderRadius:'50%',background:avatarGrads[i%avatarGrads.length],display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,fontWeight:700,color:'#fff'}},getInitials(name)),
               e('div', null,
                 e('div',{style:{fontSize:12,fontWeight:600,color:'#111827',lineHeight:1.2}}, name),
                 e('div',{style:{fontSize:10.5,color:'#9ca3af',marginTop:1}}, done+'/'+tasks.length+' เสร็จ')
