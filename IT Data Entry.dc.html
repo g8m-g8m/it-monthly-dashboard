@@ -2204,6 +2204,24 @@ class Component extends DCLogic {
           )
         )
       ),
+      // Lead summary strip — separate from the row detail; one card per unique lead
+      (() => {
+        const leadNames = [...new Set(inhouse.map(p => (p.lead||'').trim()).filter(Boolean))];
+        if (!leadNames.length) return null;
+        return e('div', { style:{ display:'flex', gap:10, flexWrap:'wrap', padding:'12px', background:'#f8fafc', borderRadius:12, marginBottom:16 } },
+          ...leadNames.map(name => {
+            const tasks = inhouse.filter(p => (p.lead||'').trim() === name);
+            const done = tasks.filter(p => p.status === 'Completed').length;
+            return e('div', { key:name, style:{ display:'flex', alignItems:'center', gap:8, background:'#fff', border:'1px solid #e5e7eb', borderRadius:20, padding:'6px 12px 6px 6px' } },
+              e('div',{style:{width:30,height:30,borderRadius:'50%',background:'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,fontWeight:700,color:'#6b7280'}},getInitials(name)),
+              e('div', null,
+                e('div',{style:{fontSize:12,fontWeight:600,color:'#111827',lineHeight:1.2}}, name),
+                e('div',{style:{fontSize:10.5,color:'#9ca3af',marginTop:1}}, done+'/'+tasks.length+' เสร็จ')
+              )
+            );
+          })
+        );
+      })(),
       // Table header
       e('div', { style:{ display:'grid', gridTemplateColumns:COL_IH, gap:0 } },
         this.thCell('#'),
@@ -2227,18 +2245,11 @@ class Component extends DCLogic {
             this.tdCell(e('div',{style:{display:'inline-flex',alignItems:'center',gap:6,background:ihGrad[p.dept]||ihGrad['IT'],borderRadius:20,padding:'5px 14px',overflow:'hidden'}},
               e('input',{type:'text',value:p.dept,onChange:(ev)=>upd('dept',ev.target.value),style:{fontSize:12,fontWeight:700,color:'#fff',background:'transparent',border:'none',outline:'none',width:40,fontFamily:"'72','Inter','Kanit',sans-serif"}})
             )),
-            // Lead avatar + name (+ completed/total task count under avatar)
-            this.tdCell((() => {
-              const leadTasks = inhouse.filter(x => (x.lead||'').trim() && (x.lead||'').trim() === (p.lead||'').trim());
-              const leadDone = leadTasks.filter(x => x.status === 'Completed').length;
-              return e('div',{style:{display:'flex',alignItems:'center',gap:8,minWidth:0,width:'100%'}},
-                e('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',gap:2,flexShrink:0}},
-                  e('div',{style:{width:28,height:28,borderRadius:'50%',background:'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:10,fontWeight:700,color:'#6b7280'}},getInitials(p.lead||'?')),
-                  p.lead ? e('div',{style:{fontSize:9,fontWeight:700,color:'#94a3b8',whiteSpace:'nowrap'}}, leadDone+'/'+leadTasks.length) : null
-                ),
-                e('input',{type:'text',value:p.lead,onChange:(ev)=>upd('lead',ev.target.value),style:{fontSize:13,color:'#374151',border:'none',background:'transparent',outline:'none',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',fontFamily:"'72','Inter','Kanit',sans-serif"}})
-              );
-            })()),
+            // Lead avatar + name
+            this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:8,minWidth:0,width:'100%'}},
+              e('div',{style:{width:28,height:28,borderRadius:'50%',background:'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:10,fontWeight:700,color:'#6b7280'}},getInitials(p.lead||'?')),
+              e('input',{type:'text',value:p.lead,onChange:(ev)=>upd('lead',ev.target.value),style:{fontSize:13,color:'#374151',border:'none',background:'transparent',outline:'none',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',fontFamily:"'72','Inter','Kanit',sans-serif"}})
+            )),
             // Status badge (click to cycle)
             this.tdCell(e('div',{
               title:'Click to cycle status',
