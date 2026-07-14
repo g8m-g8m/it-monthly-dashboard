@@ -110,7 +110,7 @@ class Component extends DCLogic {
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '',
     orgSettings: (function() { try { const c = JSON.parse(localStorage.getItem('it_org_branding')); if (c && c.companyName) return c; } catch(_) {} return { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' }; })(),
     dirty: false,
-    orgUsers: [], ihLeadFilter: '',
+    orgUsers: [], ihLeadFilter: '', ihView: 'table',
     duePicker: null,
     customTypes: [],
     addTypePopup: null,
@@ -2257,13 +2257,26 @@ class Component extends DCLogic {
           activeFilter ? e('button',{onClick:(ev)=>{ev.stopPropagation();this.setState({ihLeadFilter:''});},style:{fontSize:11,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',padding:'0 4px'}},'✕ Clear filter') : null
         );
       })(),
-      // Kind filter (Program / Ad-hoc)
-      e('div', { style:{ display:'flex', gap:6, marginBottom:14 } },
-        ...[['all','All'],['program','📅 Program'],['adhoc','⚡ Ad-hoc']].map(([k,label]) => {
-          const active = (this.state.ihKindFilter||'all') === k;
-          return e('button',{key:k,onClick:()=>this.setState({ihKindFilter:k}),style:{fontSize:12,fontWeight:600,color:active?'#fff':'#6b7280',background:active?'#2563eb':'#f3f4f6',border:'none',borderRadius:20,padding:'6px 14px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}}, label);
-        })
+      // Kind filter (Program / Ad-hoc) + Linked Project filter + view toggle
+      e('div', { style:{ display:'flex', gap:6, marginBottom:14, flexWrap:'wrap', alignItems:'center', justifyContent:'space-between' } },
+        e('div', { style:{ display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' } },
+          ...[['all','All'],['program','📅 Program'],['adhoc','⚡ Ad-hoc']].map(([k,label]) => {
+            const active = (this.state.ihKindFilter||'all') === k;
+            return e('button',{key:k,onClick:()=>this.setState({ihKindFilter:k}),style:{fontSize:12,fontWeight:600,color:active?'#fff':'#6b7280',background:active?'#2563eb':'#f3f4f6',border:'none',borderRadius:20,padding:'6px 14px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}}, label);
+          }),
+          (projects||[]).length ? e('select',{value:this.state.ihProjectFilter||'',onChange:(ev)=>this.setState({ihProjectFilter:ev.target.value?parseInt(ev.target.value):''}),style:{fontSize:12,fontWeight:600,color:'#6d28d9',background:'#f5f3ff',border:'1px solid #ddd6fe',borderRadius:20,padding:'6px 12px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},
+            e('option',{value:''},'🔗 All Projects'),
+            ...projects.map(pr=>e('option',{key:pr.id,value:pr.id},pr.name))
+          ) : null
+        ),
+        e('div', { style:{ display:'flex', background:'#f3f4f6', borderRadius:20, padding:2 } },
+          ...[['table','☰ Table'],['timeline','📊 Timeline']].map(([v,label])=>{
+            const active=(this.state.ihView||'table')===v;
+            return e('button',{key:v,onClick:()=>this.setState({ihView:v}),style:{fontSize:12,fontWeight:600,color:active?'#fff':'#6b7280',background:active?'#2563eb':'transparent',border:'none',borderRadius:18,padding:'6px 14px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},label);
+          })
+        )
       ),
+      ...((this.state.ihView||'table')==='table' ? [
       // Table header
       e('div', { style:{ display:'grid', gridTemplateColumns:COL_IH, gap:0 } },
         this.thCell('#'),
@@ -2441,7 +2454,40 @@ class Component extends DCLogic {
           )
           ) : null
         ];
-      }),
+      })
+      ] : [
+        // Timeline / Gantt view — bars span Start Date → Due Date across the 12 months of the report year
+        (() => {
+          const year = period.year;
+          const monthsAbbr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const rows = inhouse.filter(p => (!this.state.ihLeadFilter || (p.lead||'').trim() === this.state.ihLeadFilter) && (this.state.ihKindFilter==='all'||!this.state.ihKindFilter || (p.kind||'program')===this.state.ihKindFilter) && (!this.state.ihProjectFilter || p.linkedProjectId===this.state.ihProjectFilter));
+          const monthOf = (str, fallback) => { const d = parseDue(str); if (!d.m || !d.y) return fallback; if (d.y < year) return 1; if (d.y > year) return 12; return d.m; };
+          return e('div', { style:{ border:'1px solid #e5e7eb', borderRadius:12, overflow:'hidden' } },
+            e('div', { style:{ display:'grid', gridTemplateColumns:'190px repeat(12,1fr)', background:'#f8fafc', borderBottom:'1px solid #e5e7eb' } },
+              e('div',{style:{padding:'8px 12px',fontSize:10.5,fontWeight:700,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.06em'}}, year+' Timeline'),
+              ...monthsAbbr.map(m=>e('div',{key:m,style:{padding:'8px 4px',fontSize:10.5,fontWeight:600,color:'#9ca3af',textAlign:'center',borderLeft:'1px solid #eef2f6'}},m))
+            ),
+            !rows.length ? e('div',{style:{padding:'28px',textAlign:'center',fontSize:13,color:'#94a3b8'}},'ไม่มีรายการที่ตรงกับตัวกรอง') : null,
+            ...rows.map((p, ri) => {
+              const startM = monthOf(p.startDate, 1);
+              const dueM = monthOf(p.due, startM);
+              const s = Math.min(startM, dueM), d = Math.max(startM, dueM);
+              const color = ihColors[p.status]||'#6b7280';
+              return e('div', { key:p.id, style:{ display:'grid', gridTemplateColumns:'190px repeat(12,1fr)', alignItems:'center', borderBottom: ri<rows.length-1?'1px solid #f3f4f6':'none', background: ri%2?'#fafbfc':'#fff' } },
+                e('div',{style:{padding:'10px 12px',fontSize:12.5,fontWeight:600,color:'#374151',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:6}},
+                  (p.kind||'program')==='adhoc' ? e('span',{style:{fontSize:9,flexShrink:0}},'⚡') : null,
+                  p.name
+                ),
+                e('div', { style:{ gridColumn: (s+1)+' / '+(d+2), position:'relative', height:22, display:'flex', alignItems:'center', padding:'0 2px' } },
+                  e('div', { title:(p.startDate||'?')+' → '+(p.due||'?')+' · '+p.progress+'%', style:{ width:'100%', height:16, borderRadius:8, background:color, opacity:.85, display:'flex', alignItems:'center', overflow:'hidden' } },
+                    e('div',{style:{height:'100%',width:p.progress+'%',background:'rgba(255,255,255,.35)'}})
+                  )
+                )
+              );
+            })
+          );
+        })()
+      ]),
       // Add buttons
       e('div', { style:{ display:'flex', gap:8, marginTop:12 } },
       e('button',{
