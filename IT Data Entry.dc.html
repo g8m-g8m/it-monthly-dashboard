@@ -2256,7 +2256,7 @@ class Component extends DCLogic {
         ...['Type/Dept','Lead','Status','Progress %','Start Date','Due Date','Actions'].map(h=>this.thCell(h))
       ),
       // Rows
-      ...inhouse.filter(p => (!this.state.ihLeadFilter || (p.lead||'').trim() === this.state.ihLeadFilter) && (this.state.ihKindFilter==='all' || (p.kind||'program')===this.state.ihKindFilter)).flatMap((p) => {
+      ...inhouse.filter(p => (!this.state.ihLeadFilter || (p.lead||'').trim() === this.state.ihLeadFilter) && (this.state.ihKindFilter==='all'||!this.state.ihKindFilter || (p.kind||'program')===this.state.ihKindFilter) && (!this.state.ihProjectFilter || p.linkedProjectId===this.state.ihProjectFilter)).flatMap((p) => {
         const idx = inhouse.indexOf(p);
         const upd = (field, val) => { const a=[...this.state.inhouse]; a[idx]={...a[idx],[field]:val}; this.setState({inhouse:a}); };
         const sc = { color:ihColors[p.status]||'#6b7280', bg:ihBg[p.status]||'#f9fafb', border:ihBorder[p.status]||'#e5e7eb', ic:ihIcon[p.status]||ihIcon['NOT STARTED'] };
@@ -2265,10 +2265,16 @@ class Component extends DCLogic {
           e('div', { key:p.id+'-row', className:'row-tr', style:{ display:'grid', gridTemplateColumns:COL_IH, gap:0, background:'#fff' } },
             // #
             this.tdCell(e('span',{style:{fontSize:13,color:'#9ca3af',fontWeight:500}},idx+1)),
-            // Name (+ kind badge)
-            this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:8,minWidth:0}},
-              e('input',{type:'text',value:p.name,onChange:(ev)=>upd('name',ev.target.value),style:{fontSize:14,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',flex:1,minWidth:0,fontFamily:"'72','Inter','Kanit',sans-serif"}}),
-              (p.kind||'program')==='adhoc' ? e('span',{style:{fontSize:10,fontWeight:700,color:'#92400e',background:'#fef3c7',border:'1px dashed #fbbf24',borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}},'⚡ Ad-hoc') : e('span',{style:{fontSize:10,fontWeight:700,color:'#1d4ed8',background:'#dbeafe',borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}},'📅 Program')
+            // Name (+ kind badge + linked project)
+            this.tdCell(e('div',{style:{display:'flex',flexDirection:'column',gap:3,minWidth:0,width:'100%'}},
+              e('div',{style:{display:'flex',alignItems:'center',gap:8,minWidth:0}},
+                e('input',{type:'text',value:p.name,onChange:(ev)=>upd('name',ev.target.value),style:{fontSize:14,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',flex:1,minWidth:0,fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+                (p.kind||'program')==='adhoc' ? e('span',{style:{fontSize:10,fontWeight:700,color:'#92400e',background:'#fef3c7',border:'1px dashed #fbbf24',borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}},'⚡ Ad-hoc') : e('span',{style:{fontSize:10,fontWeight:700,color:'#1d4ed8',background:'#dbeafe',borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}},'📅 Program')
+              ),
+              e('select',{value:p.linkedProjectId||'',onChange:(ev)=>upd('linkedProjectId',ev.target.value?parseInt(ev.target.value):''),style:{fontSize:11,color:p.linkedProjectId?'#6d28d9':'#c4b5fd',background:'transparent',border:'none',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",padding:0,maxWidth:'100%'}},
+                e('option',{value:''},'🔗 Link to Project…'),
+                ...(projects||[]).map(pr=>e('option',{key:pr.id,value:pr.id},pr.name))
+              )
             )),
             // Dept badge
             this.tdCell(e('div',{style:{display:'inline-flex',alignItems:'center',gap:6,background:ihGrad[p.dept]||ihGrad['IT'],borderRadius:20,padding:'5px 14px',overflow:'hidden'}},
