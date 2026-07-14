@@ -876,7 +876,18 @@ async function inviteUser() {
     const { data, error } = await sb.functions.invoke('admin-create-user', {
       body: { email, password: pass, fullName: name, role, avatarUrl: avatarData.inv || null }
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Supabase JS only gives a generic "non-2xx" message by default — read the
+      // actual JSON body the function returned (our { error: "..." } payload) for the real reason.
+      let detail = error.message;
+      try {
+        if (error.context && typeof error.context.json === 'function') {
+          const body = await error.context.json();
+          if (body?.error) detail = body.error;
+        }
+      } catch (_) {}
+      throw new Error(detail);
+    }
     if (data?.error) throw new Error(data.error);
 
     sucEl.innerHTML = '✓ สร้างผู้ใช้ <strong>' + (name||email) + '</strong> (Role: ' + role + ') สำเร็จ<br>'
