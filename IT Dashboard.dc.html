@@ -707,7 +707,8 @@ class Component extends DCLogic {
         ];
     const netM = _sdNetKpiDefs.map(f => {
       const val = _sdNetKpi ? (_sdNetKpi[f.key] || 0) : 0;
-      return { n: f.label, v: val.toLocaleString() + (f.unit ? ' ' + f.unit : ''), st: 1, s: f.unit === '%' ? (val < 80 ? 'Within target' : 'Above threshold') : 'Monthly value' };
+      const fmtted = Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return { n: f.label, v: fmtted + (f.unit ? ' ' + f.unit : ''), st: 1, s: f.unit === '%' ? (val < 80 ? 'Within target' : 'Above threshold') : 'Monthly value' };
     });
     // Read stabilityKpiDefs from saved data (dynamic) or use defaults
     const _sdStabilityDefs = (this._savedData && this._savedData.stabilityKpiDefs && this._savedData.stabilityKpiDefs.length)
@@ -1737,6 +1738,22 @@ class Component extends DCLogic {
     const pipelinePct = Math.round(_kpiSrc.reduce((s,p)=>s+(p.progress||0),0)/(_kpiSrc.length||1));
     const readyRate   = Math.round(_kpiSrc.filter(p=>p.status!=='delayed'&&p.status!=='Delayed'&&p.status!=='on-hold'&&p.status!=='On Hold').length/(_kpiSrc.length||1)*100);
     const notReadyRate= 100 - readyRate;
+    // Workload — leads with >3 active (non-completed) In-house tasks; Budget Health — CPI from CapEx Forecast/EAC
+    const _kpiSd = this._savedData || {};
+    const _kpiLeadMap = {};
+    (_savedInhouse||[]).forEach(p => { const nm=(p.lead||'').trim(); if(!nm) return; _kpiLeadMap[nm]=_kpiLeadMap[nm]||0; if(p.status!=='Completed') _kpiLeadMap[nm]++; });
+    const overloadedLeads = Object.keys(_kpiLeadMap).filter(k=>_kpiLeadMap[k]>3).length;
+    const workloadLabel = overloadedLeads>0 ? overloadedLeads+' Over' : 'Healthy';
+    const workloadColor = overloadedLeads>0 ? '#ef4444' : '#10b981';
+    const _kpiCap = _kpiSd.capexProjects || [];
+    const _kAct = (subs)=>(subs||[]).reduce((s,sub)=>s+((sub.payments||[]).reduce((ss,pm)=>ss+(pm.actualAmt||0),0)),0);
+    const _kCmt = (subs)=>(subs||[]).reduce((s,sub)=>s+((sub.payments||[]).filter(pm=>!pm.done).reduce((ss,pm)=>ss+(pm.amt||0),0)),0);
+    const _kBdg = (subs)=>(subs||[]).reduce((s,sub)=>s+((sub.payments||[]).reduce((ss,pm)=>ss+(pm.amt||0),0)),0);
+    const _kGrandBdg = _kpiCap.reduce((s,p)=>s+_kBdg(p.subs),0);
+    const _kGrandEac = _kpiCap.reduce((s,p)=>{ const base=_kAct(p.subs)+_kCmt(p.subs); return s+((p.forecast!=null&&p.forecast!=='')?parseFloat(p.forecast):base); },0);
+    const _kCpi = _kGrandEac>0 ? _kGrandBdg/_kGrandEac : 1;
+    const budgetHealthLabel = !_kpiCap.length ? '—' : _kCpi>=1 ? 'On Track' : _kCpi>=0.9 ? 'At Risk' : 'Off Track';
+    const budgetHealthColor = !_kpiCap.length ? '#94a3b8' : _kCpi>=1 ? '#10b981' : _kCpi>=0.9 ? '#f59e0b' : '#ef4444';
     const totalBudgetM= tBg;
     const budgetUsedPct = Math.round((tSp/tBg)*100);
 
@@ -1774,59 +1791,6 @@ class Component extends DCLogic {
       );
 
     const overviewEl = e('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
-      // ── Program-level Rollup — org-wide health at a glance, built from data already entered elsewhere ──
-      (() => {
-        const sd = this._savedData || {};
-        const allItems = [...(_savedProjects||[]), ...(_savedInhouse||[])];
-        const total = allItems.length;
-        const completed = allItems.filter(p => (p.status||'').toLowerCase().includes('complet')).length;
-        const atRisk = allItems.filter(p => { const s=(p.status||'').toLowerCase(); return s.includes('delay')||s.includes('hold'); }).length;
-        const avgProgress = total ? Math.round(allItems.reduce((s,p)=>s+(p.progress||0),0)/total) : 0;
-        // Budget health — same CPI logic as Data Entry's CapEx Forecast/EAC
-        const cap = sd.capexProjects || [];
-        const deriveAct = (subs) => (subs||[]).reduce((s,sub)=>s+((sub.payments||[]).reduce((ss,pm)=>ss+(pm.actualAmt||0),0)),0);
-        const deriveCmt = (subs) => (subs||[]).reduce((s,sub)=>s+((sub.payments||[]).filter(pm=>!pm.done).reduce((ss,pm)=>ss+(pm.amt||0),0)),0);
-        const deriveBdg = (subs) => (subs||[]).reduce((s,sub)=>s+((sub.payments||[]).reduce((ss,pm)=>ss+(pm.amt||0),0)),0);
-        const grandBdg = cap.reduce((s,p)=>s+deriveBdg(p.subs),0);
-        const grandEac = cap.reduce((s,p)=>{ const base=deriveAct(p.subs)+deriveCmt(p.subs); return s+((p.forecast!=null&&p.forecast!=='')?parseFloat(p.forecast):base); },0);
-        const cpi = grandEac>0 ? grandBdg/grandEac : 1;
-        const budgetHealth = !cap.length ? null : cpi>=1 ? {label:'On Track',color:'#16a34a',bg:'#f0fdf4',border:'#bbf7d0'} : cpi>=0.9 ? {label:'At Risk',color:'#d97706',bg:'#fffbeb',border:'#fde68a'} : {label:'Off Track',color:'#e11d48',bg:'#fff1f2',border:'#fecdd3'};
-        // Open risks/issues
-        const risks = sd.riskRegister || [];
-        const openRisks = risks.filter(r=>r.status!=='Closed').length;
-        const highRisks = risks.filter(r=>r.impact==='High' && r.status!=='Closed').length;
-        // Workload — leads with >3 active (non-completed) In-house tasks
-        const leadMap = {};
-        (_savedInhouse||[]).forEach(p => { const nm=(p.lead||'').trim(); if(!nm) return; leadMap[nm]=leadMap[nm]||{active:0}; if(p.status!=='Completed') leadMap[nm].active++; });
-        const overloadedLeads = Object.keys(leadMap).filter(k=>leadMap[k].active>3).length;
-        if (!total && !cap.length && !risks.length) return null;
-        const stat = (label, value, color, sub) => e('div',{style:{flex:1,minWidth:140,padding:'14px 16px',borderRight:'1px solid #f1f5f9'}},
-          e('div',{style:{fontSize:11,fontWeight:600,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}},label),
-          e('div',{style:{fontSize:22,fontWeight:800,color:color||'#0f172a',letterSpacing:'-.02em'}},value),
-          sub ? e('div',{style:{fontSize:11,color:'#9ca3af',marginTop:2}},sub) : null
-        );
-        return e('div',{style:{background:'#fff',borderRadius:10,boxShadow:'0 1px 4px rgba(0,0,0,.08)',overflow:'hidden'}},
-          e('div',{style:{padding:'12px 16px',borderBottom:'1px solid #f1f5f9',display:'flex',alignItems:'center',gap:8}},
-            e('div',{style:{width:4,height:16,borderRadius:2,background:'#2563eb'}}),
-            e('div',{style:{fontSize:15,fontWeight:700,color:'#0f172a'}},'Program & Project Health — All Programs'),
-            e('div',{style:{fontSize:12,color:'#94a3b8'}},'สรุปภาพรวม Program/Project ทั้งหมด')
-          ),
-          e('div',{style:{display:'flex',flexWrap:'wrap'}},
-            stat('Total Programs', total, '#0f172a', completed+' completed'),
-            stat('Avg. Progress', avgProgress+'%', '#2563eb'),
-            atRisk>0 ? stat('At Risk / Delayed', atRisk, '#e11d48') : stat('At Risk / Delayed', 0, '#16a34a'),
-            budgetHealth ? e('div',{style:{flex:1,minWidth:140,padding:'14px 16px',borderRight:'1px solid #f1f5f9'}},
-              e('div',{style:{fontSize:11,fontWeight:600,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}},'Budget Health'),
-              e('span',{style:{fontSize:13,fontWeight:700,color:budgetHealth.color,background:budgetHealth.bg,border:'1px solid '+budgetHealth.border,borderRadius:20,padding:'3px 12px',display:'inline-block'}},budgetHealth.label)
-            ) : stat('Budget Health', '—', '#cbd5e1'),
-            stat('Open Risks/Issues', openRisks, openRisks>0?'#d97706':'#16a34a', highRisks>0?highRisks+' high impact':''),
-            e('div',{style:{flex:1,minWidth:140,padding:'14px 16px'}},
-              e('div',{style:{fontSize:11,fontWeight:600,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}},'Workload'),
-              e('div',{style:{fontSize:22,fontWeight:800,color:overloadedLeads>0?'#e11d48':'#16a34a'}},overloadedLeads>0?(overloadedLeads+' overloaded'):'Healthy')
-            )
-          )
-        );
-      })(),
       // KPI Summary bar
       e('div', { style: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,.08)', display: 'flex', alignItems: 'center', overflow: 'hidden', minHeight: 74 } },
         // KPI Summary label
@@ -1854,13 +1818,13 @@ class Component extends DCLogic {
         ),
         kpiSep,
         e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, padding: '10px 16px', flexShrink: 0 } },
-          e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', lineHeight: 1.25 } }, 'Ready Rate'),
-          e('div', { style: { fontSize: 38, fontWeight: 700, color: '#10b981', lineHeight: 1 } }, readyRate + '%')
+          e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', lineHeight: 1.25 } }, 'Workload'),
+          e('div', { style: { fontSize: 38, fontWeight: 700, color: workloadColor, lineHeight: 1 } }, workloadLabel)
         ),
         kpiSep,
         e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, padding: '10px 16px', flexShrink: 0 } },
-          e('div', { style: { fontSize: 11, fontWeight: 600, color: '#64748b', lineHeight: 1.25 } }, 'Not Ready Rate'),
-          e('div', { style: { fontSize: 38, fontWeight: 700, color: '#ef4444', lineHeight: 1 } }, notReadyRate + '%')
+          e('div', { style: { fontSize: 11, fontWeight: 600, color: '#64748b', lineHeight: 1.25 } }, 'Budget Health'),
+          e('div', { style: { fontSize: 30, fontWeight: 700, color: budgetHealthColor, lineHeight: 1 } }, budgetHealthLabel)
         ),
         kpiSep,
         // Total Budget — dark navy right block

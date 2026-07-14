@@ -1312,6 +1312,54 @@ class Component extends DCLogic {
     );
 
     const projectsForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
+      // Program & Project Health rollup — computed from Programs & Projects (this list) only
+      (() => {
+        const total = projects.length;
+        if (!total) return null;
+        const completed = projects.filter(p => (p.status||'').toLowerCase().includes('complet')).length;
+        const atRisk = projects.filter(p => { const s=(p.status||'').toLowerCase(); return s.includes('delay')||s.includes('hold'); }).length;
+        const avgProgress = Math.round(projects.reduce((s,p)=>s+(p.progress||0),0)/total);
+        const cap = this.state.capexProjects || [];
+        const kAct=(subs)=>(subs||[]).reduce((s,sub)=>s+((sub.payments||[]).reduce((ss,pm)=>ss+(pm.actualAmt||0),0)),0);
+        const kCmt=(subs)=>(subs||[]).reduce((s,sub)=>s+((sub.payments||[]).filter(pm=>!pm.done).reduce((ss,pm)=>ss+(pm.amt||0),0)),0);
+        const kBdg=(subs)=>(subs||[]).reduce((s,sub)=>s+((sub.payments||[]).reduce((ss,pm)=>ss+(pm.amt||0),0)),0);
+        const grandBdg = cap.reduce((s,p)=>s+kBdg(p.subs),0);
+        const grandEac = cap.reduce((s,p)=>{ const base=kAct(p.subs)+kCmt(p.subs); return s+((p.forecast!=null&&p.forecast!=='')?parseFloat(p.forecast):base); },0);
+        const cpi = grandEac>0 ? grandBdg/grandEac : 1;
+        const budgetHealth = !cap.length ? null : cpi>=1 ? {label:'On Track',color:'#16a34a',bg:'#f0fdf4',border:'#bbf7d0'} : cpi>=0.9 ? {label:'At Risk',color:'#d97706',bg:'#fffbeb',border:'#fde68a'} : {label:'Off Track',color:'#e11d48',bg:'#fff1f2',border:'#fecdd3'};
+        const risks = this.state.riskRegister || [];
+        const openRisks = risks.filter(r=>r.status!=='Closed').length;
+        const highRisks = risks.filter(r=>r.impact==='High' && r.status!=='Closed').length;
+        const leadMap = {};
+        projects.forEach(p => { const nm=(p.lead||'').trim(); if(!nm) return; leadMap[nm]=leadMap[nm]||0; if(!(p.status||'').toLowerCase().includes('complet')) leadMap[nm]++; });
+        const overloadedLeads = Object.keys(leadMap).filter(k=>leadMap[k]>3).length;
+        const stat = (label, value, color, sub) => e('div',{style:{flex:1,minWidth:130,padding:'12px 14px',borderRight:'1px solid #f1f5f9'}},
+          e('div',{style:{fontSize:10.5,fontWeight:600,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}},label),
+          e('div',{style:{fontSize:19,fontWeight:800,color:color||'#111827',letterSpacing:'-.02em'}},value),
+          sub ? e('div',{style:{fontSize:10.5,color:'#9ca3af',marginTop:1}},sub) : null
+        );
+        return e('div',{style:{background:'#f8fafc',borderRadius:14,border:'1px solid #e5e7eb',marginBottom:20,overflow:'hidden'}},
+          e('div',{style:{padding:'10px 14px',borderBottom:'1px solid #e5e7eb',display:'flex',alignItems:'center',gap:8}},
+            e('div',{style:{width:4,height:14,borderRadius:2,background:'#2563eb'}}),
+            e('div',{style:{fontSize:13,fontWeight:700,color:'#111827'}},'Program & Project Health'),
+            e('div',{style:{fontSize:11,color:'#9ca3af'}},'สรุปเฉพาะ Programs & Projects')
+          ),
+          e('div',{style:{display:'flex',flexWrap:'wrap'}},
+            stat('Total Projects', total, '#111827', completed+' completed'),
+            stat('Avg. Progress', avgProgress+'%', '#2563eb'),
+            stat('At Risk / Delayed', atRisk, atRisk>0?'#e11d48':'#16a34a'),
+            budgetHealth ? e('div',{style:{flex:1,minWidth:130,padding:'12px 14px',borderRight:'1px solid #f1f5f9'}},
+              e('div',{style:{fontSize:10.5,fontWeight:600,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}},'Budget Health'),
+              e('span',{style:{fontSize:11.5,fontWeight:700,color:budgetHealth.color,background:budgetHealth.bg,border:'1px solid '+budgetHealth.border,borderRadius:20,padding:'2px 10px',display:'inline-block'}},budgetHealth.label)
+            ) : stat('Budget Health', '—', '#cbd5e1'),
+            stat('Open Risks/Issues', openRisks, openRisks>0?'#d97706':'#16a34a', highRisks>0?highRisks+' high impact':''),
+            e('div',{style:{flex:1,minWidth:130,padding:'12px 14px'}},
+              e('div',{style:{fontSize:10.5,fontWeight:600,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}},'Workload'),
+              e('div',{style:{fontSize:19,fontWeight:800,color:overloadedLeads>0?'#e11d48':'#16a34a'}},overloadedLeads>0?(overloadedLeads+' overloaded'):'Healthy')
+            )
+          )
+        );
+      })(),
       // Card header row
       e('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20 } },
         e('div', null,
@@ -2714,7 +2762,7 @@ class Component extends DCLogic {
             e('input',{type:'text',value:f.th||'',onChange:(ev)=>updNetKpiDef(f.key,'th',ev.target.value),placeholder:'คำอธิบายภาษาไทย',style:{fontSize:10.5,color:'#64748b',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})
           )),
           this.tdCell(e('div',{style:{display:'flex',alignItems:'baseline',gap:4}},
-            this.numField(val,(v)=>this.setState({networkKpis:Object.assign({},this.state.networkKpis,{[f.key]:v})}),{width:130,fontSize:26,fontWeight:700,color:f.color})
+            this.numField(val,(v)=>this.setState({networkKpis:Object.assign({},this.state.networkKpis,{[f.key]:v})}),{width:Math.max(56,this.fmtNum(val,0).length*15+24),fontSize:26,fontWeight:700,color:f.color})
           )),
           this.tdCell(e('input',{type:'text',value:f.unit,onChange:(ev)=>updNetKpiDef(f.key,'unit',ev.target.value),placeholder:'unit',style:{fontSize:13,color:'#6b7280',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
           this.tdCell(e('button',{title:'Delete KPI',className:'del-btn',onClick:()=>this.setState({confirmDeleteNetKpi:{key:f.key,label:f.label}}),style:{background:'transparent',border:'none',cursor:'pointer',color:'#9ca3af',display:'flex',alignItems:'center',justifyContent:'center',width:32,height:32,borderRadius:8}},
