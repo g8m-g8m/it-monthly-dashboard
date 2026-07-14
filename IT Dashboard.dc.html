@@ -1774,6 +1774,59 @@ class Component extends DCLogic {
       );
 
     const overviewEl = e('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
+      // ── Program-level Rollup — org-wide health at a glance, built from data already entered elsewhere ──
+      (() => {
+        const sd = this._savedData || {};
+        const allItems = [...(_savedProjects||[]), ...(_savedInhouse||[])];
+        const total = allItems.length;
+        const completed = allItems.filter(p => (p.status||'').toLowerCase().includes('complet')).length;
+        const atRisk = allItems.filter(p => { const s=(p.status||'').toLowerCase(); return s.includes('delay')||s.includes('hold'); }).length;
+        const avgProgress = total ? Math.round(allItems.reduce((s,p)=>s+(p.progress||0),0)/total) : 0;
+        // Budget health — same CPI logic as Data Entry's CapEx Forecast/EAC
+        const cap = sd.capexProjects || [];
+        const deriveAct = (subs) => (subs||[]).reduce((s,sub)=>s+((sub.payments||[]).reduce((ss,pm)=>ss+(pm.actualAmt||0),0)),0);
+        const deriveCmt = (subs) => (subs||[]).reduce((s,sub)=>s+((sub.payments||[]).filter(pm=>!pm.done).reduce((ss,pm)=>ss+(pm.amt||0),0)),0);
+        const deriveBdg = (subs) => (subs||[]).reduce((s,sub)=>s+((sub.payments||[]).reduce((ss,pm)=>ss+(pm.amt||0),0)),0);
+        const grandBdg = cap.reduce((s,p)=>s+deriveBdg(p.subs),0);
+        const grandEac = cap.reduce((s,p)=>{ const base=deriveAct(p.subs)+deriveCmt(p.subs); return s+((p.forecast!=null&&p.forecast!=='')?parseFloat(p.forecast):base); },0);
+        const cpi = grandEac>0 ? grandBdg/grandEac : 1;
+        const budgetHealth = !cap.length ? null : cpi>=1 ? {label:'On Track',color:'#16a34a',bg:'#f0fdf4',border:'#bbf7d0'} : cpi>=0.9 ? {label:'At Risk',color:'#d97706',bg:'#fffbeb',border:'#fde68a'} : {label:'Off Track',color:'#e11d48',bg:'#fff1f2',border:'#fecdd3'};
+        // Open risks/issues
+        const risks = sd.riskRegister || [];
+        const openRisks = risks.filter(r=>r.status!=='Closed').length;
+        const highRisks = risks.filter(r=>r.impact==='High' && r.status!=='Closed').length;
+        // Workload — leads with >3 active (non-completed) In-house tasks
+        const leadMap = {};
+        (_savedInhouse||[]).forEach(p => { const nm=(p.lead||'').trim(); if(!nm) return; leadMap[nm]=leadMap[nm]||{active:0}; if(p.status!=='Completed') leadMap[nm].active++; });
+        const overloadedLeads = Object.keys(leadMap).filter(k=>leadMap[k].active>3).length;
+        if (!total && !cap.length && !risks.length) return null;
+        const stat = (label, value, color, sub) => e('div',{style:{flex:1,minWidth:140,padding:'14px 16px',borderRight:'1px solid #f1f5f9'}},
+          e('div',{style:{fontSize:11,fontWeight:600,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}},label),
+          e('div',{style:{fontSize:22,fontWeight:800,color:color||'#0f172a',letterSpacing:'-.02em'}},value),
+          sub ? e('div',{style:{fontSize:11,color:'#9ca3af',marginTop:2}},sub) : null
+        );
+        return e('div',{style:{background:'#fff',borderRadius:10,boxShadow:'0 1px 4px rgba(0,0,0,.08)',overflow:'hidden'}},
+          e('div',{style:{padding:'12px 16px',borderBottom:'1px solid #f1f5f9',display:'flex',alignItems:'center',gap:8}},
+            e('div',{style:{width:4,height:16,borderRadius:2,background:'#2563eb'}}),
+            e('div',{style:{fontSize:15,fontWeight:700,color:'#0f172a'}},'Program & Project Health — All Programs'),
+            e('div',{style:{fontSize:12,color:'#94a3b8'}},'สรุปภาพรวม Program/Project ทั้งหมด')
+          ),
+          e('div',{style:{display:'flex',flexWrap:'wrap'}},
+            stat('Total Programs', total, '#0f172a', completed+' completed'),
+            stat('Avg. Progress', avgProgress+'%', '#2563eb'),
+            atRisk>0 ? stat('At Risk / Delayed', atRisk, '#e11d48') : stat('At Risk / Delayed', 0, '#16a34a'),
+            budgetHealth ? e('div',{style:{flex:1,minWidth:140,padding:'14px 16px',borderRight:'1px solid #f1f5f9'}},
+              e('div',{style:{fontSize:11,fontWeight:600,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}},'Budget Health'),
+              e('span',{style:{fontSize:13,fontWeight:700,color:budgetHealth.color,background:budgetHealth.bg,border:'1px solid '+budgetHealth.border,borderRadius:20,padding:'3px 12px',display:'inline-block'}},budgetHealth.label)
+            ) : stat('Budget Health', '—', '#cbd5e1'),
+            stat('Open Risks/Issues', openRisks, openRisks>0?'#d97706':'#16a34a', highRisks>0?highRisks+' high impact':''),
+            e('div',{style:{flex:1,minWidth:140,padding:'14px 16px'}},
+              e('div',{style:{fontSize:11,fontWeight:600,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}},'Workload'),
+              e('div',{style:{fontSize:22,fontWeight:800,color:overloadedLeads>0?'#e11d48':'#16a34a'}},overloadedLeads>0?(overloadedLeads+' overloaded'):'Healthy')
+            )
+          )
+        );
+      })(),
       // KPI Summary bar
       e('div', { style: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,.08)', display: 'flex', alignItems: 'center', overflow: 'hidden', minHeight: 74 } },
         // KPI Summary label
