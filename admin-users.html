@@ -432,6 +432,7 @@
             <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="statusovr" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Status KPIs</label>
             <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="uptime" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Uptime</label>
             <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="changereq" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Change Req</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="riskissues" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Risk & Issues</label>
           </div>
         </div>
 
@@ -911,7 +912,7 @@ async function inviteUser() {
 
 
 const DASH_TABS = ['overview','projects','uptime','network','security','budget'];
-const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq'];
+const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq','riskissues'];
 
 function toggleMenuGroup(group, checked) {
   const cls = group === 'dashboard' ? 'edit-menu-dash' : 'edit-menu-entry';

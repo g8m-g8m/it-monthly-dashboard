@@ -495,9 +495,14 @@ class Component extends DCLogic {
         user_management: raw.includes('user_management'),
       };
     }
+    // Back-fill only the newly-added Risk & Issues tab for admins/editors whose
+    // saved menu_access predates it — narrow fix so deliberately-restricted tabs
+    // for other roles/users stay untouched.
+    const dataEntry = Array.isArray(raw.data_entry) ? [...raw.data_entry] : [];
+    if (def.data_entry.includes('riskissues') && !dataEntry.includes('riskissues')) dataEntry.push('riskissues');
     return {
       dashboard: Array.isArray(raw.dashboard) ? raw.dashboard : [],
-      data_entry: Array.isArray(raw.data_entry) ? raw.data_entry : [],
+      data_entry: dataEntry,
       user_management: !!raw.user_management,
     };
   }
@@ -1680,18 +1685,26 @@ class Component extends DCLogic {
           const subCommit = deriveCommit(p.subs);
           const pct = subBudget>0?Math.round((subActual/subBudget)*100):0;
           const commitPct = subBudget>0?Math.round((subCommit/subBudget)*100):0;
-          return e('div',{key:'prjsum'+p.id,style:{background:'#f0f4ff',borderRadius:0,padding:'8px 16px',marginBottom:4,display:'grid',gridTemplateColumns:'1fr 150px 150px 150px 120px 36px',gap:'0 8px',alignItems:'center',border:'1px solid #c7d2fe'}},
+          // Forecast / EAC (Estimate at Completion) — manual input, falls back to Actual+Commit if unset
+          const eac = (p.forecast != null && p.forecast !== '') ? parseFloat(p.forecast) : (subActual + subCommit);
+          const variance = subBudget - eac;
+          const cpi = eac > 0 ? subBudget / eac : 1; // >1 favorable, <1 unfavorable
+          const health = cpi >= 1 ? { label:'On Track', color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0' } : cpi >= 0.9 ? { label:'At Risk', color:'#d97706', bg:'#fffbeb', border:'#fde68a' } : { label:'Off Track', color:'#e11d48', bg:'#fff1f2', border:'#fecdd3' };
+          return e('div',{key:'prjsum'+p.id,style:{background:'#f0f4ff',borderRadius:0,padding:'8px 16px',marginBottom:4,display:'grid',gridTemplateColumns:'1fr 130px 130px 130px 130px 100px 100px',gap:'0 8px',alignItems:'center',border:'1px solid #c7d2fe'}},
             e('div',{style:{fontSize:12,fontWeight:700,color:'#3730a3'}},'Project Total ('+p.subs.length+' sub'+( p.subs.length!==1?'s':'')+')'),
             e('div',{style:{fontSize:13,fontWeight:700,color:'#1d4ed8',textAlign:'right'}},'฿'+fmtB(subBudget)),
             e('div',{style:{fontSize:13,fontWeight:700,color:'#16a34a',textAlign:'right'}},'฿'+fmtB(subActual)),
             e('div',{style:{fontSize:13,fontWeight:700,color:'#f97316',textAlign:'right'}},'฿'+fmtB(subCommit)),
+            e('div',{style:{textAlign:'right'}},
+              e('input',{type:'text',value:p.forecast!=null?p.forecast:'',placeholder:fmtB(subActual+subCommit),onChange:(ev)=>{const a=[...this.state.capexProjects];a[pi]={...a[pi],forecast:ev.target.value.replace(/[^0-9.]/g,'')};this.setState({capexProjects:a});},title:'Forecast / EAC \u2014 \u0e2b\u0e32\u0e01\u0e40\u0e27\u0e49\u0e19\u0e27\u0e48\u0e32\u0e07 \u0e08\u0e30\u0e04\u0e33\u0e19\u0e27\u0e13\u0e08\u0e32\u0e01 Actual+Commit',style:{fontSize:13,fontWeight:700,color:'#7c3aed',textAlign:'right',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})
+            ),
             e('div',{style:{display:'flex',alignItems:'center',gap:4}},
               e('div',{style:{flex:1,height:5,background:'#c7d2fe',borderRadius:99,overflow:'hidden'}},
                 e('div',{style:{height:'100%',width:Math.min(pct,100)+'%',background:'#2563eb',borderRadius:99}})
               ),
               e('span',{style:{fontSize:11,fontWeight:700,color:'#1d4ed8'}},pct+'%')
             ),
-            e('div',null)
+            e('div',{title:'Variance: '+(variance>=0?'+':'\u2212')+'\u0e3f'+fmtB(Math.abs(variance))+' \u00b7 CPI '+cpi.toFixed(2),style:{fontSize:10.5,fontWeight:700,color:health.color,background:health.bg,border:'1px solid '+health.border,borderRadius:20,padding:'3px 8px',textAlign:'center',whiteSpace:'nowrap'}},health.label)
           );  // end prjsum
         })(),
         // Add sub-project button
@@ -1709,7 +1722,10 @@ class Component extends DCLogic {
         const grandPct  = grandBdg>0?Math.round((grandAct/grandBdg)*100):0;
         const grandPmtB = capexProjects.flatMap(p=>p.subs.flatMap(s=>s.payments)).reduce((s,pm)=>s+(pm.amt||0),0);
         const grandPmtA = capexProjects.flatMap(p=>p.subs.flatMap(s=>s.payments)).reduce((s,pm)=>s+(pm.actualAmt||0),0);
-        return e('div',{style:{background:'#1e293b',borderRadius:14,padding:'14px 20px',marginBottom:12,display:'grid',gridTemplateColumns:'1fr 150px 150px 150px 120px 36px',gap:'0 8px',alignItems:'center'}},
+        const grandEac = capexProjects.reduce((s,p)=>{ const sb=deriveActual(p.subs)+deriveCommit(p.subs); return s + ((p.forecast!=null && p.forecast!=='') ? parseFloat(p.forecast) : sb); },0);
+        const grandCpi = grandEac>0 ? grandBdg/grandEac : 1;
+        const grandHealth = grandCpi>=1 ? {label:'On Track',color:'#4ade80',bg:'rgba(74,222,128,.12)',border:'#4ade80'} : grandCpi>=0.9 ? {label:'At Risk',color:'#fbbf24',bg:'rgba(251,191,36,.12)',border:'#fbbf24'} : {label:'Off Track',color:'#f87171',bg:'rgba(248,113,113,.12)',border:'#f87171'};
+        return e('div',{style:{background:'#1e293b',borderRadius:14,padding:'14px 20px',marginBottom:12,display:'grid',gridTemplateColumns:'1fr 130px 130px 130px 130px 100px 100px',gap:'0 8px',alignItems:'center'}},
           e('div',{style:{fontSize:13,fontWeight:700,color:'#f1f5f9'}},'Grand Total ('+capexProjects.length+' projects / '+allSubs.length+' subs)'),
           e('div',{style:{textAlign:'right'}},
             e('div',{style:{fontSize:10,color:'rgba(255,255,255,.35)',marginBottom:1}},'Budget'),
@@ -1729,7 +1745,11 @@ class Component extends DCLogic {
             ),
             e('span',{style:{fontSize:12,fontWeight:700,color:'#86efac',textAlign:'center'}},grandPct+'% used')
           ),
-          e('div',null)
+          e('div',{style:{textAlign:'right'}},
+            e('div',{style:{fontSize:10,color:'rgba(255,255,255,.35)',marginBottom:1}},'Forecast (EAC)'),
+            e('div',{style:{fontSize:14,fontWeight:700,color:'#c4b5fd'}},'฿'+fmtB(grandEac))
+          ),
+          e('div',{title:'CPI '+grandCpi.toFixed(2),style:{fontSize:11,fontWeight:700,color:grandHealth.color,background:grandHealth.bg,border:'1px solid '+grandHealth.border,borderRadius:20,padding:'4px 10px',textAlign:'center'}},grandHealth.label)
         );
       })(),
       // Add project button
@@ -2241,22 +2261,27 @@ class Component extends DCLogic {
         )
       ),
       // Lead summary strip — separate from the row detail; one card per unique lead. Click to filter the table below.
+      // Lead summary strip / workload view — separate from the row detail; one card per unique lead. Click to filter the table below.
       (() => {
         const leadNames = [...new Set(inhouse.map(p => (p.lead||'').trim()).filter(Boolean))];
         if (!leadNames.length) return null;
         const activeFilter = this.state.ihLeadFilter;
+        const OVERLOAD_THRESHOLD = 3;
         return e('div', { style:{ display:'flex', gap:10, flexWrap:'wrap', padding:'12px', background:'#f8fafc', borderRadius:12, marginBottom:16 } },
           ...leadNames.map((name, i) => {
             const tasks = inhouse.filter(p => (p.lead||'').trim() === name);
             const done = tasks.filter(p => p.status === 'Completed').length;
+            const activeCt = tasks.length - done;
+            const overloaded = activeCt > OVERLOAD_THRESHOLD;
             const u = (orgUsers||[]).find(x => x.name === name);
             const active = activeFilter === name;
-            return e('div', { key:name, onClick:()=>this.setState({ihLeadFilter: active ? '' : name}), title: active ? 'Click to clear filter' : 'Click to filter by '+name, style:{ display:'flex', alignItems:'center', gap:8, background: active?'#eff6ff':'#fff', border: active?'2px solid #2563eb':'1px solid #e5e7eb', borderRadius:20, padding: active?'5px 11px 5px 5px':'6px 12px 6px 6px', cursor:'pointer' } },
+            return e('div', { key:name, onClick:()=>this.setState({ihLeadFilter: active ? '' : name}), title: (active ? 'Click to clear filter' : 'Click to filter by '+name) + (overloaded ? ' \u2014 \u26a0 Overloaded ('+activeCt+' active tasks)' : ''), style:{ display:'flex', alignItems:'center', gap:8, background: active?'#eff6ff':'#fff', border: active?'2px solid #2563eb':(overloaded?'1px solid #fca5a5':'1px solid #e5e7eb'), borderRadius:20, padding: active?'5px 11px 5px 5px':'6px 12px 6px 6px', cursor:'pointer', position:'relative' } },
+              overloaded ? e('div',{style:{position:'absolute',top:-4,right:-4,width:16,height:16,borderRadius:'50%',background:'#ef4444',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'#fff',fontWeight:700,border:'2px solid #fff'}},'!') : null,
               u && u.avatarUrl ? e('img',{src:u.avatarUrl,style:{width:30,height:30,borderRadius:'50%',objectFit:'cover',flexShrink:0}}) :
               e('div',{style:{width:30,height:30,borderRadius:'50%',background:'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,fontWeight:700,color:'#6b7280'}},getInitials(name)),
               e('div', null,
                 e('div',{style:{fontSize:12,fontWeight:600,color: active?'#1d4ed8':'#111827',lineHeight:1.2}}, name),
-                e('div',{style:{fontSize:10.5,color:active?'#3b82f6':'#9ca3af',marginTop:1}}, done+'/'+tasks.length+' เสร็จ')
+                e('div',{style:{fontSize:10.5,color:overloaded?'#dc2626':(active?'#3b82f6':'#9ca3af'),marginTop:1,fontWeight:overloaded?700:400}}, activeCt+' active \u00b7 '+done+'/'+tasks.length+' เสร็จ')
               )
             );
           }),
