@@ -873,33 +873,14 @@ async function inviteUser() {
   btn.textContent = 'Creating…'; btn.disabled = true;
 
   try {
-    // Use a separate client so admin session is unaffected
-    const sbUrl  = (sb.supabaseUrl || '').replace(/\/$/, '');
-    const sbAnon = sb.supabaseKey || '';
-    const tmpSb  = window.supabase.createClient(sbUrl, sbAnon, { auth: { persistSession: false, autoRefreshToken: false } });
-
-    const { data, error } = await tmpSb.auth.signUp({
-      email, password: pass,
-      options: {
-        data: { full_name: name },
-        emailRedirectTo: window.location.origin + '/index.html'
-      }
+    const { data, error } = await sb.functions.invoke('admin-create-user', {
+      body: { email, password: pass, fullName: name, role, avatarUrl: avatarData.inv || null }
     });
     if (error) throw new Error(error.message);
-    if (!data?.user) throw new Error('ไม่ได้รับข้อมูล user จาก Supabase');
-
-    const userId = data.user.id;
-    // Update profile with role (using admin's authenticated client)
-    await sb.from('profiles').upsert({
-      id: userId, email, full_name: name, role,
-      avatar_url: avatarData.inv || null,
-      must_change_password: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
+    if (data?.error) throw new Error(data.error);
 
     sucEl.innerHTML = '✓ สร้างผู้ใช้ <strong>' + (name||email) + '</strong> (Role: ' + role + ') สำเร็จ<br>'
-      + '<small style="color:#064e3b">📧 Supabase ส่ง email ยืนยัน account ไปที่ ' + email + '</small>';
+      + '<small style="color:#064e3b">✅ Account พร้อมใช้งานทันที (ไม่ต้องยืนยันอีเมล) — เข้าสู่ระบบด้วยรหัสผ่านชั่วคราวได้เลย</small>';
     sucEl.style.display = 'block';
     await loadUsers();
     // Clear the form so it's ready for the next user — keep the modal open
