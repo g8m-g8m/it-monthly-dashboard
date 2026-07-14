@@ -1819,12 +1819,12 @@ class Component extends DCLogic {
         kpiSep,
         e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, padding: '10px 16px', flexShrink: 0 } },
           e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', lineHeight: 1.25 } }, 'Workload'),
-          e('div', { style: { fontSize: 38, fontWeight: 700, color: workloadColor, lineHeight: 1 } }, workloadLabel)
+          e('div', { style: { fontSize: 22, fontWeight: 700, color: workloadColor, lineHeight: 1, whiteSpace:'nowrap' } }, workloadLabel)
         ),
         kpiSep,
         e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, padding: '10px 16px', flexShrink: 0 } },
           e('div', { style: { fontSize: 11, fontWeight: 600, color: '#64748b', lineHeight: 1.25 } }, 'Budget Health'),
-          e('div', { style: { fontSize: 30, fontWeight: 700, color: budgetHealthColor, lineHeight: 1 } }, budgetHealthLabel)
+          e('div', { style: { fontSize: 20, fontWeight: 700, color: budgetHealthColor, lineHeight: 1, whiteSpace:'nowrap' } }, budgetHealthLabel)
         ),
         kpiSep,
         // Total Budget — dark navy right block

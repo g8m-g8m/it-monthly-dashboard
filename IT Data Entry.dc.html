@@ -1653,6 +1653,10 @@ class Component extends DCLogic {
         e('div', { key:'sub'+sub.id, style:{ background:'#f8fafc', borderRadius:0, padding:'10px 16px', marginBottom:1, display:'grid', gridTemplateColumns:'1fr 150px 150px 150px 120px 36px', gap:'0 8px', alignItems:'center', borderLeft:'3px solid #cbd5e1' } },
             e('div', { style:{ paddingLeft:12 } },
               e('input',{type:'text',value:sub.n,onChange:(ev)=>updSub(pi,si,'n',ev.target.value),style:{fontSize:13,fontWeight:600,color:'#0f172a',background:'transparent',border:'none',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+              e('select',{value:sub.linkedProjectId||'',onChange:(ev)=>{ const pid=ev.target.value?parseInt(ev.target.value):''; const proj=(this.state.projects||[]).find(p=>p.id===pid); updSub(pi,si,'linkedProjectId',pid); if(proj) updSub(pi,si,'n',proj.name); },style:{fontSize:11,color:sub.linkedProjectId?'#6d28d9':'#c4b5fd',background:'transparent',border:'none',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",padding:0,marginTop:2,maxWidth:'100%'}},
+                e('option',{value:''},'🔗 Link to Project…'),
+                ...(this.state.projects||[]).map(p=>e('option',{key:p.id,value:p.id},p.name))
+              ),
               e('div',{style:{display:'flex',gap:8,marginTop:3}},
                 e('input',{type:'text',value:sub.io,onChange:(ev)=>updSub(pi,si,'io',ev.target.value),placeholder:'IO IT-XXXXXXX',style:{fontSize:11,color:'#64748b',background:'transparent',border:'none',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",width:140}}),
                 e('input',{type:'text',value:sub.date,onChange:(ev)=>updSub(pi,si,'date',ev.target.value),placeholder:'DD.MM.YYYY – DD.MM.YYYY',style:{fontSize:11,color:'#94a3b8',background:'transparent',border:'none',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",width:180}})
@@ -2201,7 +2205,7 @@ class Component extends DCLogic {
               e('div',{style:{height:'100%',width:Math.min((n.latency/100)*100,100)+'%',background:latC,borderRadius:99}})
             ),
             e('div',{style:{display:'flex',alignItems:'center',gap:6,background:latC+'10',border:'1px solid '+latC+'30',borderRadius:10,padding:'4px 8px'}},
-              this.numField(n.latency,(v)=>this.updateNetwork(idx,'latency',v),{flex:1,minWidth:0,fontSize:26,fontWeight:700,color:latC,textAlign:'right'}),
+              this.numField(n.latency,(v)=>this.updateNetwork(idx,'latency',v),{flex:1,minWidth:0,fontSize:26,fontWeight:700,color:latC,textAlign:'right'},2),
               e('span',{style:{fontSize:11,fontWeight:600,color:latC,flexShrink:0}},'ms')
             )
           )),
@@ -2210,7 +2214,7 @@ class Component extends DCLogic {
               e('div',{style:{height:'100%',width:Math.min(n.packetLoss*100,100)+'%',background:pktC,borderRadius:99}})
             ),
             e('div',{style:{display:'flex',alignItems:'center',gap:6,background:pktC+'10',border:'1px solid '+pktC+'30',borderRadius:10,padding:'4px 8px'}},
-              this.numField(n.packetLoss,(v)=>this.updateNetwork(idx,'packetLoss',v),{flex:1,minWidth:0,fontSize:26,fontWeight:700,color:pktC,textAlign:'right'}),
+              this.numField(n.packetLoss,(v)=>this.updateNetwork(idx,'packetLoss',v),{flex:1,minWidth:0,fontSize:26,fontWeight:700,color:pktC,textAlign:'right'},2),
               e('span',{style:{fontSize:11,fontWeight:600,color:pktC,flexShrink:0}},'%')
             )
           )),
@@ -2761,8 +2765,8 @@ class Component extends DCLogic {
             e('input',{type:'text',value:f.label,onChange:(ev)=>updNetKpiDef(f.key,'label',ev.target.value),style:{fontSize:14,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
             e('input',{type:'text',value:f.th||'',onChange:(ev)=>updNetKpiDef(f.key,'th',ev.target.value),placeholder:'คำอธิบายภาษาไทย',style:{fontSize:10.5,color:'#64748b',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})
           )),
-          this.tdCell(e('div',{style:{display:'flex',alignItems:'baseline',gap:4}},
-            this.numField(val,(v)=>this.setState({networkKpis:Object.assign({},this.state.networkKpis,{[f.key]:v})}),{width:Math.max(56,this.fmtNum(val,0).length*15+24),fontSize:26,fontWeight:700,color:f.color})
+          this.tdCell(e('div',{style:{display:'flex',alignItems:'baseline',gap:4,justifyContent:'flex-end',width:'100%'}},
+            this.numField(val,(v)=>this.setState({networkKpis:Object.assign({},this.state.networkKpis,{[f.key]:v})}),{width:Math.max(56,this.fmtNum(val,0).length*15+24),fontSize:26,fontWeight:700,color:f.color,textAlign:'right'})
           )),
           this.tdCell(e('input',{type:'text',value:f.unit,onChange:(ev)=>updNetKpiDef(f.key,'unit',ev.target.value),placeholder:'unit',style:{fontSize:13,color:'#6b7280',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
           this.tdCell(e('button',{title:'Delete KPI',className:'del-btn',onClick:()=>this.setState({confirmDeleteNetKpi:{key:f.key,label:f.label}}),style:{background:'transparent',border:'none',cursor:'pointer',color:'#9ca3af',display:'flex',alignItems:'center',justifyContent:'center',width:32,height:32,borderRadius:8}},
