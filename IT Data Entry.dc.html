@@ -110,6 +110,7 @@ class Component extends DCLogic {
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '',
     orgSettings: (function() { try { const c = JSON.parse(localStorage.getItem('it_org_branding')); if (c && c.companyName) return c; } catch(_) {} return { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' }; })(),
     dirty: false,
+    orgUsers: [],
     duePicker: null,
     customTypes: [],
     addTypePopup: null,
@@ -500,6 +501,7 @@ class Component extends DCLogic {
     const nextTab = menuAccess.data_entry.includes(this.state.tab) ? this.state.tab : (menuAccess.data_entry[0] || 'period');
     this.setState({ session, user: session.user, userRole: role, userName: profile?.full_name || session.user.email, userAvatar: profile?.avatar_url || '', menuAccess, tab: nextTab, loginError: '' });
     this._loadOrgSettings();
+    this._loadOrgUsers();
     // Always load latest period + data from DB on sign-in
     try {
       const { data: rows } = await this._sb.from('it_reports')
@@ -684,6 +686,14 @@ class Component extends DCLogic {
   async doLogout() {
     if (this._rtChannel) this._rtChannel.unsubscribe();
     if (this._sb) await this._sb.auth.signOut();
+  }
+
+  async _loadOrgUsers() {
+    if (!this._sb) return;
+    try {
+      const { data } = await this._sb.from('profiles').select('id,full_name,avatar_url,email').order('full_name');
+      if (data) this.setState({ orgUsers: data.map(u => ({ id: u.id, name: u.full_name || u.email, avatarUrl: u.avatar_url || '' })) });
+    } catch (_) {}
   }
 
   async _loadOrgSettings() {
@@ -2180,7 +2190,7 @@ class Component extends DCLogic {
     );
 
     // ── 3. In-house Develop ───────────────────────────────────────
-    const { inhouse, securityEvents, vulns, bizServices, statusKpis, networkKpis } = this.state;
+    const { inhouse, securityEvents, vulns, bizServices, statusKpis, networkKpis, orgUsers } = this.state;
     const inhouseStatuses = [['Completed','Completed'],['In Progress','In Progress'],['On Hold','On Hold'],['Delayed','Delayed'],['Not Started','Not Started']];
     const ihColors  = { 'Completed':'#16a34a','In Progress':'#2563eb','On Hold':'#d97706','Delayed':'#e11d48','Not Started':'#6b7280' };
     const ihBg      = { 'Completed':'#f0fdf4','In Progress':'#eff6ff','On Hold':'#fffbeb','Delayed':'#fff1f2','Not Started':'#f9fafb' };
@@ -2212,8 +2222,10 @@ class Component extends DCLogic {
           ...leadNames.map((name, i) => {
             const tasks = inhouse.filter(p => (p.lead||'').trim() === name);
             const done = tasks.filter(p => p.status === 'Completed').length;
+            const u = (orgUsers||[]).find(x => x.name === name);
             return e('div', { key:name, style:{ display:'flex', alignItems:'center', gap:8, background:'#fff', border:'1px solid #e5e7eb', borderRadius:20, padding:'6px 12px 6px 6px' } },
-              e('div',{style:{width:30,height:30,borderRadius:'50%',background:avatarGrads[i%avatarGrads.length],display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,fontWeight:700,color:'#fff'}},getInitials(name)),
+              u && u.avatarUrl ? e('img',{src:u.avatarUrl,style:{width:30,height:30,borderRadius:'50%',objectFit:'cover',flexShrink:0}}) :
+              e('div',{style:{width:30,height:30,borderRadius:'50%',background:'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,fontWeight:700,color:'#6b7280'}},getInitials(name)),
               e('div', null,
                 e('div',{style:{fontSize:12,fontWeight:600,color:'#111827',lineHeight:1.2}}, name),
                 e('div',{style:{fontSize:10.5,color:'#9ca3af',marginTop:1}}, done+'/'+tasks.length+' เสร็จ')
@@ -2245,11 +2257,19 @@ class Component extends DCLogic {
             this.tdCell(e('div',{style:{display:'inline-flex',alignItems:'center',gap:6,background:ihGrad[p.dept]||ihGrad['IT'],borderRadius:20,padding:'5px 14px',overflow:'hidden'}},
               e('input',{type:'text',value:p.dept,onChange:(ev)=>upd('dept',ev.target.value),style:{fontSize:12,fontWeight:700,color:'#fff',background:'transparent',border:'none',outline:'none',width:40,fontFamily:"'72','Inter','Kanit',sans-serif"}})
             )),
-            // Lead avatar + name
-            this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:8,minWidth:0,width:'100%'}},
-              e('div',{style:{width:28,height:28,borderRadius:'50%',background:'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:10,fontWeight:700,color:'#6b7280'}},getInitials(p.lead||'?')),
-              e('input',{type:'text',value:p.lead,onChange:(ev)=>upd('lead',ev.target.value),style:{fontSize:13,color:'#374151',border:'none',background:'transparent',outline:'none',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',fontFamily:"'72','Inter','Kanit',sans-serif"}})
-            )),
+            // Lead: pick from registered users (shows real avatar) — dropdown
+            this.tdCell((() => {
+              const leadUser = (orgUsers||[]).find(u => u.name === p.lead);
+              return e('div',{style:{display:'flex',alignItems:'center',gap:8,minWidth:0,width:'100%'}},
+                leadUser && leadUser.avatarUrl ? e('img',{src:leadUser.avatarUrl,style:{width:28,height:28,borderRadius:'50%',objectFit:'cover',flexShrink:0}}) :
+                e('div',{style:{width:28,height:28,borderRadius:'50%',background:'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:10,fontWeight:700,color:'#6b7280'}},getInitials(p.lead||'?')),
+                e('select',{value:p.lead||'',onChange:(ev)=>upd('lead',ev.target.value),style:{fontSize:13,color:'#374151',border:'none',background:'transparent',outline:'none',flex:1,minWidth:0,fontFamily:"'72','Inter','Kanit',sans-serif"}},
+                  e('option',{value:''},'— Select —'),
+                  p.lead && !(orgUsers||[]).some(u=>u.name===p.lead) ? e('option',{value:p.lead},p.lead+' (ไม่ใช่ user ในระบบ)') : null,
+                  ...(orgUsers||[]).map(u=>e('option',{key:u.id,value:u.name},u.name))
+                )
+              );
+            })()),
             // Status badge (click to cycle)
             this.tdCell(e('div',{
               title:'Click to cycle status',
