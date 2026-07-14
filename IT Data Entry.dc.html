@@ -110,7 +110,7 @@ class Component extends DCLogic {
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '',
     orgSettings: (function() { try { const c = JSON.parse(localStorage.getItem('it_org_branding')); if (c && c.companyName) return c; } catch(_) {} return { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' }; })(),
     dirty: false,
-    orgUsers: [],
+    orgUsers: [], ihLeadFilter: '',
     duePicker: null,
     customTypes: [],
     addTypePopup: null,
@@ -121,6 +121,7 @@ class Component extends DCLogic {
     confirmDelete: null,
     confirmDeleteIH: null,
     ihDuePicker: null,
+    ihStartPicker: null,
     confirmDeleteCR: null,
     confirmDeleteSE: null,
     crDatePicker: null,
@@ -413,6 +414,7 @@ class Component extends DCLogic {
       const upd = {};
       if(this.state.duePicker !== null) upd.duePicker = null;
       if(this.state.ihDuePicker !== null) upd.ihDuePicker = null;
+      if(this.state.ihStartPicker !== null) upd.ihStartPicker = null;
       if(this.state.seDatePicker !== null) upd.seDatePicker = null;
       if(this.state.crDatePicker !== null) upd.crDatePicker = null;
       if(this.state.startPicker !== null) upd.startPicker = null;
@@ -2197,7 +2199,7 @@ class Component extends DCLogic {
     const ihBorder  = { 'Completed':'#bbf7d0','In Progress':'#bfdbfe','On Hold':'#fde68a','Delayed':'#fecdd3','Not Started':'#e5e7eb' };
     const ihIcon    = { 'Completed':'M5 13l4 4L19 7','In Progress':'M13 10V3L4 14h7v7l9-11h-7z','On Hold':'M10 9v6m4-6v6','Delayed':'M6 18L18 6M6 6l12 12','Not Started':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' };
     const ihGrad    = { IT:'linear-gradient(135deg,#6366f1,#8b5cf6)',HR:'linear-gradient(135deg,#f97316,#ef4444)',WH:'linear-gradient(135deg,#14b8a6,#0891b2)',PROD:'linear-gradient(135deg,#22c55e,#16a34a)',ACC:'linear-gradient(135deg,#f59e0b,#ea580c)',SALE:'linear-gradient(135deg,#ec4899,#8b5cf6)' };
-    const COL_IH = '40px 1fr 145px 190px 150px 180px 150px 84px';
+    const COL_IH = '40px 1fr 130px 175px 130px 150px 150px 150px 80px';
 
     const inhouseForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
       e('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 } },
@@ -2214,24 +2216,27 @@ class Component extends DCLogic {
           )
         )
       ),
-      // Lead summary strip — separate from the row detail; one card per unique lead
+      // Lead summary strip — separate from the row detail; one card per unique lead. Click to filter the table below.
       (() => {
         const leadNames = [...new Set(inhouse.map(p => (p.lead||'').trim()).filter(Boolean))];
         if (!leadNames.length) return null;
+        const activeFilter = this.state.ihLeadFilter;
         return e('div', { style:{ display:'flex', gap:10, flexWrap:'wrap', padding:'12px', background:'#f8fafc', borderRadius:12, marginBottom:16 } },
           ...leadNames.map((name, i) => {
             const tasks = inhouse.filter(p => (p.lead||'').trim() === name);
             const done = tasks.filter(p => p.status === 'Completed').length;
             const u = (orgUsers||[]).find(x => x.name === name);
-            return e('div', { key:name, style:{ display:'flex', alignItems:'center', gap:8, background:'#fff', border:'1px solid #e5e7eb', borderRadius:20, padding:'6px 12px 6px 6px' } },
+            const active = activeFilter === name;
+            return e('div', { key:name, onClick:()=>this.setState({ihLeadFilter: active ? '' : name}), title: active ? 'Click to clear filter' : 'Click to filter by '+name, style:{ display:'flex', alignItems:'center', gap:8, background: active?'#eff6ff':'#fff', border: active?'2px solid #2563eb':'1px solid #e5e7eb', borderRadius:20, padding: active?'5px 11px 5px 5px':'6px 12px 6px 6px', cursor:'pointer' } },
               u && u.avatarUrl ? e('img',{src:u.avatarUrl,style:{width:30,height:30,borderRadius:'50%',objectFit:'cover',flexShrink:0}}) :
               e('div',{style:{width:30,height:30,borderRadius:'50%',background:'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,fontWeight:700,color:'#6b7280'}},getInitials(name)),
               e('div', null,
-                e('div',{style:{fontSize:12,fontWeight:600,color:'#111827',lineHeight:1.2}}, name),
-                e('div',{style:{fontSize:10.5,color:'#9ca3af',marginTop:1}}, done+'/'+tasks.length+' เสร็จ')
+                e('div',{style:{fontSize:12,fontWeight:600,color: active?'#1d4ed8':'#111827',lineHeight:1.2}}, name),
+                e('div',{style:{fontSize:10.5,color:active?'#3b82f6':'#9ca3af',marginTop:1}}, done+'/'+tasks.length+' เสร็จ')
               )
             );
-          })
+          }),
+          activeFilter ? e('button',{onClick:(ev)=>{ev.stopPropagation();this.setState({ihLeadFilter:''});},style:{fontSize:11,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',padding:'0 4px'}},'✕ Clear filter') : null
         );
       })(),
       // Table header
@@ -2240,10 +2245,11 @@ class Component extends DCLogic {
         e('div',{style:{padding:'10px 12px',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid #f3f4f6'}},
           e('span',{style:{fontSize:10.5,fontWeight:600,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.07em'}},'Program Name')
         ),
-        ...['Type/Dept','Lead','Status','Progress %','Due Date','Actions'].map(h=>this.thCell(h))
+        ...['Type/Dept','Lead','Status','Progress %','Start Date','Due Date','Actions'].map(h=>this.thCell(h))
       ),
       // Rows
-      ...inhouse.flatMap((p, idx) => {
+      ...inhouse.filter(p => !this.state.ihLeadFilter || (p.lead||'').trim() === this.state.ihLeadFilter).flatMap((p) => {
+        const idx = inhouse.indexOf(p);
         const upd = (field, val) => { const a=[...this.state.inhouse]; a[idx]={...a[idx],[field]:val}; this.setState({inhouse:a}); };
         const sc = { color:ihColors[p.status]||'#6b7280', bg:ihBg[p.status]||'#f9fafb', border:ihBorder[p.status]||'#e5e7eb', ic:ihIcon[p.status]||ihIcon['NOT STARTED'] };
         const due = parseDue(p.due);
@@ -2294,6 +2300,33 @@ class Component extends DCLogic {
                 e('span',{style:{fontSize:11,color:'#9ca3af'}},'%')
               ),
               e('div',{className:'prog-tooltip'},p.progress+'% Complete')
+            )),
+            // Start date picker
+            this.tdCell(e('div',{style:{position:'relative', minWidth:0, width:'100%'}},
+              e('button',{
+                onClick:(ev)=>{ ev.stopPropagation(); this.setState({ihStartPicker:this.state.ihStartPicker===idx?null:idx}); },
+                style:{display:'flex',alignItems:'center',gap:6,background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:8,padding:'5px 10px',cursor:'pointer',fontSize:12,color:'#374151',fontFamily:"'72','Inter','Kanit',sans-serif",fontWeight:500,width:'100%',overflow:'hidden'}
+              },
+                e('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'#94a3b8',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round',style:{flexShrink:0}}, e('path',{d:'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'})),
+                e('span',{style:{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, p.startDate||'Select date')
+              ),
+              (this.state.ihStartPicker===idx) ? e('div',{onClick:(ev)=>ev.stopPropagation(),style:{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:100,background:'#fff',border:'1px solid #e5e7eb',borderRadius:14,boxShadow:'0 8px 32px rgba(15,23,42,.14)',padding:'16px',minWidth:220}},
+                e('div',{style:{fontSize:12,fontWeight:700,color:'#374151',marginBottom:12,textAlign:'center'}},'Select Start Date'),
+                e('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4,marginBottom:12}},
+                  ...DUE_MONTHS.map((m,mi)=>{
+                    const startParsed = parseDue(p.startDate);
+                    const sel=startParsed.m===mi+1;
+                    return e('button',{key:m,onClick:()=>upd('startDate',fmtDue(mi+1,startParsed.y)),style:{fontSize:11,fontWeight:sel?700:400,color:sel?'#fff':'#374151',background:sel?'#2563eb':'#f9fafb',border:'1px solid '+(sel?'#2563eb':'#e5e7eb'),borderRadius:7,padding:'5px 0',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},m);
+                  })
+                ),
+                e('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6}},
+                  e('span',{style:{fontSize:12,color:'#6b7280'}},'Year:'),
+                  ...DUE_YEARS.map(y=>{ const startParsed = parseDue(p.startDate); const sel=startParsed.y===y; return e('button',{key:y,onClick:()=>upd('startDate',fmtDue(startParsed.m||1,y)),style:{fontSize:12,fontWeight:sel?700:400,color:sel?'#fff':'#374151',background:sel?'#2563eb':'#f9fafb',border:'1px solid '+(sel?'#2563eb':'#e5e7eb'),borderRadius:7,padding:'4px 8px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},y); })
+                ),
+                e('div',{style:{marginTop:10,textAlign:'right'}},
+                  e('button',{onClick:()=>this.setState({ihStartPicker:null}),style:{fontSize:11,color:'#2563eb',background:'none',border:'none',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},'Done ✓')
+                )
+              ) : null
             )),
             // Due date picker
             this.tdCell(e('div',{style:{position:'relative'}},
