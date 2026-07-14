@@ -146,6 +146,11 @@ class Component extends DCLogic {
       { id: 'CHG-0293', title: 'Storage expansion – DB cluster', type: 'Normal',    date: 'Jul 30', status: 'Approved',  requester: 'A. Phongphan',notes: '' },
       { id: 'CHG-0294', title: 'SSL certificate renewal',        type: 'Standard',  date: 'Jul 31', status: 'Scheduled', requester: 'N. Sombat',  notes: '' },
     ],
+    confirmDeleteRisk: null,
+    riskRegister: [
+      { id: 'RSK-001', kind: 'Risk',  title: 'Resource constraint delays Asset Tracking App', impact: 'High', likelihood: 'Medium', mitigation: 'Assign backup developer; re-baseline timeline', owner: 'C. Nirattisai', status: 'Open', linkedProgramId: null, date: 'Jul 2026' },
+      { id: 'ISS-001', kind: 'Issue', title: 'E-Document scope change pending committee approval', impact: 'Medium', likelihood: '', mitigation: 'Escalate to steering committee for decision', owner: 'S. Charoenporn', status: 'In Progress', linkedProgramId: null, date: 'Jul 2026' },
+    ],
     period: { month: 7, year: 2026 },
     projects: [
       { id: 1, name: 'Network Infrastructure Upgrade', type: 'Infra',      lead: 'K. Wattana',     dept: 'IT',   status: 'in-progress', progress: 75, startDate: 'Apr 2026', due: 'Sep 2026', milestones: 'Jun,Sep' },
@@ -390,7 +395,7 @@ class Component extends DCLogic {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const DATA_KEYS = ['period','projects','inhouse','budget','capexProjects','maData','security','vulns','securityEvents','network','networkKpis','networkKpiDefs','bizServices','statusKpis','uptime','uptimeItems','stabilityKpiDefs','changeRequests'];
+    const DATA_KEYS = ['period','projects','inhouse','budget','capexProjects','maData','security','vulns','securityEvents','network','networkKpis','networkKpiDefs','bizServices','statusKpis','uptime','uptimeItems','stabilityKpiDefs','changeRequests','riskRegister'];
     const changed = DATA_KEYS.some(k => prevState[k] !== this.state[k]);
     if (!changed) return;
     // Don't auto-save when only the period changed (switching periods — we're loading, not editing)
@@ -400,7 +405,7 @@ class Component extends DCLogic {
     this._autoSaveTimer = setTimeout(() => {
       try {
         const s = this.state;
-        const data = { period:s.period, projects:s.projects, inhouse:s.inhouse, budget:s.budget, capexProjects:s.capexProjects, maData:s.maData, security:s.security, vulns:s.vulns, securityEvents:s.securityEvents, network:s.network, networkKpis:s.networkKpis, networkKpiDefs:s.networkKpiDefs, bizServices:s.bizServices, statusKpis:s.statusKpis, uptime:s.uptime, uptimeItems:s.uptimeItems, stabilityKpiDefs:s.stabilityKpiDefs, changeRequests:s.changeRequests };
+        const data = { period:s.period, projects:s.projects, inhouse:s.inhouse, budget:s.budget, capexProjects:s.capexProjects, maData:s.maData, security:s.security, vulns:s.vulns, securityEvents:s.securityEvents, network:s.network, networkKpis:s.networkKpis, networkKpiDefs:s.networkKpiDefs, bizServices:s.bizServices, statusKpis:s.statusKpis, uptime:s.uptime, uptimeItems:s.uptimeItems, stabilityKpiDefs:s.stabilityKpiDefs, changeRequests:s.changeRequests, riskRegister:s.riskRegister };
         const key = 'it_report_' + s.period.year + '_' + String(s.period.month).padStart(2,'0');
         localStorage.setItem(key, JSON.stringify(data));
         this.setState({ saveStatus: '💾 Auto-saved · ' + new Date().toLocaleTimeString() });
@@ -440,7 +445,7 @@ class Component extends DCLogic {
     this._saveNow = () => {
       try {
         const s = this.state;
-        const data = { period:s.period, projects:s.projects, inhouse:s.inhouse, budget:s.budget, capexProjects:s.capexProjects, maData:s.maData, security:s.security, vulns:s.vulns, securityEvents:s.securityEvents, network:s.network, networkKpis:s.networkKpis, networkKpiDefs:s.networkKpiDefs, bizServices:s.bizServices, statusKpis:s.statusKpis, uptime:s.uptime, uptimeItems:s.uptimeItems, stabilityKpiDefs:s.stabilityKpiDefs, changeRequests:s.changeRequests };
+        const data = { period:s.period, projects:s.projects, inhouse:s.inhouse, budget:s.budget, capexProjects:s.capexProjects, maData:s.maData, security:s.security, vulns:s.vulns, securityEvents:s.securityEvents, network:s.network, networkKpis:s.networkKpis, networkKpiDefs:s.networkKpiDefs, bizServices:s.bizServices, statusKpis:s.statusKpis, uptime:s.uptime, uptimeItems:s.uptimeItems, stabilityKpiDefs:s.stabilityKpiDefs, changeRequests:s.changeRequests, riskRegister:s.riskRegister };
         const key = 'it_report_' + s.period.year + '_' + String(s.period.month).padStart(2,'0');
         localStorage.setItem(key, JSON.stringify(data));
       } catch(_) {}
@@ -474,7 +479,7 @@ class Component extends DCLogic {
 
   _defaultMenuAccess(role) {
     const DASH_TABS = ['overview','projects','uptime','network','security','budget'];
-    const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq'];
+    const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq','riskissues'];
     if (role === 'admin')  return { dashboard: DASH_TABS.slice(), data_entry: ENTRY_TABS.slice(), user_management: true };
     if (role === 'editor') return { dashboard: DASH_TABS.slice(), data_entry: ENTRY_TABS.slice(), user_management: false };
     return { dashboard: DASH_TABS.slice(), data_entry: [], user_management: false };
@@ -628,7 +633,7 @@ class Component extends DCLogic {
 
   _getBlankFormState() {
     return {
-      projects: [], inhouse: [], budget: [], capexProjects: [], changeRequests: [],
+      projects: [], inhouse: [], budget: [], capexProjects: [], changeRequests: [], riskRegister: [],
       vulns: { medium: 0, low: 0, informational: 0 },
       securityEvents: [], bizServices: [], statusKpis: {}, networkKpis: {}, networkKpiDefs: [], uptimeItems: [], stabilityKpiDefs: [],
       maData: { maSub: [], maDet: [] },
@@ -850,7 +855,7 @@ class Component extends DCLogic {
       maData: 'M&A/Subscription', security: 'Security KPIs', vulns: 'Vulnerabilities', securityEvents: 'Security Events',
       network: 'Network', networkKpis: 'Network KPIs', networkKpiDefs: 'Network KPI Defs', bizServices: 'Business Services',
       statusKpis: 'Status Overall', uptime: 'Uptime', uptimeItems: 'Uptime Domains', stabilityKpiDefs: 'Stability KPIs',
-      changeRequests: 'Change Requests'
+      changeRequests: 'Change Requests', riskRegister: 'Risk & Issue Register'
     };
     const versions = rows.map((v, idx) => {
       const older = rows[idx + 1]; // next-older version (rows are newest-first)
@@ -896,8 +901,8 @@ class Component extends DCLogic {
   }
 
   handleSave() {
-    const { period, projects, inhouse, budget, capexProjects, maData, security, vulns, securityEvents, network, networkKpis, networkKpiDefs, bizServices, statusKpis, uptime, uptimeItems, stabilityKpiDefs, changeRequests } = this.state;
-    const data = { period, projects, inhouse, budget, capexProjects, maData, security, vulns, securityEvents, network, networkKpis, networkKpiDefs, bizServices, statusKpis, uptime, uptimeItems, stabilityKpiDefs, changeRequests, savedAt: new Date().toISOString() };
+    const { period, projects, inhouse, budget, capexProjects, maData, security, vulns, securityEvents, network, networkKpis, networkKpiDefs, bizServices, statusKpis, uptime, uptimeItems, stabilityKpiDefs, changeRequests, riskRegister } = this.state;
+    const data = { period, projects, inhouse, budget, capexProjects, maData, security, vulns, securityEvents, network, networkKpis, networkKpiDefs, bizServices, statusKpis, uptime, uptimeItems, stabilityKpiDefs, changeRequests, riskRegister, savedAt: new Date().toISOString() };
     const key = 'it_report_' + this.state.period.year + '_' + String(this.state.period.month).padStart(2,'0');
     localStorage.setItem(key, JSON.stringify(data));
     if (this._sb && this.state.session && this.state.userRole !== 'viewer') {
@@ -1012,6 +1017,7 @@ class Component extends DCLogic {
       { id: 'statusovr', label: 'Status KPIs',   num: '10', d: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
       { id: 'uptime',    label: 'Uptime',        num: '11', d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
       { id: 'changereq', label: 'Change Req',   num: '12', d: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+      { id: 'riskissues', label: 'Risk & Issues', num: '13', d: 'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z' },
     ];
     const _menuAccess = this.state.menuAccess || this._defaultMenuAccess(this.state.userRole || 'viewer');
     const tabsVisible = tabs.filter(t => _menuAccess.data_entry.includes(t.id));
@@ -2977,10 +2983,78 @@ class Component extends DCLogic {
       )
     );
 
+    // ── Risk & Issue Register ────────────────────────────────────
+    const { riskRegister } = this.state;
+    const riskNextId = (kind) => { const pfx = kind==='Risk'?'RSK-':'ISS-'; const nums = riskRegister.filter(r=>r.id.startsWith(pfx)).map(r=>parseInt(r.id.replace(pfx,''))||0); return pfx + String((Math.max(0,...nums)+1)).padStart(3,'0'); };
+    const updRisk = (idx, field, val) => { const a=[...this.state.riskRegister]; a[idx]={...a[idx],[field]:val}; this.setState({riskRegister:a}); };
+    const RISK_IMPACT = ['Low','Medium','High'];
+    const RISK_LIKELIHOOD = ['','Low','Medium','High'];
+    const RISK_STATUSES = ['Open','In Progress','Mitigated','Closed'];
+    const riskImpactColor = { 'High':'#e11d48','Medium':'#d97706','Low':'#16a34a' };
+    const riskStatusCfg = {
+      'Open':        { bg:'#fff1f2', color:'#e11d48', border:'#fecdd3' },
+      'In Progress': { bg:'#eff6ff', color:'#2563eb', border:'#bfdbfe' },
+      'Mitigated':   { bg:'#fffbeb', color:'#d97706', border:'#fde68a' },
+      'Closed':      { bg:'#f0fdf4', color:'#16a34a', border:'#bbf7d0' },
+    };
+    const COL_RSK = '70px 1fr 100px 100px 150px 130px 120px 44px';
+    const riskOpenCnt = riskRegister.filter(r=>r.status==='Open').length;
+    const riskHighCnt = riskRegister.filter(r=>r.impact==='High' && r.status!=='Closed').length;
+    const issueCnt = riskRegister.filter(r=>r.kind==='Issue').length;
+
+    const riskRegisterForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
+      e('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20 } },
+        e('div', null,
+          e('div', { style:{ fontSize:22, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'Risk & Issue Register'),
+          e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3 } }, 'บันทึกความเสี่ยงและปัญหาที่ต้องติดตาม — ' + MONTHS[period.month-1] + ' ' + period.year)
+        ),
+        e('div', { style:{ display:'flex', gap:8, alignItems:'center' } },
+          e('div',{style:{display:'flex',alignItems:'center',gap:5,background:'#fff1f2',border:'1px solid #fecdd3',borderRadius:20,padding:'4px 12px'}}, e('div',{style:{width:7,height:7,borderRadius:'50%',background:'#e11d48'}}), e('span',{style:{fontSize:11,color:'#e11d48',fontWeight:600}},'Open: '+riskOpenCnt)),
+          riskHighCnt>0 ? e('div',{style:{display:'flex',alignItems:'center',gap:5,background:'#fffbeb',border:'1px solid #fde68a',borderRadius:20,padding:'4px 12px'}}, e('div',{style:{width:7,height:7,borderRadius:'50%',background:'#d97706'}}), e('span',{style:{fontSize:11,color:'#d97706',fontWeight:600}},'High Impact: '+riskHighCnt)) : null,
+          e('div',{style:{display:'flex',alignItems:'center',gap:5,background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:20,padding:'4px 12px'}}, e('div',{style:{width:7,height:7,borderRadius:'50%',background:'#2563eb'}}), e('span',{style:{fontSize:11,color:'#2563eb',fontWeight:600}},'Issues: '+issueCnt))
+        )
+      ),
+      e('div', { style:{ display:'grid', gridTemplateColumns:COL_RSK, gap:0 } },
+        ...['ID','Title / Description','Impact','Likelihood','Mitigation','Owner','Status',''].map(h=>this.thCell(h))
+      ),
+      riskRegister.length===0 ? this.emptyRow(8,'ยังไม่มีรายการ Risk/Issue — กด "+ Add" ด้านล่างเพื่อเริ่มบันทึก') : null,
+      ...riskRegister.map((r, idx) => {
+        const sc = riskStatusCfg[r.status] || riskStatusCfg['Open'];
+        return e('div', { key:r.id+idx, className:'row-tr', style:{ display:'grid', gridTemplateColumns:COL_RSK, gap:0, background:'#fff' } },
+          this.tdCell(e('div',{style:{display:'flex',flexDirection:'column',gap:2}},
+            e('span',{style:{fontSize:12,fontWeight:700,color:r.kind==='Risk'?'#e11d48':'#2563eb'}},r.id),
+            e('select',{key:'rk'+idx+r.kind,defaultValue:r.kind,onChange:(ev)=>{ const kind=ev.target.value; updRisk(idx,'kind',kind); updRisk(idx,'id',riskNextId(kind)); },style:{fontSize:10,color:'#9ca3af',background:'transparent',border:'none',outline:'none',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif",padding:0}},
+              e('option',{value:'Risk'},'Risk'), e('option',{value:'Issue'},'Issue')
+            )
+          )),
+          this.tdCell(e('input',{type:'text',value:r.title,onChange:(ev)=>updRisk(idx,'title',ev.target.value),style:{fontSize:13,fontWeight:500,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
+          this.tdCell(e('select',{key:'ri'+idx+r.impact,defaultValue:r.impact,onChange:(ev)=>updRisk(idx,'impact',ev.target.value),style:{fontSize:12,fontWeight:700,color:riskImpactColor[r.impact]||'#374151',background:'transparent',border:'none',outline:'none',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}}, ...RISK_IMPACT.map(v=>e('option',{key:v,value:v},v)))),
+          this.tdCell(r.kind==='Issue' ? e('span',{style:{fontSize:12,color:'#cbd5e1'}},'—') : e('select',{key:'rl'+idx+r.likelihood,defaultValue:r.likelihood,onChange:(ev)=>updRisk(idx,'likelihood',ev.target.value),style:{fontSize:12,color:'#374151',background:'transparent',border:'none',outline:'none',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}}, ...RISK_LIKELIHOOD.map(v=>e('option',{key:v||'none',value:v},v||'—')))),
+          this.tdCell(e('input',{type:'text',value:r.mitigation||'',onChange:(ev)=>updRisk(idx,'mitigation',ev.target.value),placeholder:'แผนลด/แก้ไข…',style:{fontSize:12,color:'#6b7280',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
+          this.tdCell(e('input',{type:'text',value:r.owner||'',onChange:(ev)=>updRisk(idx,'owner',ev.target.value),style:{fontSize:12,color:'#374151',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
+          this.tdCell(e('div',{
+            title:'Click to cycle status',
+            onClick:()=>{ const ord=RISK_STATUSES; updRisk(idx,'status',ord[(ord.indexOf(r.status)+1)%ord.length]); },
+            style:{display:'inline-flex',alignItems:'center',gap:6,background:sc.bg,border:'1px solid '+sc.border,borderRadius:20,padding:'4px 12px',cursor:'pointer',userSelect:'none',whiteSpace:'nowrap'}
+          }, e('span',{style:{fontSize:12,fontWeight:600,color:sc.color}},r.status))),
+          this.tdCell(e('button',{onClick:()=>this.setState({confirmDeleteRisk:idx}),style:{background:'none',border:'none',cursor:'pointer',color:'#cbd5e1',padding:4}},
+            e('svg',{width:15,height:15,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'}))
+          ))
+        );
+      }),
+      e('button',{
+        onClick:()=>this.setState({riskRegister:[...this.state.riskRegister,{id:riskNextId('Risk'),kind:'Risk',title:'New Risk',impact:'Medium',likelihood:'Medium',mitigation:'',owner:'',status:'Open',linkedProgramId:null,date:MONTHS[period.month-1]+' '+period.year}]}),
+        style:{marginTop:12,fontSize:12,color:'#6b7280',background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:22,padding:'8px 18px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif",fontWeight:500,display:'inline-flex',alignItems:'center',gap:6}
+      },
+        e('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:'M12 5v14M5 12h14'})),
+        '+ Add Risk/Issue'
+      )
+    );
+
     // ── Form content by tab ───────────────────────────────────────
-    const contentMap = { period: periodForm, projects: projectsForm, inhouse: inhouseForm, budget: budgetForm, security: e('div',null,securityForm,vulnsSection), secevents: secEventsForm, changereq: changeReqForm, network: networkForm, netkpis: netKpisForm, bizsvcs: bizSvcsForm, statusovr: statusOvrForm, uptime: uptimeForm };
+    const contentMap = { period: periodForm, projects: projectsForm, inhouse: inhouseForm, budget: budgetForm, security: e('div',null,securityForm,vulnsSection), secevents: secEventsForm, changereq: changeReqForm, riskissues: riskRegisterForm, network: networkForm, netkpis: netKpisForm, bizsvcs: bizSvcsForm, statusovr: statusOvrForm, uptime: uptimeForm };
     // ── Confirm Delete modal ──────────────────────────────────────
-    const { addTypePopup, newTypeName, addDeptPopup, newDeptName, confirmDelete, confirmDeleteIH, confirmDeleteCR, confirmDeleteSE, confirmDeleteBS, confirmDeleteCapex, confirmDeleteMA, confirmDeleteBudCat } = this.state;
+    const { addTypePopup, newTypeName, addDeptPopup, newDeptName, confirmDelete, confirmDeleteIH, confirmDeleteCR, confirmDeleteSE, confirmDeleteBS, confirmDeleteCapex, confirmDeleteMA, confirmDeleteBudCat, confirmDeleteRisk } = this.state;
 
     // MA delete modal
     const _mkDelModal = (title, name, onYes, onNo) => e('div',{onClick:onNo,style:{position:'fixed',inset:0,background:'rgba(15,23,42,.4)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}},
@@ -3149,6 +3223,24 @@ class Component extends DCLogic {
         )
       )
     ) : null;
+    const delRiskItem = confirmDeleteRisk !== null ? this.state.riskRegister[confirmDeleteRisk] : null;
+    const confirmDeleteRiskModal = delRiskItem ? e('div',{onClick:()=>this.setState({confirmDeleteRisk:null}),style:{position:'fixed',inset:0,background:'rgba(15,23,42,.4)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}},
+      e('div',{onClick:ev=>ev.stopPropagation(),style:{background:'#fff',borderRadius:16,padding:'28px',boxShadow:'0 20px 60px rgba(15,23,42,.2)',minWidth:360,fontFamily:"'72','Inter','Kanit',sans-serif"}},
+        e('div',{style:{width:48,height:48,borderRadius:'50%',background:'#fef2f2',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}},
+          e('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:'#ef4444',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'}))
+        ),
+        e('div',{style:{fontSize:17,fontWeight:700,color:'#111827',textAlign:'center',marginBottom:8}},'ยืนยันการลบ '+delRiskItem.kind),
+        e('div',{style:{fontSize:13,color:'#6b7280',textAlign:'center',marginBottom:24,lineHeight:1.6}},
+          'คุณต้องการลบ', e('br'),
+          e('span',{style:{fontWeight:700,color:'#2563eb'}},delRiskItem.id), ' — ', e('span',{style:{fontWeight:600,color:'#111827'}},delRiskItem.title), e('br'),
+          'ออกจากรายการ?'
+        ),
+        e('div',{style:{display:'flex',gap:10}},
+          e('button',{onClick:()=>this.setState({confirmDeleteRisk:null}),style:{flex:1,fontSize:14,color:'#374151',background:'#f3f4f6',border:'none',borderRadius:10,padding:'10px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif",fontWeight:600}},'No, ยกเลิก'),
+          e('button',{onClick:()=>this.setState({riskRegister:this.state.riskRegister.filter((_,i)=>i!==confirmDeleteRisk),confirmDeleteRisk:null}),style:{flex:1,fontSize:14,color:'#fff',background:'#ef4444',border:'none',borderRadius:10,padding:'10px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif",fontWeight:600}},'Yes, ลบ')
+        )
+      )
+    ) : null;
     const delProject = confirmDelete !== null ? projects[confirmDelete] : null;
     const confirmDeleteModal = delProject ? e('div', {
       onClick: () => this.setState({ confirmDelete: null }),
@@ -3311,6 +3403,7 @@ class Component extends DCLogic {
       confirmDeleteModal,
       confirmDeleteIHModal,
       confirmDeleteCRModal,
+      confirmDeleteRiskModal,
       confirmDeleteSEModal,
       confirmDeleteNetKpiModal,
       confirmDeleteUptimeModal,
