@@ -1653,8 +1653,8 @@ class Component extends DCLogic {
         e('div', { key:'sub'+sub.id, style:{ background:'#f8fafc', borderRadius:0, padding:'10px 16px', marginBottom:1, display:'grid', gridTemplateColumns:'1fr 150px 150px 150px 120px 36px', gap:'0 8px', alignItems:'center', borderLeft:'3px solid #cbd5e1' } },
             e('div', { style:{ paddingLeft:12 } },
               e('input',{type:'text',value:sub.n,onChange:(ev)=>updSub(pi,si,'n',ev.target.value),style:{fontSize:13,fontWeight:600,color:'#0f172a',background:'transparent',border:'none',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
-              e('select',{value:sub.linkedProjectId||'',onChange:(ev)=>{ const pid=ev.target.value?parseInt(ev.target.value):''; const proj=(this.state.projects||[]).find(p=>p.id===pid); updSub(pi,si,'linkedProjectId',pid); if(proj) updSub(pi,si,'n',proj.name); },style:{fontSize:11,color:sub.linkedProjectId?'#6d28d9':'#c4b5fd',background:'transparent',border:'none',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",padding:0,marginTop:2,maxWidth:'100%'}},
-                e('option',{value:''},'🔗 Link to Project…'),
+              e('select',{value:sub.linkedProjectId||'',onChange:(ev)=>{ const pid=ev.target.value?parseInt(ev.target.value):''; const proj=(this.state.projects||[]).find(p=>p.id===pid); updSub(pi,si,'linkedProjectId',pid); if(proj) updSub(pi,si,'n',proj.name); },style:{fontSize:11.5,fontWeight:600,color:sub.linkedProjectId?'#6d28d9':'#6b7280',background:'#fff',border:'1px solid '+(sub.linkedProjectId?'#ddd6fe':'#e5e7eb'),borderRadius:8,outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",padding:'3px 8px',marginTop:4,maxWidth:220,cursor:'pointer'}},
+                e('option',{value:''},'Link to Project & Program…'),
                 ...(this.state.projects||[]).map(p=>e('option',{key:p.id,value:p.id},p.name))
               ),
               e('div',{style:{display:'flex',gap:8,marginTop:3}},
@@ -2976,7 +2976,7 @@ class Component extends DCLogic {
       'Rejected':  { bg:'#fff1f2', color:'#e11d48', border:'#fecdd3' },
       'Cancelled': { bg:'#f9fafb', color:'#94a3b8', border:'#e5e7eb' },
     };
-    const COL_CR = '110px 1fr 130px 100px 150px 120px 44px';
+    const COL_CR = '150px 130px 1fr 110px 90px 130px 110px 44px';
     const crCompletedCnt = changeRequests.filter(r=>r.status==='Completed').length;
     const crPendingCnt   = changeRequests.filter(r=>r.status==='Pending'||r.status==='Approved'||r.status==='Scheduled').length;
     const crEmergCnt     = changeRequests.filter(r=>r.type==='Emergency').length;
@@ -2996,7 +2996,7 @@ class Component extends DCLogic {
       ),
       // Table header
       e('div', { style:{ display:'grid', gridTemplateColumns:COL_CR, gap:0 } },
-        ...['ID','Title','Type','Date','Status','Requester',''].map(h=>this.thCell(h))
+        ...['ID','Ref IT Req No','Title','Type','Date','Status','Requester',''].map(h=>this.thCell(h))
       ),
       // Rows
       ...changeRequests.map((r, idx) => {
@@ -3009,6 +3009,8 @@ class Component extends DCLogic {
               ...CR_GROUPS.map(g=>e('option',{key:g,value:g},g))
             )
           )),
+          // Ref IT Req No
+          this.tdCell(e('input',{type:'text',value:r.refReqNo||'',onChange:(ev)=>updCR(idx,'refReqNo',ev.target.value),placeholder:'IT-REQ-####',style:{fontSize:12,color:'#6b7280',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
           // Title
           this.tdCell(e('input',{type:'text',value:r.title,onChange:(ev)=>updCR(idx,'title',ev.target.value),style:{fontSize:14,fontWeight:400,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
           // Type
