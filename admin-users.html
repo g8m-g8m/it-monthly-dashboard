@@ -902,6 +902,14 @@ async function inviteUser() {
       + '<small style="color:#064e3b">📧 Supabase ส่ง email ยืนยัน account ไปที่ ' + email + '</small>';
     sucEl.style.display = 'block';
     await loadUsers();
+    // Clear the form so it's ready for the next user — keep the modal open
+    document.getElementById('inv-name').value = '';
+    document.getElementById('inv-email').value = '';
+    document.getElementById('inv-role').value = 'viewer';
+    document.getElementById('inv-pass').value = 'TempPass@2026';
+    avatarData.inv = null;
+    document.getElementById('inv-avatar-img').style.display = 'none';
+    document.getElementById('inv-avatar-placeholder').style.display = 'flex';
   } catch(err) {
     errEl.textContent = '❌ ' + err.message;
     errEl.style.display = 'block';
