@@ -135,6 +135,7 @@ class Component extends DCLogic {
     confirmDeleteStabilityKpi: null,
     confirmDeleteMA: null,
     confirmDeleteBudCat: null,
+    confirmDeleteNet: null,
     confirmDeleteCapex: null,
     seDatePicker: null,
     seDateCalMonth: null,
@@ -1652,9 +1653,8 @@ class Component extends DCLogic {
         ...p.subs.flatMap((sub, si) => [
         e('div', { key:'sub'+sub.id, style:{ background:'#f8fafc', borderRadius:0, padding:'10px 16px', marginBottom:1, display:'grid', gridTemplateColumns:'1fr 150px 150px 150px 120px 36px', gap:'0 8px', alignItems:'center', borderLeft:'3px solid #cbd5e1' } },
             e('div', { style:{ paddingLeft:12 } },
-              e('input',{type:'text',value:sub.n,onChange:(ev)=>updSub(pi,si,'n',ev.target.value),style:{fontSize:13,fontWeight:600,color:'#0f172a',background:'transparent',border:'none',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}}),
-              e('select',{value:sub.linkedProjectId||'',onChange:(ev)=>{ const pid=ev.target.value?parseInt(ev.target.value):''; const proj=(this.state.projects||[]).find(p=>p.id===pid); updSub(pi,si,'linkedProjectId',pid); if(proj) updSub(pi,si,'n',proj.name); },style:{fontSize:11.5,fontWeight:600,color:sub.linkedProjectId?'#6d28d9':'#6b7280',background:'#fff',border:'1px solid '+(sub.linkedProjectId?'#ddd6fe':'#e5e7eb'),borderRadius:8,outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",padding:'3px 8px',marginTop:4,maxWidth:220,cursor:'pointer'}},
-                e('option',{value:''},'Link to Project & Program…'),
+              e('select',{value:sub.linkedProjectId||'',onChange:(ev)=>{ const pid=ev.target.value?parseInt(ev.target.value):''; const proj=(this.state.projects||[]).find(p=>p.id===pid); updSub(pi,si,'linkedProjectId',pid); if(proj) updSub(pi,si,'n',proj.name); },style:{fontSize:13,fontWeight:600,color:'#0f172a',background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",padding:'5px 10px',width:'100%',cursor:'pointer'}},
+                e('option',{value:''}, sub.linkedProjectId ? sub.n : (sub.n || 'Select Project & Program…')),
                 ...(this.state.projects||[]).map(p=>e('option',{key:p.id,value:p.id},p.name))
               ),
               e('div',{style:{display:'flex',gap:8,marginTop:3}},
@@ -2176,7 +2176,7 @@ class Component extends DCLogic {
     // ── 5. Network ────────────────────────────────────────────────
     const COL_N = '80px 1fr 1fr 140px 44px';
     const addNetworkPlant = () => { const label='New Plant'; this.setState({ network:[...this.state.network,{plant:label,latency:0,packetLoss:0}] }); };
-    const delNetworkPlant = (idx) => this.setState({ network:this.state.network.filter((_,i)=>i!==idx) });
+    const delNetworkPlant = (idx) => this.setState({ network:this.state.network.filter((_,i)=>i!==idx), confirmDeleteNet:null });
     const networkForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
       e('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 } },
         e('div', null,
@@ -2226,7 +2226,7 @@ class Component extends DCLogic {
               e('svg',{width:9,height:9,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:stIc}))
             )
           )),
-          this.tdCell(e('button',{title:'Delete Plant',onClick:()=>delNetworkPlant(idx),style:{background:'transparent',border:'none',cursor:'pointer',color:'#9ca3af',display:'flex',alignItems:'center',justifyContent:'center',width:32,height:32,borderRadius:8}},
+          this.tdCell(e('button',{title:'Delete Plant',onClick:()=>this.setState({confirmDeleteNet:idx}),style:{background:'transparent',border:'none',cursor:'pointer',color:'#9ca3af',display:'flex',alignItems:'center',justifyContent:'center',width:32,height:32,borderRadius:8}},
             e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'}))
           ))
         );
@@ -2606,8 +2606,6 @@ class Component extends DCLogic {
       ['criticalVulns','Critical','#ef4444', true],
       ['highVulns','High','#f97316', true],
       ['medium','Medium','#f59e0b', false],
-      ['low','Low','#6366f1', false],
-      ['informational','Informational','#94a3b8', false],
     ];
     const vulnTotal = vulnRows.reduce((sum,[k,,,isSec]) => sum + (isSec ? security[k]||0 : vulns[k]||0), 0) || 1;
     const vulnsSection = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
@@ -3154,7 +3152,7 @@ class Component extends DCLogic {
     // ── Form content by tab ───────────────────────────────────────
     const contentMap = { period: periodForm, projects: projectsForm, inhouse: inhouseForm, budget: budgetForm, security: e('div',null,securityForm,vulnsSection), secevents: secEventsForm, changereq: changeReqForm, riskissues: riskRegisterForm, network: networkForm, netkpis: netKpisForm, bizsvcs: bizSvcsForm, statusovr: statusOvrForm, uptime: uptimeForm };
     // ── Confirm Delete modal ──────────────────────────────────────
-    const { addTypePopup, newTypeName, addDeptPopup, newDeptName, confirmDelete, confirmDeleteIH, confirmDeleteCR, confirmDeleteSE, confirmDeleteBS, confirmDeleteCapex, confirmDeleteMA, confirmDeleteBudCat, confirmDeleteRisk } = this.state;
+        const { addTypePopup, newTypeName, addDeptPopup, newDeptName, confirmDelete, confirmDeleteIH, confirmDeleteCR, confirmDeleteSE, confirmDeleteBS, confirmDeleteCapex, confirmDeleteMA, confirmDeleteBudCat, confirmDeleteNet, confirmDeleteRisk } = this.state;
 
     // MA delete modal
     const _mkDelModal = (title, name, onYes, onNo) => e('div',{onClick:onNo,style:{position:'fixed',inset:0,background:'rgba(15,23,42,.4)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}},
@@ -3195,6 +3193,12 @@ class Component extends DCLogic {
       confirmDeleteBudCat.name,
       () => this.setState({budget:this.state.budget.filter((_,i)=>i!==confirmDeleteBudCat.idx),confirmDeleteBudCat:null}),
       () => this.setState({confirmDeleteBudCat:null})
+    ) : null;
+    const confirmDeleteNetModal = (confirmDeleteNet !== null && this.state.network[confirmDeleteNet]) ? _mkDelModal(
+      'ยืนยันการลบ Plant',
+      this.state.network[confirmDeleteNet].plant,
+      () => this.setState({network:this.state.network.filter((_,i)=>i!==confirmDeleteNet),confirmDeleteNet:null}),
+      () => this.setState({confirmDeleteNet:null})
     ) : null;
     const confirmCapexModal = confirmDeleteCapex ? e('div',{onClick:()=>this.setState({confirmDeleteCapex:null}),style:{position:'fixed',inset:0,background:'rgba(15,23,42,.4)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}},
       e('div',{onClick:ev=>ev.stopPropagation(),style:{background:'#fff',borderRadius:16,padding:'28px',boxShadow:'0 20px 60px rgba(15,23,42,.2)',minWidth:360,fontFamily:"'72','Inter','Kanit',sans-serif"}},
@@ -3512,6 +3516,7 @@ class Component extends DCLogic {
       confirmCapexModal,
       confirmMAModal,
       confirmBudCatModal,
+      confirmDeleteNetModal,
       addTypeModal,
       addDeptModal,
       contentMap[tab] || periodForm
