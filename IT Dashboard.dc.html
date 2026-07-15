@@ -70,7 +70,7 @@ class Component extends DCLogic {
     session: null, user: null, userRole: null, userName: '', userAvatar: '', menuAccess: null,
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     supabaseData: null, loadingData: false, trendMonths: [], budgetHistoryRaw: [], budgetViewMode: 'cumulative',
-    orgUsers: [], people: [],
+    orgUsers: [], people: [], prgStatusFilter: '',
     orgSettings: (function() { try { const c = JSON.parse(localStorage.getItem('it_org_branding')); if (c && c.companyName) return c; } catch(_) {} return { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' }; })(),
     showProfileModal: false, profileName: '', profileAvatarPreview: '', profileSaving: false, profileError: '', profileSuccess: '',
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '' };
@@ -2571,6 +2571,7 @@ class Component extends DCLogic {
 
     // ── BUDGET ───────────────────────────────────────────────────
     const fmt = (n) => (parseFloat(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtM = (n) => ((parseFloat(n) || 0) / 1e6).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' M';
     // ── Load from Data Entry localStorage ────────────────────────
     const _addPct = (cp) => cp.map(p => ({
       ...p,
@@ -2739,8 +2740,8 @@ class Component extends DCLogic {
           ),
           e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1 } },
             e('div', { style: { fontSize: lbl.length > 6 ? 11 : 13, fontWeight: 600, color: c, lineHeight: 1.25, whiteSpace: 'pre-line' } }, lbl),
-            e('div', { style: { fontSize: 38, fontWeight: 700, color: c, lineHeight: 1 } }, v),
-            e('div', { style: { fontSize: 13, color: '#94a3b8', fontWeight: 400, marginTop: 2 } }, sub)
+            e('div', { style: { fontSize: 24, fontWeight: 700, color: c, lineHeight: 1 } }, v),
+            e('div', { style: { fontSize: 12, color: '#94a3b8', fontWeight: 400, marginTop: 2 } }, sub)
           )
         );
 
@@ -2764,10 +2765,10 @@ class Component extends DCLogic {
             ),
             e('div', { style: { fontSize: 14, fontWeight: 600, color: '#f1f5f9', letterSpacing: '.01em', textAlign: 'center', lineHeight: 1.3 } }, 'CapEx\n2026')
           ),
-          circleKpi(fmt(capTotalBudget), 'งบประมาณรวม', 'Budget (บาท)', '#2563eb', 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'),
-          circleKpi(fmt(capTotalActual), 'ใช้จ่ายจริง', 'Actual (บาท)', '#10b981', 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'),
-          circleKpi(fmt(capTotalCommit), 'ผูกพัน', 'Commitment (บาท)', '#f59e0b', 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0'),
-          circleKpi(fmt(capTotalEac), 'คาดการณ์รวม', 'Forecast / EAC (บาท)', '#7c3aed', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'),
+          circleKpi(fmtM(capTotalBudget), 'งบประมาณรวม', 'Budget (ล้านบาท)', '#2563eb', 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'),
+          circleKpi(fmtM(capTotalActual), 'ใช้จ่ายจริง', 'Actual (ล้านบาท)', '#10b981', 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'),
+          circleKpi(fmtM(capTotalCommit), 'ผูกพัน', 'Commitment (ล้านบาท)', '#f59e0b', 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0'),
+          circleKpi(fmtM(capTotalEac), 'คาดการณ์รวม', 'Forecast / EAC (ล้านบาท)', '#7c3aed', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'),
           e('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRight: '1px solid #e2e8f0' } },
             e('div', { style: { width: 38, height: 38, borderRadius: '50%', background: budgetHealthColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 3px 8px ' + budgetHealthColor + '55' } },
               e('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, e('path', { d: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' }))
@@ -3293,13 +3294,13 @@ class Component extends DCLogic {
         ),
         // KPI items
         ...[
-          { lbl: 'Total\nProgram',         v: total2,              sub: 'โปรแกรม', c: '#ef4444', ic: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-          { lbl: 'Finish',                  v: cnt2['Completed'],   sub: 'โปรแกรม', c: '#10b981', ic: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-          { lbl: 'In Progress\n(WIP)',      v: cnt2['In Progress'], sub: 'โปรแกรม', c: '#f59e0b', ic: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-          { lbl: 'On Hold',                 v: cnt2['On Hold'],     sub: 'โปรแกรม', c: '#f97316', ic: 'M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-          { lbl: 'Delayed',                 v: cnt2['Delayed'],     sub: 'โปรแกรม', c: '#ef4444', ic: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-          { lbl: 'Not Started',             v: cnt2['Not Started'], sub: 'โปรแกรม', c: '#94a3b8', ic: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-        ].map(k => e('div', { key: k.lbl, style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRight: '1px solid #e2e8f0', flex: 1, minWidth: 0 } },
+          { lbl: 'Total\nProgram',         v: total2,              sub: 'โปรแกรม', c: '#ef4444', ic: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', filterKey: '' },
+          { lbl: 'Finish',                  v: cnt2['Completed'],   sub: 'โปรแกรม', c: '#10b981', ic: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', filterKey: 'Completed' },
+          { lbl: 'In Progress\n(WIP)',      v: cnt2['In Progress'], sub: 'โปรแกรม', c: '#f59e0b', ic: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', filterKey: 'In Progress' },
+          { lbl: 'On Hold',                 v: cnt2['On Hold'],     sub: 'โปรแกรม', c: '#f97316', ic: 'M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z', filterKey: 'On Hold' },
+          { lbl: 'Delayed',                 v: cnt2['Delayed'],     sub: 'โปรแกรม', c: '#ef4444', ic: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z', filterKey: 'Delayed' },
+          { lbl: 'Not Started',             v: cnt2['Not Started'], sub: 'โปรแกรม', c: '#94a3b8', ic: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z', filterKey: 'Not Started' }
+        ].map(k => e('div', { key: k.lbl, onClick: () => this.setState({ prgStatusFilter: this.state.prgStatusFilter === k.filterKey ? '' : k.filterKey }), title: k.filterKey ? 'Click to filter by ' + k.filterKey : 'Click to show all', style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRight: '1px solid #e2e8f0', flex: 1, minWidth: 0, cursor: 'pointer', background: this.state.prgStatusFilter === k.filterKey ? k.c + '14' : 'transparent', boxShadow: this.state.prgStatusFilter === k.filterKey ? 'inset 0 0 0 2px ' + k.c : 'none', borderRadius: this.state.prgStatusFilter === k.filterKey ? 8 : 0 } },
           e('div', { style: { width: 38, height: 38, borderRadius: '50%', background: k.c, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 3px 8px ' + k.c + '55' } },
             e('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, e('path', { d: k.ic }))
           ),
@@ -3332,7 +3333,7 @@ class Component extends DCLogic {
           )
         ),
         // Project rows
-        ...prjDetail.map((p2, idx) => {
+        ...prjDetail.filter(p2 => !this.state.prgStatusFilter || p2.st === this.state.prgStatusFilter).map((p2, idx) => {
           const cfg = stCfg2[p2.st] || stCfg2['In Progress'];
           const cc  = stCfg2[p2.conc] || stCfg2['In Progress'];
           const even = idx % 2 === 0;
@@ -3378,18 +3379,12 @@ class Component extends DCLogic {
             // Conclusion
             e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: cc.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' } },
               e('div', { style: { fontSize: 13, fontWeight: 700, color: cc.c, letterSpacing: '.01em' } }, 'CONCLUSION'),
-              stIcon2(p2.conc, 30),
               e('div', { style: { fontSize: 15, fontWeight: 700, color: cc.c } }, p2.conc),
               e('div', { style: { fontSize: 13, color: '#64748b', lineHeight: 1.4 } }, p2.concNote.split('\n').map((l, i) => e('div', { key: i }, l)))
             ),
             // Next Step
             e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' } },
               e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0ea5e9', letterSpacing: '.01em' } }, 'NEXT STEP'),
-              e('div', { style: { width: 30, height: 30, borderRadius: '50%', background: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' } },
-                e('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
-                  e('path', { d: 'M13 7l5 5m0 0l-5 5m5-5H6' })
-                )
-              ),
               e('div', { style: { fontSize: 14, color: '#334155', lineHeight: 1.5 } }, p2.next.split('\n').map((l, i) => e('div', { key: i }, l)))
             )
           );
