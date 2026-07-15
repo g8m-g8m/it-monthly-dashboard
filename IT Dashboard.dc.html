@@ -1597,9 +1597,11 @@ class Component extends DCLogic {
         budToggle
       ),
       // Header row
-      budgetViewMode === 'cumulative' ? e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 44px', gap: '0 6px', padding: '4px 6px', background: '#f8fafc', borderRadius: 6, marginBottom: 2 } },
+      budgetViewMode === 'cumulative' ? e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 92px 18px 92px 72px', gap: '0 4px', padding: '4px 6px', background: '#f8fafc', borderRadius: 6, marginBottom: 2 } },
         e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b' } }, 'Category'),
-        e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', textAlign: 'right' } }, 'Budget → Actual'),
+        e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', textAlign: 'right' } }, 'Budget'),
+        e('div', null),
+        e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', textAlign: 'right' } }, 'Actual'),
         e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b', textAlign: 'right' } }, '%Used'),
       ) : e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 44px', gap: '0 6px', padding: '4px 6px', background: '#f8fafc', borderRadius: 6, marginBottom: 2 } },
         e('div', { style: { fontSize: 13, fontWeight: 600, color: '#64748b' } }, 'Category'),
@@ -1608,56 +1610,54 @@ class Component extends DCLogic {
       ),
       // Budget rows grouped Type → Parent → Category
       budgetViewMode === 'cumulative' ? [...((() => {
-        const cols = '1fr 1fr 44px';
+        const cols = '1fr 92px 18px 92px 72px';
+        const pctColor = (pct) => pct > 85 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981';
+        const barCell = (pct, barColor) => e('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 } },
+          e('span', { style: { fontSize: 13, fontWeight: 700, color: pctColor(pct) } }, pct + '%'),
+          e('div', { style: { width: 48, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' } },
+            e('div', { style: { height: '100%', width: Math.min(pct,100) + '%', background: barColor || pctColor(pct), borderRadius: 2 } })
+          )
+        );
         const rows = [];
         ['CapEx','OpEx'].forEach(ty => {
           const groups = budGroups.filter(g => g.type === ty);
           if (!groups.length) return;
           const gBg = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.bg,0),0);
           const gSp = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0);
+          const gPct = gBg>0 ? Math.round((gSp/gBg)*100) : 0;
           // Type header
-          rows.push(e('div', { key: ty + '-hd', style: { display: 'grid', gridTemplateColumns: cols, gap: '0 6px', padding: '6px 6px 3px', background: '#f1f5f9', borderRadius: 5, marginBottom: 1, alignItems: 'center' } },
-            e('div', { style: { fontSize: 14, fontWeight: 700, color: '#0f172a' } }, ty),
-            e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, flexWrap: 'wrap' } },
-              e('span', { style: { fontSize: 13, color: '#64748b' } }, '฿' + gBg.toFixed(1) + 'M'),
-              e('span', { style: { fontSize: 13, color: '#94a3b8' } }, '→'),
-              e('span', { style: { fontSize: 13, fontWeight: 600, color: '#2563eb' } }, '฿' + gSp.toFixed(1) + 'M')
-            ),
-            e('div', { style: { fontSize: 13, fontWeight: 700, color: (gBg>0 && Math.round((gSp/gBg)*100) > 85) ? '#ef4444' : '#2563eb', textAlign: 'right' } }, (gBg>0?Math.round((gSp/gBg)*100):0) + '%')
+          rows.push(e('div', { key: ty + '-hd', style: { display: 'grid', gridTemplateColumns: cols, gap: '0 4px', padding: '7px 6px', background: '#1e293b', borderRadius: 5, marginBottom: 2, alignItems: 'center' } },
+            e('div', { style: { fontSize: 14, fontWeight: 700, color: '#f1f5f9', letterSpacing: '.01em' } }, ty),
+            e('div', { style: { fontSize: 13, color: '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + gBg.toFixed(1) + 'M'),
+            e('div', { style: { fontSize: 12, color: '#64748b', textAlign: 'center' } }, '→'),
+            e('div', { style: { fontSize: 13, fontWeight: 700, color: '#60a5fa', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + gSp.toFixed(1) + 'M'),
+            barCell(gPct, '#60a5fa')
           ));
           groups.forEach(g => {
             const pBg = g.categories.reduce((s,c)=>s+c.bg,0);
             const pSp = g.categories.reduce((s,c)=>s+c.sp,0);
             const pPct = pBg>0 ? Math.round((pSp/pBg)*100) : 0;
             // Parent row (project / card)
-            rows.push(e('div', { key: ty+'-p-'+g.parent, style: { display: 'grid', gridTemplateColumns: cols, gap: '0 6px', padding: '5px 6px 5px 10px', alignItems: 'center' } },
+            rows.push(e('div', { key: ty+'-p-'+g.parent, title: g.parent, style: { display: 'grid', gridTemplateColumns: cols, gap: '0 4px', padding: '6px 6px 6px 10px', alignItems: 'center', background: '#f8fafc', borderRadius: 4 } },
               e('div', { style: { fontSize: 14, fontWeight: 700, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, g.parent),
-              e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, flexWrap: 'wrap' } },
-                e('span', { style: { fontSize: 13, color: '#94a3b8' } }, '฿' + pBg.toFixed(1) + 'M'),
-                e('span', { style: { fontSize: 13, color: '#cbd5e1' } }, '→'),
-                e('span', { style: { fontSize: 13, fontWeight: 600, color: '#475569' } }, '฿' + pSp.toFixed(1) + 'M')
-              ),
-              e('div', { style: { fontSize: 13, fontWeight: 700, color: pPct > 85 ? '#ef4444' : '#475569', textAlign: 'right' } }, pPct + '%')
+              e('div', { style: { fontSize: 13, color: '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + pBg.toFixed(1) + 'M'),
+              e('div', { style: { fontSize: 12, color: '#cbd5e1', textAlign: 'center' } }, '→'),
+              e('div', { style: { fontSize: 13, fontWeight: 600, color: '#475569', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + pSp.toFixed(1) + 'M'),
+              barCell(pPct)
             ));
             // Category rows (indented, colored dot + mini bar) — skip for OpEx per spec
             if (ty === 'CapEx') g.categories.forEach((b, idx) => {
               const pct = b.bg > 0 ? Math.round((b.sp / b.bg) * 100) : 0;
-              rows.push(e('div', { key: ty+'-c-'+g.parent+'-'+idx, style: { display: 'grid', gridTemplateColumns: cols, gap: '0 6px', padding: '4px 6px 4px 22px', borderBottom: idx < g.categories.length - 1 ? '1px solid #f8fafc' : 'none', alignItems: 'center', marginBottom: idx === g.categories.length - 1 ? 4 : 0 } },
-                e('div', { style: { display: 'flex', alignItems: 'center', gap: 5 } },
+              rows.push(e('div', { key: ty+'-c-'+g.parent+'-'+idx, title: b.n, style: { display: 'grid', gridTemplateColumns: cols, gap: '0 4px', padding: '5px 6px 5px 22px', borderBottom: idx < g.categories.length - 1 ? '1px solid #f8fafc' : 'none', alignItems: 'center', marginBottom: idx === g.categories.length - 1 ? 4 : 0 } },
+                e('div', { style: { display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 } },
                   e('div', { style: { width: 6, height: 6, borderRadius: 2, background: b.c, flexShrink: 0 } }),
-                  e('span', { style: { fontSize: 14, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, b.n)
+                  e('span', { style: { fontSize: 13.5, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, b.n),
+                  g.categories.filter(x=>x.n===b.n).length > 1 ? e('span', { style: { fontSize: 10.5, color: '#94a3b8', fontWeight: 600, flexShrink: 0 } }, '#' + (idx+1)) : null
                 ),
-                e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, flexWrap: 'wrap' } },
-                  e('span', { style: { fontSize: 14, color: '#94a3b8' } }, '฿' + b.bg.toFixed(1) + 'M'),
-                  e('span', { style: { fontSize: 13, color: '#cbd5e1' } }, '→'),
-                  e('span', { style: { fontSize: 14, fontWeight: 600, color: b.c } }, '฿' + b.sp.toFixed(1) + 'M')
-                ),
-                e('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 } },
-                  e('span', { style: { fontSize: 14, fontWeight: 700, color: pct > 85 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981' } }, pct + '%'),
-                  e('div', { style: { width: 36, height: 3, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' } },
-                    e('div', { style: { height: '100%', width: Math.min(pct,100) + '%', background: b.c } })
-                  )
-                )
+                e('div', { style: { fontSize: 13.5, color: '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + b.bg.toFixed(1) + 'M'),
+                e('div', { style: { fontSize: 12, color: '#cbd5e1', textAlign: 'center' } }, '→'),
+                e('div', { style: { fontSize: 13.5, fontWeight: 600, color: b.c, textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + b.sp.toFixed(1) + 'M'),
+                barCell(pct, b.c)
               ));
             });
           });
@@ -1667,13 +1667,11 @@ class Component extends DCLogic {
         ? (momReady ? _renderBudCompareRows(thisMonthIncGroups, lastMonthIncGroups) : [budNotReadyMsg('Month-over-Month')])
         : (qoqReady ? _renderBudCompareRows(thisQuarterIncGroups, prevQuarterIncGroups) : [budNotReadyMsg('Quarter-over-Quarter')]),
       // Total row
-      budgetViewMode === 'cumulative' ? e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 44px', gap: '0 6px', padding: '6px 6px 2px', borderTop: '2px solid #e2e8f0', marginTop: 2, alignItems: 'center' } },
+      budgetViewMode === 'cumulative' ? e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 92px 18px 92px 72px', gap: '0 4px', padding: '8px 6px 2px', borderTop: '2px solid #e2e8f0', marginTop: 2, alignItems: 'center' } },
         e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a' } }, 'TOTAL'),
-        e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, flexWrap: 'wrap' } },
-          e('span', { style: { fontSize: 15, color: '#64748b' } }, '฿' + tBg.toFixed(1) + 'M'),
-          e('span', { style: { fontSize: 13, color: '#94a3b8' } }, '→'),
-          e('span', { style: { fontSize: 15, fontWeight: 700, color: '#2563eb' } }, '฿' + tSp.toFixed(1) + 'M')
-        ),
+        e('div', { style: { fontSize: 14, color: '#64748b', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + tBg.toFixed(1) + 'M'),
+        e('div', { style: { fontSize: 12, color: '#94a3b8', textAlign: 'center' } }, '→'),
+        e('div', { style: { fontSize: 15, fontWeight: 700, color: '#2563eb', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + tSp.toFixed(1) + 'M'),
         e('div', { style: { fontSize: 15, fontWeight: 700, color: '#2563eb', textAlign: 'right' } }, (tBg>0?Math.round((tSp/tBg)*100):0) + '%')
       ) : (budgetViewMode==='mom' ? momReady : qoqReady) ? (() => {
         const curG = budgetViewMode==='mom' ? thisMonthIncGroups : thisQuarterIncGroups;
