@@ -3300,9 +3300,16 @@ class Component extends DCLogic {
           { lbl: 'On Hold',                 v: cnt2['On Hold'],     sub: 'โปรแกรม', c: '#f97316', ic: 'M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z', filterKey: 'On Hold' },
           { lbl: 'Delayed',                 v: cnt2['Delayed'],     sub: 'โปรแกรม', c: '#ef4444', ic: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z', filterKey: 'Delayed' },
           { lbl: 'Not Started',             v: cnt2['Not Started'], sub: 'โปรแกรม', c: '#94a3b8', ic: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z', filterKey: 'Not Started' }
-        ].map(k => e('div', { key: k.lbl, onClick: () => this.setState({ prgStatusFilter: this.state.prgStatusFilter === k.filterKey ? '' : k.filterKey }), title: k.filterKey ? 'Click to filter by ' + k.filterKey : 'Click to show all', style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRight: '1px solid #e2e8f0', flex: 1, minWidth: 0, cursor: 'pointer', background: this.state.prgStatusFilter === k.filterKey ? k.c + '14' : 'transparent', boxShadow: this.state.prgStatusFilter === k.filterKey ? 'inset 0 0 0 2px ' + k.c : 'none', borderRadius: this.state.prgStatusFilter === k.filterKey ? 8 : 0 } },
-          e('div', { style: { width: 38, height: 38, borderRadius: '50%', background: k.c, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 3px 8px ' + k.c + '55' } },
-            e('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, e('path', { d: k.ic }))
+        ].map(k => {
+          const activeF = this.state.prgStatusFilter === k.filterKey;
+          return e('div', { key: k.lbl, onClick: () => this.setState({ prgStatusFilter: activeF ? '' : k.filterKey }), title: k.filterKey ? 'Click to filter by ' + k.filterKey : 'Click to show all', style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRight: '1px solid #e2e8f0', flex: 1, minWidth: 0, cursor: 'pointer' } },
+          e('div', { style: { position: 'relative', flexShrink: 0 } },
+            e('div', { style: { width: 38, height: 38, borderRadius: '50%', background: k.c, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 3px 8px ' + k.c + '55' } },
+              e('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, e('path', { d: k.ic }))
+            ),
+            activeF ? e('div', { title: 'Filter active', style: { position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#0f172a', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center' } },
+              e('svg', { width: 9, height: 9, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round' }, e('path', { d: 'M4 6h16M8 12h8M11 18h2' }))
+            ) : null
           ),
           e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1 } },
             e('div', { style: { fontSize: k.lbl.replace('\n',' ').length > 6 ? 11 : 13, fontWeight: 600, color: k.c, lineHeight: 1.25, whiteSpace: 'pre-line' } }, k.lbl),
@@ -3311,7 +3318,7 @@ class Component extends DCLogic {
               e('div', { style: { fontSize: 13, color: '#94a3b8', fontWeight: 400 } }, k.sub)
             )
           )
-        )),
+        );}),
         // Overall Status
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', flex: 1 } },
           stIcon2(overallSt2, 38),
@@ -3327,8 +3334,8 @@ class Component extends DCLogic {
       // ── Project Table ─────────────────────────────────────────
       e('div', { style: { background: '#fff' } },
         // Table header
-        e('div', { style: { display: 'grid', gridTemplateColumns: '44px 1fr 1fr 2fr 1fr 1fr', background: '#1e293b', padding: '8px 0' } },
-          ...['#','PROGRAM','CURRENT STATUS','DETAILS','CONCLUSION','NEXT STEP'].map((h, i) =>
+        e('div', { style: { display: 'grid', gridTemplateColumns: '44px 1fr 1fr 2fr 1fr', background: '#1e293b', padding: '8px 0' } },
+          ...['#','PROGRAM','CURRENT STATUS','DETAILS','CONCLUSION'].map((h, i) =>
             e('div', { key: h, style: { fontSize: 14, fontWeight: 600, color: '#94a3b8', letterSpacing: '.01em', padding: '0 10px', borderLeft: i > 0 ? '1px solid rgba(255,255,255,.08)' : 'none' } }, h)
           )
         ),
@@ -3337,7 +3344,7 @@ class Component extends DCLogic {
           const cfg = stCfg2[p2.st] || stCfg2['In Progress'];
           const cc  = stCfg2[p2.conc] || stCfg2['In Progress'];
           const even = idx % 2 === 0;
-          return e('div', { key: p2.n, style: { display: 'grid', gridTemplateColumns: '44px 1fr 1fr 2fr 1fr 1fr', borderBottom: '2px solid #f1f5f9', background: even ? '#fff' : '#fafafa', borderLeft: '4px solid ' + p2.c } },
+          return e('div', { key: p2.n, style: { display: 'grid', gridTemplateColumns: '44px 1fr 1fr 2fr 1fr', borderBottom: '2px solid #f1f5f9', background: even ? '#fff' : '#fafafa', borderLeft: '4px solid ' + p2.c } },
             // #
             e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 4px', borderLeft: 'none' } },
               e('div', { style: { width: 28, height: 28, borderRadius: '50%', background: p2.c, display: 'flex', alignItems: 'center', justifyContent: 'center' } },
@@ -3379,13 +3386,7 @@ class Component extends DCLogic {
             // Conclusion
             e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: cc.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' } },
               e('div', { style: { fontSize: 13, fontWeight: 700, color: cc.c, letterSpacing: '.01em' } }, 'CONCLUSION'),
-              e('div', { style: { fontSize: 15, fontWeight: 700, color: cc.c } }, p2.conc),
               e('div', { style: { fontSize: 13, color: '#64748b', lineHeight: 1.4 } }, p2.concNote.split('\n').map((l, i) => e('div', { key: i }, l)))
-            ),
-            // Next Step
-            e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' } },
-              e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0ea5e9', letterSpacing: '.01em' } }, 'NEXT STEP'),
-              e('div', { style: { fontSize: 14, color: '#334155', lineHeight: 1.5 } }, p2.next.split('\n').map((l, i) => e('div', { key: i }, l)))
             )
           );
         })
