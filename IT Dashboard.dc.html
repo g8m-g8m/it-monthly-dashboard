@@ -70,7 +70,7 @@ class Component extends DCLogic {
     session: null, user: null, userRole: null, userName: '', userAvatar: '', menuAccess: null,
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     supabaseData: null, loadingData: false, trendMonths: [], budgetHistoryRaw: [], budgetViewMode: 'cumulative',
-    orgUsers: [], people: [], prgStatusFilter: '',
+    orgUsers: [], people: [], prgStatusFilter: '', bsInsightText: '', bsTopSpendText: '', bsWarningText: '',
     orgSettings: (function() { try { const c = JSON.parse(localStorage.getItem('it_org_branding')); if (c && c.companyName) return c; } catch(_) {} return { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' }; })(),
     showProfileModal: false, profileName: '', profileAvatarPreview: '', profileSaving: false, profileError: '', profileSuccess: '',
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '' };
@@ -2727,8 +2727,9 @@ class Component extends DCLogic {
       const bsMomCur = momReady ? thisMonthIncGroups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0) : null;
       const bsTrendColor = bsPct <= 85 ? '#7c3aed' : '#ef4444';
       const bsTrendLabel = bsPct <= 85 ? 'ควบคุมได้' : 'เกินแผน';
+      const pctColor = (pct) => pct > 85 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981';
 
-      const bsStat = (icon, iconBg, label, value, valueColor, sub) => e('div', { style: { flex: 1, minWidth: 200, background: '#fff', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', gap: 12, alignItems: 'flex-start' } },
+      const bsStat = (icon, iconBg, label, value, valueColor, sub) => e('div', { style: { flex: 1, minWidth: 200, display: 'flex', gap: 12, alignItems: 'flex-start' } },
         e('div', { style: { width: 40, height: 40, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, icon),
         e('div', { style: { minWidth: 0 } },
           e('div', { style: { fontSize: 13, color: '#64748b', fontWeight: 600, marginBottom: 2 } }, label),
@@ -2754,7 +2755,16 @@ class Component extends DCLogic {
         e('div', { style: { width: 66, fontSize: 13, fontWeight: 700, color: '#0f172a', textAlign: 'right', flexShrink: 0 } }, '฿' + val.toFixed(1) + 'M')
       );
 
-      // Condensed category breakdown (CapEx / OpEx groups)
+      // Icon glyphs for the breakdown hierarchy
+      const icTeam = e('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75'}));
+      const icWallet = e('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5M18 12a2 2 0 000 4h4v-4h-4z'}));
+      const icNodes = e('svg',{width:15,height:15,viewBox:'0 0 24 24',fill:'none',stroke:'#2563eb',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98M21 5a3 3 0 11-6 0 3 3 0 016 0zM9 12a3 3 0 11-6 0 3 3 0 016 0zM21 19a3 3 0 11-6 0 3 3 0 016 0z'}));
+      const icStack = e('svg',{width:15,height:15,viewBox:'0 0 24 24',fill:'none',stroke:'#2563eb',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 2C6.48 2 2 3.79 2 6s4.48 4 10 4 10-1.79 10-4-4.48-4-10-4zM2 6v6c0 2.21 4.48 4 10 4s10-1.79 10-4V6M2 12v6c0 2.21 4.48 4 10 4s10-1.79 10-4v-6'}));
+      const icDoc = e('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'#16a34a',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z'}),e('path',{d:'M14 2v6h6'}));
+      const bsIconWrap = (icon, bg) => e('div', { style: { width: 26, height: 26, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, icon);
+
+      // Full breakdown hierarchy: Type > Parent > Category (CapEx has bars; OpEx line items have no bar) — mirrors the detail table below
+      const bsCols = '1fr 84px 16px 84px 60px 100px';
       const bsRows = [];
       ['CapEx','OpEx'].forEach(ty => {
         const groups = budGroups.filter(g => g.type === ty);
@@ -2762,23 +2772,47 @@ class Component extends DCLogic {
         const gBg = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.bg,0),0);
         const gSp = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0);
         const gPct = gBg > 0 ? Math.round((gSp / gBg) * 100) : 0;
-        bsRows.push(e('div', { key: ty, style: { display: 'grid', gridTemplateColumns: '90px 1fr 46px', gap: 8, alignItems: 'center', padding: '8px 0' } },
-          e('div', { style: { fontSize: 14, fontWeight: 700, color: '#0f172a' } }, ty),
-          e('div', { style: { height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' } },
-            e('div', { style: { height: '100%', width: Math.min(100,gPct) + '%', background: ty==='CapEx' ? '#2563eb' : '#10b981', borderRadius: 4 } })
-          ),
-          e('div', { style: { fontSize: 13, fontWeight: 700, color: gPct > 85 ? '#ef4444' : '#0f172a', textAlign: 'right' } }, gPct + '%')
+        bsRows.push(e('div', { key: ty, style: { display: 'grid', gridTemplateColumns: bsCols, gap: 8, alignItems: 'center', padding: '9px 0' } },
+          e('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, bsIconWrap(ty==='CapEx'?icTeam:icWallet, ty==='CapEx'?'#2563eb':'#10b981'), e('span', { style: { fontSize: 14.5, fontWeight: 700, color: '#0f172a' } }, ty)),
+          e('div', { style: { fontSize: 13, color: '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + gBg.toFixed(1) + 'M'),
+          e('div', { style: { fontSize: 12, color: '#cbd5e1', textAlign: 'center' } }, '→'),
+          e('div', { style: { fontSize: 13, fontWeight: 700, color: '#2563eb', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + gSp.toFixed(1) + 'M'),
+          e('div', { style: { fontSize: 13, fontWeight: 700, color: gPct>85?'#ef4444':'#2563eb', textAlign: 'right' } }, gPct + '%'),
+          e('div', null)
         ));
-        groups.forEach(g => {
+        groups.forEach((g,gi) => {
           const pBg = g.categories.reduce((s,c)=>s+c.bg,0);
           const pSp = g.categories.reduce((s,c)=>s+c.sp,0);
           const pPct = pBg > 0 ? Math.round((pSp / pBg) * 100) : 0;
-          bsRows.push(e('div', { key: ty+g.parent, title: g.parent, style: { display: 'grid', gridTemplateColumns: '90px 1fr 46px', gap: 8, alignItems: 'center', padding: '4px 0 4px 14px' } },
-            e('div', { style: { fontSize: 12.5, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', gridColumn: '1 / 3' } }, g.parent),
-            e('div', { style: { fontSize: 12.5, fontWeight: 600, color: pPct > 85 ? '#ef4444' : '#64748b', textAlign: 'right' } }, pPct + '%')
+          bsRows.push(e('div', { key: ty+'-p-'+gi, title: g.parent, style: { display: 'grid', gridTemplateColumns: bsCols, gap: 8, alignItems: 'center', padding: '7px 0 7px 8px' } },
+            e('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } }, ty==='CapEx' ? bsIconWrap(icNodes, '#eff6ff') : bsIconWrap(icDoc, '#f0fdf4'), e('span', { style: { fontSize: 13.5, fontWeight: 600, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, g.parent)),
+            e('div', { style: { fontSize: 13, color: '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + pBg.toFixed(1) + 'M'),
+            e('div', { style: { fontSize: 12, color: '#cbd5e1', textAlign: 'center' } }, '→'),
+            e('div', { style: { fontSize: 13, fontWeight: 600, color: '#475569', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + pSp.toFixed(1) + 'M'),
+            e('div', { style: { fontSize: 13, fontWeight: 700, color: pPct>85?'#ef4444':'#475569', textAlign: 'right' } }, pPct + '%'),
+            e('div', null)
           ));
+          if (ty === 'CapEx') g.categories.forEach((b, idx) => {
+            const pct = b.bg > 0 ? Math.round((b.sp / b.bg) * 100) : 0;
+            bsRows.push(e('div', { key: ty+'-c-'+gi+'-'+idx, title: b.n, style: { display: 'grid', gridTemplateColumns: bsCols, gap: 8, alignItems: 'center', padding: '5px 0 5px 20px' } },
+              e('div', { style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 } }, e('div', { style: { width: 6, height: 6, borderRadius: 2, background: b.c, flexShrink: 0 } }), e('span', { style: { fontSize: 13, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, b.n)),
+              e('div', { style: { fontSize: 13, color: '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + b.bg.toFixed(1) + 'M'),
+              e('div', { style: { fontSize: 12, color: '#cbd5e1', textAlign: 'center' } }, '→'),
+              e('div', { style: { fontSize: 13, fontWeight: 600, color: b.c, textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + b.sp.toFixed(1) + 'M'),
+              e('div', { style: { fontSize: 13, fontWeight: 700, color: pctColor(pct), textAlign: 'right' } }, pct + '%'),
+              e('div', { style: { width: 90, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden', justifySelf: 'end' } }, e('div', { style: { height: '100%', width: Math.min(pct,100) + '%', background: b.c, borderRadius: 2 } }))
+            ));
+          });
         });
       });
+      bsRows.push(e('div', { key: 'total', style: { display: 'grid', gridTemplateColumns: bsCols, gap: 8, alignItems: 'center', padding: '10px 0 4px', borderTop: '2px solid #e2e8f0', marginTop: 2 } },
+        e('div', { style: { fontSize: 15, fontWeight: 800, color: '#0f172a' } }, 'TOTAL'),
+        e('div', { style: { fontSize: 14, color: '#64748b', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + tBg.toFixed(1) + 'M'),
+        e('div', { style: { fontSize: 12, color: '#94a3b8', textAlign: 'center' } }, '→'),
+        e('div', { style: { fontSize: 15, fontWeight: 800, color: '#2563eb', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + tSp.toFixed(1) + 'M'),
+        e('div', { style: { fontSize: 15, fontWeight: 800, color: '#2563eb', textAlign: 'right' } }, bsPct + '%'),
+        e('div', null)
+      ));
 
       // Monthly trend (cumulative actual) from real report history
       const bsHist = (this.state.budgetHistoryRaw || []).map(r => ({
@@ -2801,7 +2835,7 @@ class Component extends DCLogic {
         );
       })();
 
-      // Insight / top-spend / warning derivation
+      // Auto-derived analysis text (default) — user can overwrite via the editable textareas below
       const bsTopGroup = ['CapEx','OpEx'].map(ty => {
         const groups = budGroups.filter(g => g.type === ty);
         const gBg = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.bg,0),0);
@@ -2809,24 +2843,36 @@ class Component extends DCLogic {
         return { ty, pct: gBg>0?Math.round((gSp/gBg)*100):0 };
       }).sort((a,b)=>b.pct-a.pct)[0];
       const bsWarnCat = budGroups.filter(g=>g.type==='CapEx').flatMap(g=>g.categories.map(c=>({...c, pct: c.bg>0?Math.round((c.sp/c.bg)*100):0}))).sort((a,b)=>b.pct-a.pct)[0];
+      const bsInsightDefault = 'การใช้จ่ายโดยรวมอยู่ที่ ' + bsPct + '% ต่ำกว่างบประมาณ ' + bsUnderPct + '%';
+      const bsTopSpendDefault = bsTopGroup ? (bsTopGroup.ty + ' คิดเป็น ' + bsTopGroup.pct + '% ของงบประมาณ' + bsTopGroup.ty + ' ควบคุมค่าใช้จ่ายได้ตามแผน') : '—';
+      const bsWarningDefault = bsWarnCat ? (bsWarnCat.n + ' ใช้งบใกล้เต็มกรอบ ' + bsWarnCat.pct + '%') : 'ไม่มีรายการที่ต้องเฝ้าระวัง';
 
-      return e('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
+      const bsEditable = (stateKey, defaultText) => e('textarea', {
+        value: this.state[stateKey] || defaultText,
+        onChange: (ev) => this.setState({ [stateKey]: ev.target.value }),
+        rows: 2,
+        style: { fontSize: 12.5, color: '#64748b', lineHeight: 1.5, border: '1px dashed #e2e8f0', borderRadius: 6, padding: '4px 6px', background: 'transparent', resize: 'vertical', width: '100%', fontFamily: 'inherit', outline: 'none' }
+      });
+
+      const sectionDivider = { borderTop: '1px solid #e5e7eb' };
+
+      return e('div', { style: { background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.08)', overflow: 'hidden' } },
         // Header + 3 stat cards
-        e('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' } },
+        e('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', padding: '16px 18px' } },
           e('div', null,
             e('div', { style: { fontSize: 13, fontWeight: 700, color: '#94a3b8', letterSpacing: '.04em' } }, 'IT BUDGET FY2026'),
             e('div', { style: { fontSize: 24, fontWeight: 800, color: '#0f172a' } }, 'Budget vs Actual ', e('span', { style: { color: '#2563eb' } }, '(Cumulative)')),
             e('div', { style: { fontSize: 13, color: '#94a3b8', marginTop: 2 } }, 'Technology Dept. · Pacificpipe PLC · ' + MONTH_FULL[filterMonth-1])
           ),
-          e('div', { style: { display: 'flex', gap: 12, flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' } },
+          e('div', { style: { display: 'flex', gap: 20, flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' } },
             bsStat(e('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z'})), '#2563eb', 'ใช้งบรวม', bsPct+'%', '#2563eb', 'จากงบประมาณทั้งหมด (฿'+tSp.toFixed(1)+'M / ฿'+tBg.toFixed(1)+'M)'),
             bsStat(e('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M13 7h8m0 0v8m0-8L13 15l-4-4-6 6'})), '#10b981', 'การใช้จ่ายเดือนนี้', bsMomCur!=null ? (bsMomCur>=0?'+':'') + bsMomCur.toFixed(1)+'M' : '—', '#10b981', momReady ? 'MoM (' + MONTH_FULL[(filterMonth-2+12)%12].slice(0,3) + ' → ' + MONTH_FULL[filterMonth-1].slice(0,3) + ')' : 'ยังไม่มีข้อมูลเดือนก่อนหน้า'),
             bsStat(e('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'})), '#8b5cf6', 'แนวโน้มรวม', bsTrendLabel, bsTrendColor, 'ต่ำกว่างบประมาณ ' + bsUnderPct + '%')
           )
         ),
         // Donut + bar chart | breakdown
-        e('div', { style: { display: 'grid', gridTemplateColumns: '340px 1fr', gap: 12 } },
-          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', flexDirection: 'column', gap: 14 } },
+        e('div', { style: Object.assign({ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 0 }, sectionDivider) },
+          e('div', { style: { padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14, borderRight: '1px solid #e5e7eb' } },
             e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b' } }, 'ภาพรวมการใช้งบประมาณ'),
             e('div', { style: { display: 'flex', alignItems: 'center', gap: 16 } },
               e('div', { style: { position: 'relative', flexShrink: 0 } },
@@ -2849,26 +2895,42 @@ class Component extends DCLogic {
               bsBar('Actual', tSp, '#2563eb')
             )
           ),
-          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', flexDirection: 'column', overflowY: 'auto' } },
-            e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 4 } }, 'รายละเอียดตามหมวดหมู่'),
+          e('div', { style: { padding: '16px 18px', display: 'flex', flexDirection: 'column', overflowY: 'auto', maxHeight: 480 } },
+            e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 } },
+              e('div', { style: { fontSize: 14, fontWeight: 700, color: '#1e293b' } }, 'รายละเอียดตามหมวดหมู่'),
+              e('div', { style: { display: 'flex', gap: 12, alignItems: 'center' } },
+                e('div', { style: { display: 'flex', alignItems: 'center', gap: 4 } }, e('div', { style: { width: 10, height: 10, borderRadius: 2, background: '#cbd5e1' } }), e('span', { style: { fontSize: 11.5, color: '#94a3b8' } }, 'Budget')),
+                e('div', { style: { display: 'flex', alignItems: 'center', gap: 4 } }, e('div', { style: { width: 10, height: 10, borderRadius: 2, background: '#2563eb' } }), e('span', { style: { fontSize: 11.5, color: '#94a3b8' } }, 'Actual')),
+                e('span', { style: { fontSize: 11.5, color: '#94a3b8' } }, '%Used')
+              )
+            ),
             ...bsRows
           )
         ),
         // Insights + monthly trend
-        e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 300px', gap: 12 } },
-          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', gap: 10, alignItems: 'flex-start' } },
-            e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#d97706',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z'}))),
-            e('div', null, e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 3 } }, 'INSIGHT'), e('div', { style: { fontSize: 12.5, color: '#64748b', lineHeight: 1.5 } }, 'การใช้จ่ายโดยรวมอยู่ที่ ', e('b', { style: { color: '#0f172a' } }, bsPct + '%'), ' ต่ำกว่างบประมาณ ', e('b', { style: { color: '#16a34a' } }, bsUnderPct + '%')))
+        e('div', { style: Object.assign({ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 300px', gap: 0 }, sectionDivider) },
+          e('div', { style: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderRight: '1px solid #e5e7eb' } },
+            e('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
+              e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#d97706',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z'}))),
+              e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a' } }, 'INSIGHT')
+            ),
+            bsEditable('bsInsightText', bsInsightDefault)
           ),
-          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', gap: 10, alignItems: 'flex-start' } },
-            e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#16a34a',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 2a10 10 0 100 20 10 10 0 000-20zm0 5a5 5 0 100 10 5 5 0 000-10zm0 3a2 2 0 100 4 2 2 0 000-4z'}))),
-            e('div', null, e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 3 } }, 'หมวดที่มีการใช้จ่ายสูงสุด'), e('div', { style: { fontSize: 12.5, color: '#64748b', lineHeight: 1.5 } }, bsTopGroup ? e('span', null, bsTopGroup.ty, ' คิดเป็น ', e('b', { style: { color: '#0f172a' } }, bsTopGroup.pct + '%'), ' ของงบประมาณ' + bsTopGroup.ty + ' ควบคุมค่าใช้จ่ายได้ตามแผน') : '—'))
+          e('div', { style: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderRight: '1px solid #e5e7eb' } },
+            e('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
+              e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#16a34a',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 2a10 10 0 100 20 10 10 0 000-20zm0 5a5 5 0 100 10 5 5 0 000-10zm0 3a2 2 0 100 4 2 2 0 000-4z'}))),
+              e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a' } }, 'หมวดที่มีการใช้จ่ายสูงสุด')
+            ),
+            bsEditable('bsTopSpendText', bsTopSpendDefault)
           ),
-          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', gap: 10, alignItems: 'flex-start' } },
-            e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#ea580c',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'}))),
-            e('div', null, e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 3 } }, 'รายการที่ต้องติดตาม'), e('div', { style: { fontSize: 12.5, color: '#64748b', lineHeight: 1.5 } }, bsWarnCat ? e('span', null, bsWarnCat.n, ' ใช้งบใกล้เต็มกรอบ ', e('b', { style: { color: '#ea580c' } }, bsWarnCat.pct + '%')) : 'ไม่มีรายการที่ต้องเฝ้าระวัง'))
+          e('div', { style: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderRight: '1px solid #e5e7eb' } },
+            e('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
+              e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#ea580c',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'}))),
+              e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a' } }, 'รายการที่ต้องติดตาม')
+            ),
+            bsEditable('bsWarningText', bsWarningDefault)
           ),
-          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)' } },
+          e('div', { style: { padding: '14px 16px' } },
             e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 4 } }, 'MONTHLY TREND (Actual)'),
             bsTrendChart
           )
