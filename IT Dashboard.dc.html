@@ -1632,7 +1632,7 @@ class Component extends DCLogic {
             e('div', { style: { fontSize: 12, color: '#94a3b8', textAlign: 'center' } }, '→'),
             e('div', { style: { fontSize: 13, fontWeight: 700, color: '#2563eb', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + gSp.toFixed(1) + 'M'),
             e('div', { style: { fontSize: 13, fontWeight: 700, color: gPct>85?'#ef4444':'#2563eb', textAlign: 'right' } }, gPct + '%'),
-            e('div', null)
+            e('div', { style: { width: 90, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden', justifySelf: 'end' } }, e('div', { style: { height: '100%', width: Math.min(gPct,100) + '%', background: '#2563eb', borderRadius: 2 } }))
           ));
           groups.forEach(g => {
             const pBg = g.categories.reduce((s,c)=>s+c.bg,0);
@@ -1645,7 +1645,7 @@ class Component extends DCLogic {
               e('div', { style: { fontSize: 12, color: '#cbd5e1', textAlign: 'center' } }, '→'),
               e('div', { style: { fontSize: 13, fontWeight: 600, color: '#475569', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + pSp.toFixed(1) + 'M'),
               e('div', { style: { fontSize: 13, fontWeight: 700, color: pPct>85?'#ef4444':'#475569', textAlign: 'right' } }, pPct + '%'),
-              e('div', null)
+              e('div', { style: { width: 90, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden', justifySelf: 'end' } }, e('div', { style: { height: '100%', width: Math.min(pPct,100) + '%', background: '#64748b', borderRadius: 2 } }))
             ));
             // Category rows (indented, colored dot + mini bar) — skip for OpEx per spec
             if (ty === 'CapEx') g.categories.forEach((b, idx) => {
@@ -2782,7 +2782,7 @@ class Component extends DCLogic {
           e('div', { style: { fontSize: 12, color: '#cbd5e1', textAlign: 'center' } }, '→'),
           e('div', { style: { fontSize: 13, fontWeight: 700, color: '#2563eb', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + gSp.toFixed(1) + 'M'),
           e('div', { style: { fontSize: 13, fontWeight: 700, color: gPct>85?'#ef4444':'#2563eb', textAlign: 'right' } }, gPct + '%'),
-          e('div', null)
+          e('div', { style: { width: 90, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden', justifySelf: 'end' } }, e('div', { style: { height: '100%', width: Math.min(gPct,100) + '%', background: '#2563eb', borderRadius: 2 } }))
         ));
         groups.forEach((g,gi) => {
           const pBg = g.categories.reduce((s,c)=>s+c.bg,0);
@@ -2794,12 +2794,12 @@ class Component extends DCLogic {
             e('div', { style: { fontSize: 12, color: '#cbd5e1', textAlign: 'center' } }, '→'),
             e('div', { style: { fontSize: 13, fontWeight: 600, color: '#475569', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + pSp.toFixed(1) + 'M'),
             e('div', { style: { fontSize: 13, fontWeight: 700, color: pPct>85?'#ef4444':'#475569', textAlign: 'right' } }, pPct + '%'),
-            e('div', null)
+            e('div', { style: { width: 90, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden', justifySelf: 'end' } }, e('div', { style: { height: '100%', width: Math.min(pPct,100) + '%', background: '#64748b', borderRadius: 2 } }))
           ));
           if (ty === 'CapEx') g.categories.forEach((b, idx) => {
             const pct = b.bg > 0 ? Math.round((b.sp / b.bg) * 100) : 0;
             bsRows.push(e('div', { key: ty+'-c-'+gi+'-'+idx, title: b.n, style: { display: 'grid', gridTemplateColumns: bsCols, gap: 8, alignItems: 'center', padding: '5px 0 5px 20px' } },
-              e('div', { style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 } }, e('div', { style: { width: 6, height: 6, borderRadius: 2, background: b.c, flexShrink: 0 } }), e('span', { style: { fontSize: 13, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, b.n)),
+              e('div', { style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 } }, e('div', { style: { width: 6, height: 6, borderRadius: 2, background: b.c, flexShrink: 0 } }), e('span', { style: { fontSize: 13, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, b.n), g.categories.filter(x=>x.n===b.n).length > 1 ? e('span', { style: { fontSize: 10.5, color: '#94a3b8', fontWeight: 600, flexShrink: 0 } }, '#' + (idx+1)) : null),
               e('div', { style: { fontSize: 13, color: '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + b.bg.toFixed(1) + 'M'),
               e('div', { style: { fontSize: 12, color: '#cbd5e1', textAlign: 'center' } }, '→'),
               e('div', { style: { fontSize: 13, fontWeight: 600, color: b.c, textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + b.sp.toFixed(1) + 'M'),
