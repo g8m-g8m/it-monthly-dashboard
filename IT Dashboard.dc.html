@@ -2854,11 +2854,11 @@ class Component extends DCLogic {
         style: { fontSize: 12.5, color: '#64748b', lineHeight: 1.5, border: '1px dashed #e2e8f0', borderRadius: 6, padding: '4px 6px', background: 'transparent', resize: 'vertical', width: '100%', fontFamily: 'inherit', outline: 'none' }
       });
 
-      const sectionDivider = { borderTop: '1px solid #e5e7eb' };
+      const sectionCard = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10 };
 
-      return e('div', { style: { background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.08)', overflow: 'hidden' } },
+      return e('div', { style: { background: '#f8fafc', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.08)', border: '1px solid #e5e7eb', overflow: 'hidden', padding: 12, display: 'flex', flexDirection: 'column', gap: 12 } },
         // Header + 3 stat cards
-        e('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', padding: '16px 18px' } },
+        e('div', { style: Object.assign({ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', padding: '16px 18px' }, sectionCard) },
           e('div', null,
             e('div', { style: { fontSize: 13, fontWeight: 700, color: '#94a3b8', letterSpacing: '.04em' } }, 'IT BUDGET FY2026'),
             e('div', { style: { fontSize: 24, fontWeight: 800, color: '#0f172a' } }, 'Budget vs Actual ', e('span', { style: { color: '#2563eb' } }, '(Cumulative)')),
@@ -2871,8 +2871,8 @@ class Component extends DCLogic {
           )
         ),
         // Donut + bar chart | breakdown
-        e('div', { style: Object.assign({ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 0 }, sectionDivider) },
-          e('div', { style: { padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14, borderRight: '1px solid #e5e7eb' } },
+        e('div', { style: { display: 'grid', gridTemplateColumns: '340px 1fr', gap: 12 } },
+          e('div', { style: Object.assign({ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }, sectionCard) },
             e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b' } }, 'ภาพรวมการใช้งบประมาณ'),
             e('div', { style: { display: 'flex', alignItems: 'center', gap: 16 } },
               e('div', { style: { position: 'relative', flexShrink: 0 } },
@@ -2895,42 +2895,42 @@ class Component extends DCLogic {
               bsBar('Actual', tSp, '#2563eb')
             )
           ),
-          e('div', { style: { padding: '16px 18px', display: 'flex', flexDirection: 'column', overflowY: 'auto', maxHeight: 480 } },
-            e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 } },
+          e('div', { style: Object.assign({ padding: '16px 18px', display: 'flex', flexDirection: 'column', overflowY: 'auto', maxHeight: 480 }, sectionCard) },
+            e('div', { style: { display: 'grid', gridTemplateColumns: bsCols, gap: 8, alignItems: 'center', marginBottom: 6 } },
               e('div', { style: { fontSize: 14, fontWeight: 700, color: '#1e293b' } }, 'รายละเอียดตามหมวดหมู่'),
-              e('div', { style: { display: 'flex', gap: 12, alignItems: 'center' } },
-                e('div', { style: { display: 'flex', alignItems: 'center', gap: 4 } }, e('div', { style: { width: 10, height: 10, borderRadius: 2, background: '#cbd5e1' } }), e('span', { style: { fontSize: 11.5, color: '#94a3b8' } }, 'Budget')),
-                e('div', { style: { display: 'flex', alignItems: 'center', gap: 4 } }, e('div', { style: { width: 10, height: 10, borderRadius: 2, background: '#2563eb' } }), e('span', { style: { fontSize: 11.5, color: '#94a3b8' } }, 'Actual')),
-                e('span', { style: { fontSize: 11.5, color: '#94a3b8' } }, '%Used')
-              )
+              e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 } }, e('div', { style: { width: 10, height: 10, borderRadius: 2, background: '#cbd5e1' } }), e('span', { style: { fontSize: 11.5, color: '#94a3b8' } }, 'Budget')),
+              e('div', null),
+              e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 } }, e('div', { style: { width: 10, height: 10, borderRadius: 2, background: '#2563eb' } }), e('span', { style: { fontSize: 11.5, color: '#94a3b8' } }, 'Actual')),
+              e('div', { style: { fontSize: 11.5, color: '#94a3b8', textAlign: 'right' } }, '%Used'),
+              e('div', null)
             ),
             ...bsRows
           )
         ),
         // Insights + monthly trend
-        e('div', { style: Object.assign({ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 300px', gap: 0 }, sectionDivider) },
-          e('div', { style: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderRight: '1px solid #e5e7eb' } },
+        e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 300px', gap: 12 } },
+          e('div', { style: Object.assign({ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }, sectionCard) },
             e('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
               e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#d97706',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z'}))),
               e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a' } }, 'INSIGHT')
             ),
             bsEditable('bsInsightText', bsInsightDefault)
           ),
-          e('div', { style: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderRight: '1px solid #e5e7eb' } },
+          e('div', { style: Object.assign({ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }, sectionCard) },
             e('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
               e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#16a34a',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 2a10 10 0 100 20 10 10 0 000-20zm0 5a5 5 0 100 10 5 5 0 000-10zm0 3a2 2 0 100 4 2 2 0 000-4z'}))),
               e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a' } }, 'หมวดที่มีการใช้จ่ายสูงสุด')
             ),
             bsEditable('bsTopSpendText', bsTopSpendDefault)
           ),
-          e('div', { style: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderRight: '1px solid #e5e7eb' } },
+          e('div', { style: Object.assign({ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }, sectionCard) },
             e('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
               e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#ea580c',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'}))),
               e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a' } }, 'รายการที่ต้องติดตาม')
             ),
             bsEditable('bsWarningText', bsWarningDefault)
           ),
-          e('div', { style: { padding: '14px 16px' } },
+          e('div', { style: Object.assign({ padding: '14px 16px' }, sectionCard) },
             e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 4 } }, 'MONTHLY TREND (Actual)'),
             bsTrendChart
           )
