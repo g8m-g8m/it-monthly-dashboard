@@ -3387,13 +3387,11 @@ class Component extends DCLogic {
               )
             ),
             // Conclusion
-            e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: cc.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' } },
-              e('div', { style: { fontSize: 13, fontWeight: 700, color: cc.c, letterSpacing: '.01em' } }, 'CONCLUSION'),
+            e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: cc.bg, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 6, textAlign: 'left' } },
               e('div', { style: { fontSize: 13, color: '#64748b', lineHeight: 1.4 } }, p2.concNote.split('\n').map((l, i) => e('div', { key: i }, l)))
             ),
             // Next Step
-            e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' } },
-              e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0ea5e9', letterSpacing: '.01em' } }, 'NEXT STEP'),
+            e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 6, textAlign: 'left' } },
               e('div', { style: { fontSize: 14, color: '#334155', lineHeight: 1.5 } }, p2.next.split('\n').map((l, i) => e('div', { key: i }, l)))
             )
           );
