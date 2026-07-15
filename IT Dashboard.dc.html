@@ -3071,7 +3071,8 @@ class Component extends DCLogic {
           concNote: p.concNote||'',
           next: p.nextStep||p.due||'',
           ld: p.lead||'',
-          leads: (p.leads && p.leads.length) ? p.leads : (p.lead ? [p.lead] : [])
+          leads: (p.leads && p.leads.length) ? p.leads : (p.lead ? [p.lead] : []),
+          id: p.id
         }))
       : (_savedProjects && _savedProjects.length) ? _savedProjects.map((p,i)=>({
       n: p.name,
@@ -3087,7 +3088,8 @@ class Component extends DCLogic {
       concNote: p.note||'',
       next: p.nextStep||p.due||'',
       ld: p.lead||'',
-      leads: p.lead ? [p.lead] : []
+      leads: p.lead ? [p.lead] : [],
+      id: p.id
     })) : [
       { n: 'Network Infrastructure Upgrade', shortN: 'NETWORK\nINFRA UPGRADE', type: 'Infrastructure', c: '#2563eb', ic: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01', st: 'ON-PLAN', p: 75, stSub: 'ดำเนินการตามแผน', details: ['Core switch firmware upgraded (Jul 22)', 'WAN link redundancy testing complete', 'Fiber routing to Plant B in progress', 'Phase 2: Data center cabling pending'], conc: 'ON-PLAN', concNote: 'งานเป็นไปตามแผน\nพร้อมเข้าสู่ Phase 2', next: 'เริ่ม Phase 2 Data Center\nCabling และ Testing' },
       { n: 'ERP Migration Phase 2',          shortN: 'ERP\nMIGRATION PH.2', type: 'ERP/App',        c: '#f97316', ic: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4', st: 'ON-HOLD', p: 40, stSub: 'รอการพิจารณา/ตัดสินใจ', details: ['Data migration script v1 complete', 'UAT session 1 — 23 issues found', 'Business sign-off pending (Finance)', 'Go-live postponed to Oct 2026'], conc: 'ON-HOLD', concNote: 'รอ Business sign-off\nก่อนดำเนินการต่อ', next: 'นัด Steering Committee\nทบทวนและอนุมัติ Go-live' },
@@ -3346,7 +3348,7 @@ class Component extends DCLogic {
           const cfg = stCfg2[p2.st] || stCfg2['In Progress'];
           const cc  = stCfg2[p2.conc] || stCfg2['In Progress'];
           const even = idx % 2 === 0;
-          return e('div', { key: p2.n, style: { display: 'grid', gridTemplateColumns: '44px 1fr 1fr 2fr 1fr 1fr', borderBottom: '2px solid #f1f5f9', background: even ? '#fff' : '#fafafa', borderLeft: '4px solid ' + p2.c } },
+          return e('div', { key: (p2.id != null ? p2.id : p2.n) + '-' + idx, style: { display: 'grid', gridTemplateColumns: '44px 1fr 1fr 2fr 1fr 1fr', borderBottom: '2px solid #f1f5f9', background: even ? '#fff' : '#fafafa', borderLeft: '4px solid ' + p2.c } },
             // #
             e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 4px', borderLeft: 'none' } },
               e('div', { style: { width: 28, height: 28, borderRadius: '50%', background: p2.c, display: 'flex', alignItems: 'center', justifyContent: 'center' } },
@@ -3387,11 +3389,11 @@ class Component extends DCLogic {
               )
             ),
             // Conclusion
-            e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: cc.bg, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 6, textAlign: 'left' } },
+            e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: cc.bg, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', gap: 6, textAlign: 'left' } },
               e('div', { style: { fontSize: 13, color: '#64748b', lineHeight: 1.4 } }, p2.concNote.split('\n').map((l, i) => e('div', { key: i }, l)))
             ),
             // Next Step
-            e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 6, textAlign: 'left' } },
+            e('div', { style: { padding: '10px', borderLeft: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', gap: 6, textAlign: 'left' } },
               e('div', { style: { fontSize: 14, color: '#334155', lineHeight: 1.5 } }, p2.next.split('\n').map((l, i) => e('div', { key: i }, l)))
             )
           );
