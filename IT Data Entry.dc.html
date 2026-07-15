@@ -2507,7 +2507,7 @@ class Component extends DCLogic {
                 e('div',{style:{display:'flex',alignItems:'center'}},
                   this.state.addingLeadFor === p.id
                     ? e('input',{type:'text',list:listId,autoFocus:true,defaultValue:'',placeholder:'ชื่อ Lead',onKeyDown:(ev)=>{ if(ev.key==='Enter'){ this.addTaskLead(idx,ev.target.value); this.setState({addingLeadFor:null}); } if(ev.key==='Escape'){ this.setState({addingLeadFor:null}); } },onBlur:(ev)=>{ if(ev.target.value.trim()) this.addTaskLead(idx,ev.target.value); this.setState({addingLeadFor:null}); },style:{fontSize:12,color:'#374151',border:'1px solid #d1d5db',borderRadius:6,padding:'3px 6px',outline:'none',flex:1,minWidth:0,fontFamily:"'72','Inter','Kanit',sans-serif"}})
-                    : e('button',{type:'button',onClick:()=>this.setState({addingLeadFor:p.id}),style:{fontSize:11,fontWeight:600,color:'#2563eb',background:'#eff6ff',border:'1px dashed #93c5fd',borderRadius:12,padding:'3px 10px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},'+ เพิ่ม Lead'),
+                    : e('button',{type:'button',onClick:()=>this.setState({addingLeadFor:p.id}),style:{fontSize:11,fontWeight:600,color:'#2563eb',background:'#eff6ff',border:'1px dashed #93c5fd',borderRadius:12,padding:'3px 10px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},'+ เพิ่ม lead'),
                   e('datalist',{id:listId}, ...dir.map(u=>e('option',{key:u.name,value:u.name})))
                 )
               );
