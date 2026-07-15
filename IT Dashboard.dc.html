@@ -1784,7 +1784,7 @@ class Component extends DCLogic {
     const donutR = 18, donutCx = 22, donutCy = 22, donutStroke = 6;
     const donutCircum = 2 * Math.PI * donutR;
     const donutFill = donutCircum * (pipelinePct / 100);
-    const miniDonut = e('svg', { width: 34, height: 34, viewBox: '0 0 44 44' },
+    const miniDonut = e('svg', { width: 40, height: 40, viewBox: '0 0 44 44' },
       e('circle', { cx: donutCx, cy: donutCy, r: donutR, fill: 'none', stroke: '#e2e8f0', strokeWidth: donutStroke }),
       e('circle', { cx: donutCx, cy: donutCy, r: donutR, fill: 'none', stroke: '#2563eb', strokeWidth: donutStroke,
         strokeDasharray: donutFill + ' ' + (donutCircum - donutFill),
@@ -1793,8 +1793,8 @@ class Component extends DCLogic {
 
     // Icon circle helper
     const kpiIcon = (path, color) =>
-      e('div', { style: { width: 28, height: 28, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px ' + color + '55' } },
-        e('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+      e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px ' + color + '55' } },
+        e('svg', { width: 17, height: 17, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
           e('path', { d: path })
         )
       );
@@ -1802,13 +1802,13 @@ class Component extends DCLogic {
     const kpiSep = e('div', { style: { width: 1, background: '#e2e8f0', alignSelf: 'stretch', margin: '8px 0', flexShrink: 0 } });
 
     const kpiCell = (icon, label, value, sub, valColor, labelColor) =>
-      e('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', flexShrink: 0 } },
+      e('div', { style: { display: 'flex', alignItems: 'center', gap: 11, padding: '10px 18px', flexShrink: 0 } },
         icon,
         e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1 } },
-          e('div', { style: { fontSize: label.length > 6 ? 9.5 : 10.5, fontWeight: 600, color: labelColor || '#64748b', lineHeight: 1.25, whiteSpace: 'pre-line' } }, label),
-          e('div', { style: { display: 'flex', alignItems: 'baseline', gap: 4 } },
-            e('div', { style: { fontSize: 24, fontWeight: 700, color: valColor || '#0f172a', lineHeight: 1 } }, value),
-            sub ? e('div', { style: { fontSize: 11, color: '#94a3b8', fontWeight: 400 } }, sub) : null
+          e('div', { style: { fontSize: label.length > 6 ? 12 : 13, fontWeight: 600, color: labelColor || '#64748b', lineHeight: 1.25, whiteSpace: 'pre-line' } }, label),
+          e('div', { style: { display: 'flex', alignItems: 'baseline', gap: 5 } },
+            e('div', { style: { fontSize: 30, fontWeight: 700, color: valColor || '#0f172a', lineHeight: 1 } }, value),
+            sub ? e('div', { style: { fontSize: 13, color: '#94a3b8', fontWeight: 400 } }, sub) : null
           )
         )
       );
@@ -1817,11 +1817,11 @@ class Component extends DCLogic {
       // KPI Summary bar
       e('div', { style: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,.08)', display: 'flex', alignItems: 'center', overflowX: 'auto', overflowY: 'hidden', minHeight: 74 } },
         // KPI Summary label
-        e('div', { style: { background: '#0f172a', padding: '0 12px', alignSelf: 'stretch', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, minWidth: 72, flexShrink: 0 } },
-          e('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: '#38bdf8', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' },
+        e('div', { style: { background: '#0f172a', padding: '0 16px', alignSelf: 'stretch', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, minWidth: 86, flexShrink: 0 } },
+          e('svg', { width: 21, height: 21, viewBox: '0 0 24 24', fill: 'none', stroke: '#38bdf8', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' },
             e('path', { d: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' })
           ),
-          e('div', { style: { fontSize: 11.5, fontWeight: 700, color: '#f8fafc', letterSpacing: '.01em', textAlign: 'center', lineHeight: 1.3 } }, 'KPI\nSUMMARY')
+          e('div', { style: { fontSize: 13.5, fontWeight: 700, color: '#f8fafc', letterSpacing: '.01em', textAlign: 'center', lineHeight: 1.3 } }, 'KPI\nSUMMARY')
         ),
         kpiSep,
         kpiCell(kpiIcon('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', '#ef4444'), 'Total Program', totalPrgAll, 'โครงการ', '#0f172a'),
@@ -1832,35 +1832,35 @@ class Component extends DCLogic {
         kpiSep,
         kpiCell(kpiIcon('M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', '#94a3b8'), 'Not started', waitAll, 'โครงการ', '#94a3b8'),
         kpiSep,
-        e('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', flexShrink: 0 } },
+        e('div', { style: { display: 'flex', alignItems: 'center', gap: 11, padding: '10px 18px', flexShrink: 0 } },
           miniDonut,
           e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1 } },
-            e('div', { style: { fontSize: 9.5, fontWeight: 600, color: '#2563eb', lineHeight: 1.25 } }, 'Pipeline Completion'),
-            e('div', { style: { fontSize: 24, fontWeight: 700, color: '#2563eb', lineHeight: 1 } }, pipelinePct + '%')
+            e('div', { style: { fontSize: 12, fontWeight: 600, color: '#2563eb', lineHeight: 1.25 } }, 'Pipeline Completion'),
+            e('div', { style: { fontSize: 30, fontWeight: 700, color: '#2563eb', lineHeight: 1 } }, pipelinePct + '%')
           )
         ),
         kpiSep,
-        e('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', flexShrink: 0 } },
+        e('div', { style: { display: 'flex', alignItems: 'center', gap: 11, padding: '10px 18px', flexShrink: 0 } },
           kpiIcon('M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 100-8 4 4 0 000 8zm6 3c0-1.657-3.582-3-8-3s-8 1.343-8 3', workloadColor),
           e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1 } },
-            e('div', { style: { fontSize: 10.5, fontWeight: 600, color: '#64748b', lineHeight: 1.25 } }, 'Workload'),
-            e('div', { style: { fontSize: 15, fontWeight: 700, color: workloadColor, lineHeight: 1, whiteSpace:'nowrap' } }, workloadLabel)
+            e('div', { style: { fontSize: 12.5, fontWeight: 600, color: '#64748b', lineHeight: 1.25 } }, 'Workload'),
+            e('div', { style: { fontSize: 19, fontWeight: 700, color: workloadColor, lineHeight: 1, whiteSpace:'nowrap' } }, workloadLabel)
           )
         ),
         kpiSep,
-        e('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', flexShrink: 0 } },
+        e('div', { style: { display: 'flex', alignItems: 'center', gap: 11, padding: '10px 18px', flexShrink: 0 } },
           kpiIcon('M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', budgetHealthColor),
           e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1 } },
-            e('div', { style: { fontSize: 9.5, fontWeight: 600, color: '#64748b', lineHeight: 1.25 } }, 'Budget Health'),
-            e('div', { style: { fontSize: 14, fontWeight: 700, color: budgetHealthColor, lineHeight: 1, whiteSpace:'nowrap' } }, budgetHealthLabel)
+            e('div', { style: { fontSize: 12, fontWeight: 600, color: '#64748b', lineHeight: 1.25 } }, 'Budget Health'),
+            e('div', { style: { fontSize: 18, fontWeight: 700, color: budgetHealthColor, lineHeight: 1, whiteSpace:'nowrap' } }, budgetHealthLabel)
           )
         ),
         kpiSep,
         // Total Budget — dark navy right block
-        e('div', { style: { background: '#0f172a', padding: '0 12px', alignSelf: 'stretch', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 2, marginLeft: 'auto', flexShrink: 0, minWidth: 96 } },
-          e('div', { style: { fontSize: 10.5, fontWeight: 600, color: '#94a3b8' } }, 'Total Budget'),
-          e('div', { style: { fontSize: 17, fontWeight: 700, color: '#ef4444', lineHeight: 1 } }, '฿' + totalBudgetM.toFixed(1) + ' M'),
-          e('div', { style: { fontSize: 11, fontWeight: 600, color: '#f8fafc' } }, budgetUsedPct + '% utilized')
+        e('div', { style: { background: '#0f172a', padding: '0 16px', alignSelf: 'stretch', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 2, marginLeft: 'auto', flexShrink: 0, minWidth: 108 } },
+          e('div', { style: { fontSize: 12, fontWeight: 600, color: '#94a3b8' } }, 'Total Budget'),
+          e('div', { style: { fontSize: 20, fontWeight: 700, color: '#ef4444', lineHeight: 1 } }, '฿' + totalBudgetM.toFixed(1) + ' M'),
+          e('div', { style: { fontSize: 12.5, fontWeight: 600, color: '#f8fafc' } }, budgetUsedPct + '% utilized')
         )
       ),
       // Summary panels — p1+p5 top, p4 full-width, p2 full-width, p3
