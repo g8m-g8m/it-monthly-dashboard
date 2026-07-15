@@ -2720,6 +2720,162 @@ class Component extends DCLogic {
         strokeDasharray: capFillA + ' ' + (capCircum - capFillA),
         strokeDashoffset: capCircum * 0.25, strokeLinecap: 'butt' })
     );
+    // ── Budget & Projects: top summary portlet ──────────────────────
+    const budgetSummaryPortlet = (() => {
+      const bsPct = tBg > 0 ? Math.round((tSp / tBg) * 100) : 0;
+      const bsUnderPct = 100 - bsPct;
+      const bsMomCur = momReady ? thisMonthIncGroups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0) : null;
+      const bsTrendColor = bsPct <= 85 ? '#7c3aed' : '#ef4444';
+      const bsTrendLabel = bsPct <= 85 ? 'ควบคุมได้' : 'เกินแผน';
+
+      const bsStat = (icon, iconBg, label, value, valueColor, sub) => e('div', { style: { flex: 1, minWidth: 200, background: '#fff', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', gap: 12, alignItems: 'flex-start' } },
+        e('div', { style: { width: 40, height: 40, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, icon),
+        e('div', { style: { minWidth: 0 } },
+          e('div', { style: { fontSize: 13, color: '#64748b', fontWeight: 600, marginBottom: 2 } }, label),
+          e('div', { style: { fontSize: 24, fontWeight: 800, color: valueColor, lineHeight: 1.15 } }, value),
+          sub ? e('div', { style: { fontSize: 12, color: '#94a3b8', marginTop: 3, lineHeight: 1.3 } }, sub) : null
+        )
+      );
+
+      const bsDonutR = 46, bsDonutCx = 54, bsDonutCy = 54, bsDonutSw = 14;
+      const bsCircum = 2 * Math.PI * bsDonutR;
+      const bsFill = bsCircum * (Math.min(bsPct,100) / 100);
+      const bsDonut = e('svg', { width: 108, height: 108, viewBox: '0 0 108 108' },
+        e('circle', { cx: bsDonutCx, cy: bsDonutCy, r: bsDonutR, fill: 'none', stroke: '#e2e8f0', strokeWidth: bsDonutSw }),
+        e('circle', { cx: bsDonutCx, cy: bsDonutCy, r: bsDonutR, fill: 'none', stroke: '#2563eb', strokeWidth: bsDonutSw, strokeDasharray: bsFill + ' ' + (bsCircum - bsFill), strokeLinecap: 'round', transform: 'rotate(-90 54 54)' })
+      );
+
+      const bsBarMax = Math.max(tBg, tSp) * 1.08 || 1;
+      const bsBar = (label, val, color) => e('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+        e('div', { style: { width: 52, fontSize: 13, color: '#64748b', fontWeight: 600, flexShrink: 0 } }, label),
+        e('div', { style: { flex: 1, height: 20, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' } },
+          e('div', { style: { height: '100%', width: Math.min(100, (val / bsBarMax) * 100) + '%', background: color, borderRadius: 4 } })
+        ),
+        e('div', { style: { width: 66, fontSize: 13, fontWeight: 700, color: '#0f172a', textAlign: 'right', flexShrink: 0 } }, '฿' + val.toFixed(1) + 'M')
+      );
+
+      // Condensed category breakdown (CapEx / OpEx groups)
+      const bsRows = [];
+      ['CapEx','OpEx'].forEach(ty => {
+        const groups = budGroups.filter(g => g.type === ty);
+        if (!groups.length) return;
+        const gBg = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.bg,0),0);
+        const gSp = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0);
+        const gPct = gBg > 0 ? Math.round((gSp / gBg) * 100) : 0;
+        bsRows.push(e('div', { key: ty, style: { display: 'grid', gridTemplateColumns: '90px 1fr 46px', gap: 8, alignItems: 'center', padding: '8px 0' } },
+          e('div', { style: { fontSize: 14, fontWeight: 700, color: '#0f172a' } }, ty),
+          e('div', { style: { height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' } },
+            e('div', { style: { height: '100%', width: Math.min(100,gPct) + '%', background: ty==='CapEx' ? '#2563eb' : '#10b981', borderRadius: 4 } })
+          ),
+          e('div', { style: { fontSize: 13, fontWeight: 700, color: gPct > 85 ? '#ef4444' : '#0f172a', textAlign: 'right' } }, gPct + '%')
+        ));
+        groups.forEach(g => {
+          const pBg = g.categories.reduce((s,c)=>s+c.bg,0);
+          const pSp = g.categories.reduce((s,c)=>s+c.sp,0);
+          const pPct = pBg > 0 ? Math.round((pSp / pBg) * 100) : 0;
+          bsRows.push(e('div', { key: ty+g.parent, title: g.parent, style: { display: 'grid', gridTemplateColumns: '90px 1fr 46px', gap: 8, alignItems: 'center', padding: '4px 0 4px 14px' } },
+            e('div', { style: { fontSize: 12.5, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', gridColumn: '1 / 3' } }, g.parent),
+            e('div', { style: { fontSize: 12.5, fontWeight: 600, color: pPct > 85 ? '#ef4444' : '#64748b', textAlign: 'right' } }, pPct + '%')
+          ));
+        });
+      });
+
+      // Monthly trend (cumulative actual) from real report history
+      const bsHist = (this.state.budgetHistoryRaw || []).map(r => ({
+        label: MONTHS[(r.period_month-1)] + ' ' + String(r.period_year).slice(2),
+        act: this._computeBudGroupsFromData(r.data).flatMap(g=>g.categories).reduce((s,c)=>s+c.sp,0)
+      }));
+      const bsTrendReady = bsHist.length >= 2;
+      const bsTrendChart = (() => {
+        if (!bsTrendReady) return e('div', { style: { fontSize: 12.5, color: '#94a3b8', textAlign: 'center', padding: '30px 10px' } }, 'ยังมีข้อมูลไม่พอสำหรับแสดงแนวโน้ม (ต้องมีอย่างน้อย 2 เดือน)');
+        const w = 300, h = 130, padL = 34, padB = 20, padT = 10;
+        const maxV = Math.max(...bsHist.map(d=>d.act)) * 1.15 || 1;
+        const stepX = (w - padL - 10) / (bsHist.length - 1);
+        const pts = bsHist.map((d,i) => [padL + i*stepX, padT + (h-padT-padB) * (1 - d.act/maxV)]);
+        const path = pts.map((p,i) => (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+        return e('svg', { width: '100%', height: h, viewBox: '0 0 ' + w + ' ' + h, preserveAspectRatio: 'xMidYMid meet' },
+          [0,0.5,1].map(f => e('line', { key: f, x1: padL, x2: w-10, y1: padT+(h-padT-padB)*f, y2: padT+(h-padT-padB)*f, stroke: '#f1f5f9', strokeWidth: 1 })),
+          e('path', { d: path, fill: 'none', stroke: '#2563eb', strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+          ...pts.map((p,i) => e('circle', { key: i, cx: p[0], cy: p[1], r: 3.5, fill: '#fff', stroke: '#2563eb', strokeWidth: 2 })),
+          ...bsHist.map((d,i) => e('text', { key: 'lbl'+i, x: pts[i][0], y: h-4, fontSize: 9, fill: '#94a3b8', textAnchor: 'middle' }, d.label))
+        );
+      })();
+
+      // Insight / top-spend / warning derivation
+      const bsTopGroup = ['CapEx','OpEx'].map(ty => {
+        const groups = budGroups.filter(g => g.type === ty);
+        const gBg = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.bg,0),0);
+        const gSp = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0);
+        return { ty, pct: gBg>0?Math.round((gSp/gBg)*100):0 };
+      }).sort((a,b)=>b.pct-a.pct)[0];
+      const bsWarnCat = budGroups.filter(g=>g.type==='CapEx').flatMap(g=>g.categories.map(c=>({...c, pct: c.bg>0?Math.round((c.sp/c.bg)*100):0}))).sort((a,b)=>b.pct-a.pct)[0];
+
+      return e('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
+        // Header + 3 stat cards
+        e('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' } },
+          e('div', null,
+            e('div', { style: { fontSize: 13, fontWeight: 700, color: '#94a3b8', letterSpacing: '.04em' } }, 'IT BUDGET FY2026'),
+            e('div', { style: { fontSize: 24, fontWeight: 800, color: '#0f172a' } }, 'Budget vs Actual ', e('span', { style: { color: '#2563eb' } }, '(Cumulative)')),
+            e('div', { style: { fontSize: 13, color: '#94a3b8', marginTop: 2 } }, 'Technology Dept. · Pacificpipe PLC · ' + MONTH_FULL[filterMonth-1])
+          ),
+          e('div', { style: { display: 'flex', gap: 12, flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' } },
+            bsStat(e('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z'})), '#2563eb', 'ใช้งบรวม', bsPct+'%', '#2563eb', 'จากงบประมาณทั้งหมด (฿'+tSp.toFixed(1)+'M / ฿'+tBg.toFixed(1)+'M)'),
+            bsStat(e('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M13 7h8m0 0v8m0-8L13 15l-4-4-6 6'})), '#10b981', 'การใช้จ่ายเดือนนี้', bsMomCur!=null ? (bsMomCur>=0?'+':'') + bsMomCur.toFixed(1)+'M' : '—', '#10b981', momReady ? 'MoM (' + MONTH_FULL[(filterMonth-2+12)%12].slice(0,3) + ' → ' + MONTH_FULL[filterMonth-1].slice(0,3) + ')' : 'ยังไม่มีข้อมูลเดือนก่อนหน้า'),
+            bsStat(e('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'})), '#8b5cf6', 'แนวโน้มรวม', bsTrendLabel, bsTrendColor, 'ต่ำกว่างบประมาณ ' + bsUnderPct + '%')
+          )
+        ),
+        // Donut + bar chart | breakdown
+        e('div', { style: { display: 'grid', gridTemplateColumns: '340px 1fr', gap: 12 } },
+          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', flexDirection: 'column', gap: 14 } },
+            e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b' } }, 'ภาพรวมการใช้งบประมาณ'),
+            e('div', { style: { display: 'flex', alignItems: 'center', gap: 16 } },
+              e('div', { style: { position: 'relative', flexShrink: 0 } },
+                bsDonut,
+                e('div', { style: { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' } },
+                  e('div', { style: { fontSize: 22, fontWeight: 800, color: '#0f172a' } }, bsPct + '%'),
+                  e('div', { style: { fontSize: 10.5, color: '#94a3b8' } }, 'ใช้งบแล้ว')
+                )
+              ),
+              e('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+                e('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, e('div', { style: { width: 8, height: 8, borderRadius: '50%', background: '#2563eb' } }), e('div', null, e('div', { style: { fontSize: 12, color: '#64748b' } }, 'ใช้งบแล้ว'), e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a' } }, '฿' + tSp.toFixed(1) + 'M'))),
+                e('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, e('div', { style: { width: 8, height: 8, borderRadius: '50%', background: '#e2e8f0' } }), e('div', null, e('div', { style: { fontSize: 12, color: '#64748b' } }, 'คงเหลือ'), e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a' } }, '฿' + (tBg-tSp).toFixed(1) + 'M'))),
+                e('div', { style: { fontSize: 12, color: '#94a3b8', marginTop: 2 } }, 'งบประมาณทั้งหมด'),
+                e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a' } }, '฿' + tBg.toFixed(1) + 'M')
+              )
+            ),
+            e('div', { style: { borderTop: '1px solid #f1f5f9', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 } },
+              e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b' } }, 'เปรียบเทียบ Budget vs Actual'),
+              bsBar('Budget', tBg, '#cbd5e1'),
+              bsBar('Actual', tSp, '#2563eb')
+            )
+          ),
+          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', flexDirection: 'column', overflowY: 'auto' } },
+            e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 4 } }, 'รายละเอียดตามหมวดหมู่'),
+            ...bsRows
+          )
+        ),
+        // Insights + monthly trend
+        e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 300px', gap: 12 } },
+          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', gap: 10, alignItems: 'flex-start' } },
+            e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#d97706',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z'}))),
+            e('div', null, e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 3 } }, 'INSIGHT'), e('div', { style: { fontSize: 12.5, color: '#64748b', lineHeight: 1.5 } }, 'การใช้จ่ายโดยรวมอยู่ที่ ', e('b', { style: { color: '#0f172a' } }, bsPct + '%'), ' ต่ำกว่างบประมาณ ', e('b', { style: { color: '#16a34a' } }, bsUnderPct + '%')))
+          ),
+          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', gap: 10, alignItems: 'flex-start' } },
+            e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#16a34a',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 2a10 10 0 100 20 10 10 0 000-20zm0 5a5 5 0 100 10 5 5 0 000-10zm0 3a2 2 0 100 4 2 2 0 000-4z'}))),
+            e('div', null, e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 3 } }, 'หมวดที่มีการใช้จ่ายสูงสุด'), e('div', { style: { fontSize: 12.5, color: '#64748b', lineHeight: 1.5 } }, bsTopGroup ? e('span', null, bsTopGroup.ty, ' คิดเป็น ', e('b', { style: { color: '#0f172a' } }, bsTopGroup.pct + '%'), ' ของงบประมาณ' + bsTopGroup.ty + ' ควบคุมค่าใช้จ่ายได้ตามแผน') : '—'))
+          ),
+          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', gap: 10, alignItems: 'flex-start' } },
+            e('div', { style: { width: 34, height: 34, borderRadius: '50%', background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, e('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#ea580c',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'}))),
+            e('div', null, e('div', { style: { fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 3 } }, 'รายการที่ต้องติดตาม'), e('div', { style: { fontSize: 12.5, color: '#64748b', lineHeight: 1.5 } }, bsWarnCat ? e('span', null, bsWarnCat.n, ' ใช้งบใกล้เต็มกรอบ ', e('b', { style: { color: '#ea580c' } }, bsWarnCat.pct + '%')) : 'ไม่มีรายการที่ต้องเฝ้าระวัง'))
+          ),
+          e('div', { style: { background: '#fff', borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.07)' } },
+            e('div', { style: { fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 4 } }, 'MONTHLY TREND (Actual)'),
+            bsTrendChart
+          )
+        )
+      );
+    })();
+
     const budgetEl = e('div', { style: { display: 'flex', flexDirection: 'column', gap: 0, background: '#fff', borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.08)' } },
       // ── CapEx KPI Strip Header ─────────────────────────────────
       (() => {
@@ -3512,7 +3668,7 @@ class Component extends DCLogic {
     );
 
     // ── Assemble ─────────────────────────────────────────────────
-    const map = { overview: overviewEl, uptime: uptimeEl, network: networkEl, security: securityEl, budget: budgetEl, projects: projectsEl };
+    const map = { overview: overviewEl, uptime: uptimeEl, network: networkEl, security: securityEl, budget: e('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } }, budgetSummaryPortlet, budgetEl), projects: projectsEl };
 
     return {
       navItems,
