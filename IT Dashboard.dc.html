@@ -1626,7 +1626,7 @@ class Component extends DCLogic {
           const gSp = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0);
           const gPct = gBg>0 ? Math.round((gSp/gBg)*100) : 0;
           // Type header
-          rows.push(e('div', { key: ty + '-hd', style: { display: 'grid', gridTemplateColumns: cols, gap: '0 4px', padding: '7px 6px 6px', borderBottom: '2px groove #cbd5e1', marginBottom: 2, alignItems: 'center' } },
+          rows.push(e('div', { key: ty + '-hd', style: { display: 'grid', gridTemplateColumns: cols, gap: '0 4px', padding: '7px 6px 6px', borderBottom: '2px groove #f1f5f9', alignItems: 'center' } },
             e('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, iconWrap(ty==='CapEx'?icTeam:icWallet, ty==='CapEx'?'#2563eb':'#10b981'), e('span', { style: { fontSize: 14, fontWeight: 700, color: '#0f172a', letterSpacing: '.01em' } }, ty)),
             e('div', { style: { fontSize: 13, color: '#64748b', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + gBg.toFixed(1) + 'M'),
             e('div', { style: { fontSize: 12, color: '#94a3b8', textAlign: 'center' } }, '→'),
@@ -2776,7 +2776,7 @@ class Component extends DCLogic {
         const gBg = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.bg,0),0);
         const gSp = groups.reduce((s,g)=>s+g.categories.reduce((ss,c)=>ss+c.sp,0),0);
         const gPct = gBg > 0 ? Math.round((gSp / gBg) * 100) : 0;
-        bsRows.push(e('div', { key: ty, style: { display: 'grid', gridTemplateColumns: bsCols, gap: 8, alignItems: 'center', padding: '9px 0 8px', borderBottom: '2px groove #cbd5e1' } },
+        bsRows.push(e('div', { key: ty, style: { display: 'grid', gridTemplateColumns: bsCols, gap: 8, alignItems: 'center', padding: '9px 0 8px', borderBottom: '2px groove #f1f5f9' } },
           e('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, bsIconWrap(ty==='CapEx'?icTeam:icWallet, ty==='CapEx'?'#2563eb':'#10b981'), e('span', { style: { fontSize: 14.5, fontWeight: 700, color: '#0f172a' } }, ty)),
           e('div', { style: { fontSize: 13, color: '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }, '฿' + gBg.toFixed(1) + 'M'),
           e('div', { style: { fontSize: 12, color: '#cbd5e1', textAlign: 'center' } }, '→'),
