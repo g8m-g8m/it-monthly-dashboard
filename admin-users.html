@@ -189,9 +189,9 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg>
         <span class="sidebar-label">Dashboard</span>
       </a>
-      <a class="sidebar-row" href="./IT Data Entry.dc.html" title="Data Entry">
+      <a class="sidebar-row" href="./IT Data Entry.dc.html" title="Service Category">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        <span class="sidebar-label">Data Entry</span>
+        <span class="sidebar-label">Service Category</span>
       </a>
       <div class="sidebar-row active" title="User Management">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
@@ -265,7 +265,7 @@
       <div class="card-hd">
         <div>
           <div class="card-hd-title">Organization Branding</div>
-          <div class="card-hd-sub">ชื่อบริษัทและโลโก้ที่แสดงใน Sidebar ของ Dashboard และ Data Entry</div>
+          <div class="card-hd-sub">ชื่อบริษัทและโลโก้ที่แสดงใน Sidebar ของ Dashboard และ Service Category</div>
         </div>
       </div>
       <div style="padding:24px">
@@ -417,7 +417,7 @@
 
         <div style="border:1px solid #d1d9e0;border-radius:8px;padding:10px 13px">
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#1d2d3e;cursor:pointer;margin-bottom:8px">
-            <input type="checkbox" id="edit-menu-data_entry-all" onchange="toggleMenuGroup('data_entry', this.checked)" style="width:auto"> Data Entry
+            <input type="checkbox" id="edit-menu-data_entry-all" onchange="toggleMenuGroup('data_entry', this.checked)" style="width:auto"> Service Category
           </label>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;padding-left:22px">
             <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="period" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> Period</label>
@@ -439,6 +439,14 @@
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#a8b5c0;cursor:not-allowed">
           <input type="checkbox" id="edit-menu-user_management" style="width:auto" disabled> User Management
         </label>
+
+        <div style="border:1px solid #d1d9e0;border-radius:8px;padding:10px 13px">
+          <div style="font-size:13px;font-weight:700;color:#1d2d3e;margin-bottom:8px">User Management — RBAC Menu</div>
+          <div style="display:flex;flex-direction:column;gap:6px;padding-left:2px">
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-dash" data-tab="kpi" onchange="syncMenuGroupMaster('dashboard')" style="width:auto"> Lead &amp; Dept KPI</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#475467;cursor:pointer"><input type="checkbox" class="edit-menu-entry" data-tab="people" onchange="syncMenuGroupMaster('data_entry')" style="width:auto"> People &amp; Org</label>
+          </div>
+        </div>
       </div>
       <div style="font-size:11px;color:#a8b5c0;margin-top:5px">User Management เปิดให้อัตโนมัติเมื่อ Role เป็น Admin เท่านั้น — ป้องกันการมอบสิทธิ์จัดการผู้ใช้ให้ Role อื่น</div>
     </div>
@@ -713,7 +721,7 @@ async function saveBranding() {
   }
   btn.textContent = 'Save Branding'; btn.disabled = false;
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
-  okEl.textContent = 'บันทึกแล้ว — รีเฟรช Dashboard/Data Entry เพื่อดูการเปลี่ยนแปลง';
+  okEl.textContent = 'บันทึกแล้ว — รีเฟรช Dashboard/Service Category เพื่อดูการเปลี่ยนแปลง';
   okEl.style.display = 'block';
   setTimeout(() => { okEl.style.display = 'none'; }, 4000);
 }
@@ -911,8 +919,8 @@ async function inviteUser() {
 
 
 
-const DASH_TABS = ['overview','projects','uptime','network','security','budget'];
-const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq','riskissues'];
+const DASH_TABS = ['overview','projects','uptime','network','security','budget','kpi'];
+const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq','riskissues','people'];
 
 function toggleMenuGroup(group, checked) {
   const cls = group === 'dashboard' ? 'edit-menu-dash' : 'edit-menu-entry';
@@ -957,7 +965,7 @@ function menuAccessLabel(p) {
   const access = normalizeMenuAccess(p.menu_access, p.role || 'viewer');
   const parts = [];
   parts.push('Dashboard (' + access.dashboard.length + '/' + DASH_TABS.length + ')');
-  parts.push('Data Entry (' + access.data_entry.length + '/' + ENTRY_TABS.length + ')');
+  parts.push('Service Category (' + access.data_entry.length + '/' + ENTRY_TABS.length + ')');
   if (access.user_management) parts.push('User Mgmt');
   return parts.join(' · ');
 }

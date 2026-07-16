@@ -3511,7 +3511,7 @@ class Component extends DCLogic {
       const tier = statusTier(pct);
       const cardRef = (el) => { if (el) this._kpiRefs[p.name.toLowerCase()] = el; };
       const hoverProps = {
-        onMouseEnter: (ev) => { const r = ev.currentTarget.getBoundingClientRect(); this.setState({ kpiTooltip: { x: r.left + r.width / 2, y: r.top, name: p.name, metricLabel, pct, items: tooltipItems } }); },
+        onMouseEnter: (ev) => { const r = ev.currentTarget.getBoundingClientRect(); this.setState({ kpiTooltip: { x: r.right, y: r.top + r.height / 2, name: p.name, metricLabel, pct, items: tooltipItems } }); },
         onMouseLeave: () => this.setState({ kpiTooltip: null })
       };
       const isWide = p.role === 'Director' || p.role === 'Manager' || p.role === 'Team Lead';
@@ -3571,7 +3571,7 @@ class Component extends DCLogic {
     const kpiTooltipEl = !this.state.kpiTooltip ? null : (() => {
       const t = this.state.kpiTooltip;
       const items = (!t.items || !t.items.length) ? [] : t.items;
-      return e('div', { style: { position: 'fixed', left: t.x, top: t.y - 10, transform: 'translate(-50%, -100%)', zIndex: 999, background: '#0f172aee', backdropFilter: 'blur(6px)', color: '#fff', borderRadius: 12, padding: '12px 14px', minWidth: 220, maxWidth: 300, boxShadow: '0 12px 32px rgba(15,23,42,.35)', pointerEvents: 'none' } },
+      return e('div', { style: { position: 'fixed', left: t.x + 12, top: t.y, transform: 'translateY(-50%)', zIndex: 999, background: '#0f172aee', backdropFilter: 'blur(6px)', color: '#fff', borderRadius: 12, padding: '12px 14px', minWidth: 220, maxWidth: 300, boxShadow: '0 12px 32px rgba(15,23,42,.35)', pointerEvents: 'none' } },
         e('div', { style: { fontSize: 12.5, fontWeight: 700, marginBottom: 2 } }, t.name),
         e('div', { style: { fontSize: 11, color: '#94a3b8', marginBottom: 8 } }, t.metricLabel + (t.pct == null ? '' : ' — ' + t.pct + '%')),
         items.length === 0 ? e('div', { style: { fontSize: 11.5, color: '#cbd5e1' } }, 'ยังไม่มีข้อมูล Project/Program') :
