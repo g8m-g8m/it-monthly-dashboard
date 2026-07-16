@@ -3588,6 +3588,22 @@ class Component extends DCLogic {
     const roots = [...directors, ...unassigned];
     const BAND_ORDER = ['Director', 'Manager', 'Team Lead', 'Individual'];
     const kpiBands = BAND_ORDER.map(role => peopleDirKpi.filter(p => p.role === role));
+    // Reorder each band so siblings (same reportsTo) sit adjacent, grouped in the order their parent
+    // appears in the previous band — minimizes connector crossing and visual overlap.
+    for (let i = 1; i < kpiBands.length; i++) {
+      const prevBand = kpiBands.slice(0, i).reverse().find(b => b.length) || [];
+      if (!prevBand.length) continue;
+      const cur = kpiBands[i];
+      const grouped = [];
+      const used = new Set();
+      prevBand.forEach(parent => {
+        cur.forEach(n => {
+          if (!used.has(n.name) && (n.reportsTo || '').toLowerCase() === parent.name.toLowerCase()) { grouped.push(n); used.add(n.name); }
+        });
+      });
+      cur.forEach(n => { if (!used.has(n.name)) grouped.push(n); });
+      kpiBands[i] = grouped;
+    }
     const kpiBandRows = kpiBands.map((nodes, i) => {
       if (!nodes.length) return null;
       const lvl = KPI_LEVEL_CFG[BAND_ORDER[i]];
