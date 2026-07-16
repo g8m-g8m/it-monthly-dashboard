@@ -2416,7 +2416,7 @@ class Component extends DCLogic {
     const ihBorder  = { 'Completed':'#bbf7d0','In Progress':'#bfdbfe','On Hold':'#fde68a','Delayed':'#fecdd3','Not Started':'#e5e7eb' };
     const ihIcon    = { 'Completed':'M5 13l4 4L19 7','In Progress':'M13 10V3L4 14h7v7l9-11h-7z','On Hold':'M10 9v6m4-6v6','Delayed':'M6 18L18 6M6 6l12 12','Not Started':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' };
     const ihGrad    = { IT:'linear-gradient(135deg,#6366f1,#8b5cf6)',HR:'linear-gradient(135deg,#f97316,#ef4444)',WH:'linear-gradient(135deg,#14b8a6,#0891b2)',PROD:'linear-gradient(135deg,#22c55e,#16a34a)',ACC:'linear-gradient(135deg,#f59e0b,#ea580c)',SALE:'linear-gradient(135deg,#ec4899,#8b5cf6)' };
-    const COL_IH = '40px 1.8fr 150px 220px 165px 150px 150px 150px 80px';
+    const COL_IH = '40px 1.6fr 140px 200px 150px 120px 120px 120px 70px';
 
     const inhouseForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
       e('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 } },
@@ -2506,8 +2506,8 @@ class Component extends DCLogic {
             this.tdCell(e('span',{style:{fontSize:13,color:'#9ca3af',fontWeight:500}},idx+1)),
             // Name (+ kind badge + linked project)
             this.tdCell(e('div',{style:{display:'flex',flexDirection:'column',gap:3,minWidth:0,width:'100%'}},
-              e('div',{style:{display:'flex',alignItems:'center',gap:8,minWidth:0}},
-                e('input',{type:'text',value:p.name,onChange:(ev)=>upd('name',ev.target.value),style:{fontSize:14,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',flex:1,minWidth:0,fontFamily:"'72','Inter','Kanit',sans-serif"}}),
+              e('div',{style:{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 8px',minWidth:0}},
+                e('input',{type:'text',value:p.name,onChange:(ev)=>upd('name',ev.target.value),style:{fontSize:14,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',flex:'1 1 120px',minWidth:100,fontFamily:"'72','Inter','Kanit',sans-serif"}}),
                 (p.kind||'program')==='adhoc' ? e('span',{style:{fontSize:10,fontWeight:700,color:'#92400e',background:'#fef3c7',border:'1px dashed #fbbf24',borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}},'⚡ Ad-hoc') : e('span',{style:{fontSize:10,fontWeight:700,color:'#1d4ed8',background:'#dbeafe',borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}},'📅 Program'),
                 (p.kind||'program')!=='adhoc' ? e('span',{title:'สลับ CapEx / OpEx — ใช้กรอง Dept KPI Success',onClick:()=>upd('capex',!p.capex),style:{fontSize:10,fontWeight:700,color:p.capex?'#065f46':'#94a3b8',background:p.capex?'#d1fae5':'#f1f5f9',border:'1px solid '+(p.capex?'#6ee7b7':'#e2e8f0'),borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap',cursor:'pointer'}},p.capex?'✓ CapEx':'OpEx') : null
               ),
@@ -3698,7 +3698,7 @@ class Component extends DCLogic {
       )
     ) : null;
 
-    const formContent = e('div', { style: { animation: 'fadeIn .2s ease', maxWidth: 1560, margin: '0 auto' } },
+    const formContent = e('div', { style: { animation: 'fadeIn .2s ease', maxWidth: 1440, margin: '0 auto' } },
       confirmDeleteModal,
       confirmDeleteIHModal,
       confirmDeleteCRModal,
