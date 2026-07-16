@@ -148,6 +148,7 @@ class Component extends DCLogic {
       { id: 'CHRINF-26-004', group: 'INF', title: 'SSL certificate renewal',        type: 'Standard',  date: 'Jul 31', status: 'Scheduled', requester: 'N. Sombat',  notes: '' },
     ],
     confirmDeleteRisk: null,
+    confirmDeletePerson: null, newPersonName: '',
     riskRegister: [
       { id: 'RSK-001', kind: 'Risk',  title: 'Resource constraint delays Asset Tracking App', impact: 'High', likelihood: 'Medium', mitigation: 'Assign backup developer; re-baseline timeline', owner: 'C. Nirattisai', status: 'Open', linkedProgramId: null, date: 'Jul 2026' },
       { id: 'ISS-001', kind: 'Issue', title: 'E-Document scope change pending committee approval', impact: 'Medium', likelihood: '', mitigation: 'Escalate to steering committee for decision', owner: 'S. Charoenporn', status: 'In Progress', linkedProgramId: null, date: 'Jul 2026' },
@@ -779,6 +780,19 @@ class Component extends DCLogic {
     meta[key] = { ...(meta[key]||{}), [field]: val };
     this.setState({ peopleMeta: meta });
     try { localStorage.setItem('it_people_roles', JSON.stringify(meta)); } catch(_) {}
+  }
+
+  deletePerson(name) {
+    const people = (this.state.people||[]).filter(p => p.name.toLowerCase() !== name.toLowerCase());
+    const meta = { ...(this.state.peopleMeta||{}) };
+    delete meta[name.toLowerCase()];
+    // clear dangling reportsTo pointing at the deleted person
+    Object.keys(meta).forEach(k => { if ((meta[k].reportsTo||'').toLowerCase() === name.toLowerCase()) meta[k] = { ...meta[k], reportsTo: '' }; });
+    this.setState({ people, peopleMeta: meta, confirmDeletePerson: null });
+    try {
+      localStorage.setItem('it_people_directory', JSON.stringify(people));
+      localStorage.setItem('it_people_roles', JSON.stringify(meta));
+    } catch(_) {}
   }
 
   // Finds an existing person (case-insensitive) or adds a new non-system person; returns canonical name
@@ -3274,16 +3288,22 @@ class Component extends DCLogic {
 
     // ── People & Org (roles + reporting line, drives KPI tree) ────
     const peopleDir = this.getPeopleDirectory();
-    const COL_PPL = '1fr 140px 220px 100px';
+    const COL_PPL = '1fr 140px 220px 100px 44px';
     const peopleForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
-      e('div', null,
-        e('div', { style:{ fontSize:22, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'People & Org'),
-        e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3, marginBottom:20 } }, 'กำหนด Role และสายบังคับบัญชา — ใช้สร้าง KPI Tree ใน Dashboard (Director เห็น Dept KPI + ของตัวเอง, ทีมงานเห็นเฉพาะ Individual KPI)')
+      e('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, marginBottom:20, flexWrap:'wrap' } },
+        e('div', null,
+          e('div', { style:{ fontSize:22, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'People & Org'),
+          e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3 } }, 'กำหนด Role และสายบังคับบัญชา — ใช้สร้าง KPI Tree ใน Dashboard (Director เห็น Dept KPI + ของตัวเอง, ทีมงานเห็นเฉพาะ Individual KPI)')
+        ),
+        e('div', { style:{ display:'flex', gap:8, alignItems:'center' } },
+          e('input',{type:'text',value:this.state.newPersonName,placeholder:'ชื่อสมาชิกใหม่…',onChange:(ev)=>this.setState({newPersonName:ev.target.value}),onKeyDown:(ev)=>{ if(ev.key==='Enter'){ const n=(this.state.newPersonName||'').trim(); if(n){ this.addOrFindPerson(n); this.setState({newPersonName:''}); } } },style:{fontSize:13,color:'#111827',border:'1px solid #e5e7eb',borderRadius:8,padding:'8px 12px',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",width:200}}),
+          e('button',{onClick:()=>{ const n=(this.state.newPersonName||'').trim(); if(n){ this.addOrFindPerson(n); this.setState({newPersonName:''}); } },style:{fontSize:13,fontWeight:600,color:'#fff',background:'#2563eb',border:'none',borderRadius:8,padding:'8px 14px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},'+ เพิ่มสมาชิก')
+        )
       ),
       e('div', { style:{ display:'grid', gridTemplateColumns:COL_PPL, gap:0 } },
-        ...['Name','Role','Reports To','Type'].map(h=>this.thCell(h))
+        ...['Name','Role','Reports To','Type',''].map(h=>this.thCell(h))
       ),
-      peopleDir.length===0 ? this.emptyRow(4,'ยังไม่มี Lead ในระบบ — เพิ่มจากหน้า Projects/In-house ก่อน') : null,
+      peopleDir.length===0 ? this.emptyRow(5,'ยังไม่มี Lead ในระบบ — เพิ่มจากด้านบน หรือจากหน้า Projects/In-house') : null,
       ...peopleDir.map((p, idx) => e('div', { key:p.name+idx, className:'row-tr', style:{ display:'grid', gridTemplateColumns:COL_PPL, gap:0, background:'#fff' } },
         this.tdCell(e('span',{style:{fontSize:13,fontWeight:600,color:'#111827'}},p.name)),
         this.tdCell(e('select',{key:'role'+idx+p.role,defaultValue:p.role,onChange:(ev)=>this.setPersonMeta(p.name,'role',ev.target.value),style:{fontSize:12,fontWeight:600,color:p.role==='Director'?'#7c3aed':'#374151',background:'transparent',border:'none',outline:'none',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},
@@ -3293,7 +3313,11 @@ class Component extends DCLogic {
           e('option',{value:''},'— ไม่มี —'),
           ...peopleDir.filter(o=>o.name.toLowerCase()!==p.name.toLowerCase()).map(o=>e('option',{key:o.name,value:o.name},o.name))
         )),
-        this.tdCell(e('span',{style:{fontSize:11,fontWeight:600,color:p.isSystem?'#2563eb':'#7c3aed'}},p.isSystem?'System':'Dev Team'))
+        this.tdCell(e('span',{style:{fontSize:11,fontWeight:600,color:p.isSystem?'#2563eb':'#7c3aed'}},p.isSystem?'System':'Dev Team')),
+        this.tdCell(p.isSystem ? e('span',{title:'System user — ลบได้ที่ User Management',style:{fontSize:11,color:'#d1d5db'}},'—') :
+          e('button',{onClick:()=>this.setState({confirmDeletePerson:p.name}),style:{background:'none',border:'none',cursor:'pointer',color:'#cbd5e1',padding:4}},
+            e('svg',{width:15,height:15,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},e('path',{d:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'}))
+          ))
       ))
     );
 
@@ -3494,6 +3518,22 @@ class Component extends DCLogic {
       )
     ) : null;
     const delProject = confirmDelete !== null ? projects[confirmDelete] : null;
+    const confirmDeletePersonModal = this.state.confirmDeletePerson ? e('div',{onClick:()=>this.setState({confirmDeletePerson:null}),style:{position:'fixed',inset:0,background:'rgba(15,23,42,.4)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}},
+      e('div',{onClick:ev=>ev.stopPropagation(),style:{background:'#fff',borderRadius:16,padding:'28px',boxShadow:'0 20px 60px rgba(15,23,42,.2)',minWidth:360,fontFamily:"'72','Inter','Kanit',sans-serif"}},
+        e('div',{style:{width:48,height:48,borderRadius:'50%',background:'#fef2f2',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}},
+          e('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:'#ef4444',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'}, e('path',{d:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'}))
+        ),
+        e('div',{style:{fontSize:17,fontWeight:700,color:'#111827',textAlign:'center',marginBottom:8}},'ยืนยันการลบสมาชิก'),
+        e('div',{style:{fontSize:13,color:'#6b7280',textAlign:'center',marginBottom:24,lineHeight:1.6}},
+          'คุณต้องการลบ ', e('span',{style:{fontWeight:700,color:'#111827'}},this.state.confirmDeletePerson), ' ออกจาก People Directory?', e('br'),
+          'งานที่เคย assign ให้คนนี้จะยังอยู่ แต่จะไม่แสดงใน KPI Tree'
+        ),
+        e('div',{style:{display:'flex',gap:10}},
+          e('button',{onClick:()=>this.setState({confirmDeletePerson:null}),style:{flex:1,fontSize:14,color:'#374151',background:'#f3f4f6',border:'none',borderRadius:10,padding:'10px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif",fontWeight:600}},'No, ยกเลิก'),
+          e('button',{onClick:()=>this.deletePerson(this.state.confirmDeletePerson),style:{flex:1,fontSize:14,color:'#fff',background:'#ef4444',border:'none',borderRadius:10,padding:'10px',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif",fontWeight:600}},'Yes, ลบ')
+        )
+      )
+    ) : null;
     const confirmDeleteModal = delProject ? e('div', {
       onClick: () => this.setState({ confirmDelete: null }),
       style: { position:'fixed', inset:0, background:'rgba(15,23,42,.4)', zIndex:500, display:'flex', alignItems:'center', justifyContent:'center' }
@@ -3656,6 +3696,7 @@ class Component extends DCLogic {
       confirmDeleteIHModal,
       confirmDeleteCRModal,
       confirmDeleteRiskModal,
+      confirmDeletePersonModal,
       confirmDeleteSEModal,
       confirmDeleteNetKpiModal,
       confirmDeleteUptimeModal,
