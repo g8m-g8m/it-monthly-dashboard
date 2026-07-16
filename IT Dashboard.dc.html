@@ -3478,7 +3478,7 @@ class Component extends DCLogic {
       }
       const tier = statusTier(pct);
       const tooltip = p.name + '\n' + metricLabel + (pct == null ? '' : ' — ' + pct + '%') + '\n\n' + kpiTooltip(tooltipItems);
-      const isWide = p.role === 'Director' || p.role === 'Manager';
+      const isWide = p.role === 'Director' || p.role === 'Manager' || p.role === 'Team Lead';
       const card = isWide ?
         e('div', { title: tooltip, style: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden', width: 300, boxShadow: '0 1px 4px rgba(15,23,42,.06)', flexShrink: 0 } },
           e('div', { style: { background: lvl.color, color: '#fff', fontSize: 12, fontWeight: 700, padding: '8px 12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p.name),
@@ -3552,22 +3552,26 @@ class Component extends DCLogic {
       ))
     );
     const roots = [...directors, ...unassigned];
-    const renderKpiNode = (p) => {
-      const kids = childrenOf(p.name);
-      return e('div', { key: p.name, style: { display: 'flex', flexDirection: 'column', alignItems: 'center' } },
-        kpiPersonCard(p),
-        kids.length ? e('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' } },
-          e('div', { style: { width: 2, height: 24, background: '#cbd5e1' } }),
-          kids.length > 1 ? e('div', { style: { height: 2, background: '#cbd5e1', width: '100%', maxWidth: kids.length * 300 } }) : null,
-          e('div', { style: { display: 'flex', gap: 28, justifyContent: 'center', flexWrap: 'nowrap', paddingTop: 0 } },
-            ...kids.map(k => e('div', { key: k.name, style: { display: 'flex', flexDirection: 'column', alignItems: 'center' } },
-              e('div', { style: { width: 2, height: 24, background: '#cbd5e1' } }),
-              renderKpiNode(k)
-            ))
-          )
-        ) : null
+    // Bands are grouped by explicit Role (same plane for everyone at that role, regardless of reporting depth)
+    const BAND_ORDER = ['Director', 'Manager', 'Team Lead', 'Individual'];
+    const kpiBands = BAND_ORDER.map(role => peopleDirKpi.filter(p => p.role === role));
+    const kpiBandRows = kpiBands.map((nodes, i) => {
+      if (!nodes.length) return null;
+      const lvl = KPI_LEVEL_CFG[BAND_ORDER[i]];
+      return e('div', { key: BAND_ORDER[i], style: { display: 'flex', flexDirection: 'column', gap: 10 } },
+        i > 0 ? e('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center' } }, e('div', { style: { width: 2, height: 18, background: '#cbd5e1' } })) : null,
+        e('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+          e('div', { style: { width: 22, height: 22, borderRadius: '50%', background: lvl.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
+            e('svg', { width: 11, height: 11, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, e('path', { d: lvl.icon }))
+          ),
+          e('div', { style: { fontSize: 11.5, fontWeight: 800, color: lvl.color } }, lvl.label),
+          e('div', { style: { fontSize: 10.5, color: '#94a3b8' } }, '(' + nodes.length + ')')
+        ),
+        e('div', { style: { display: 'flex', gap: 20, flexWrap: 'nowrap', overflowX: 'auto', justifyContent: nodes.length > 1 ? 'center' : 'flex-start', padding: '2px 2px 10px', width: '100%', boxSizing: 'border-box' } },
+          ...nodes.map(p => e('div', { key: p.name }, kpiPersonCard(p)))
+        )
       );
-    };
+    }).filter(Boolean);
     const kpiTreeEl = e('div', { style: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,.07)', padding: 22, display: 'flex', flexDirection: 'column', gap: 20 } },
       e('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 } },
         e('div', null,
@@ -3576,9 +3580,8 @@ class Component extends DCLogic {
         ),
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' } }, kpiLegend, kpiInfoBox)
       ),
-      kpiLevelStrip,
-      roots.length === 0 ? e('div', { style: { fontSize: 13, color: '#94a3b8' } }, 'ยังไม่ได้ตั้งค่า Role/Reports To — ไปที่ Data Entry ▸ People & Org') :
-        e('div', { style: { display: 'flex', justifyContent: roots.length > 1 ? 'center' : 'flex-start', gap: 40, flexWrap: 'nowrap', overflowX: 'auto', overflowY: 'visible', padding: '4px 4px 12px', width: '100%', boxSizing: 'border-box' } }, ...roots.map(p => renderKpiNode(p))),
+      kpiBandRows.length === 0 ? e('div', { style: { fontSize: 13, color: '#94a3b8' } }, 'ยังไม่ได้ตั้งค่า Role/Reports To — ไปที่ Data Entry ▸ People & Org') :
+        e('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } }, ...kpiBandRows),
       e('div', { style: { display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6, borderTop: '1px solid #f1f5f9', paddingTop: 16 } },
         kpiFooterBox('หมายเหตุ', ['KPI Dept Project Success คำนวณจากทุก Project & Program ระดับ CapEx', 'Individual/Team KPI คำนวณจากงานที่ได้รับมอบหมาย (Assigned Task)']),
         kpiFooterBox('เกณฑ์การประเมิน', ['บรรลุเป้าหมาย >= ' + DEPT_TARGET + '%', 'ใกล้เคียงเป้าหมาย 90% – ' + (DEPT_TARGET - 0.01).toFixed(2) + '%', 'ต่ำกว่าเป้าหมาย < 90%']),
