@@ -1150,10 +1150,10 @@ class Component extends DCLogic {
         ic('M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'),
         sidebarOpen ? e('span', null, 'Dashboard') : null
       ),
-      // Program: Data Entry (this page — expanded)
-      e('div', { style: progRowStyle(true, false), title: !sidebarOpen ? 'Data Entry' : '' },
+      // Program: Service Category (this page — expanded)
+      e('div', { style: progRowStyle(true, false), title: !sidebarOpen ? 'Service Category' : '' },
         ic('M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'),
-        sidebarOpen ? e('span', null, 'Data Entry') : null
+        sidebarOpen ? e('span', null, 'Service Category') : null
       ),
       e('div', { style: sidebarOpen ? { marginLeft: 20, paddingLeft: 10, borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } : { display: 'flex', flexDirection: 'column', gap: 1, margin: '2px 0 8px' } },
         ...tabsVisible.map(t => {
@@ -3811,7 +3811,7 @@ class Component extends DCLogic {
 
     const { showAppMenu } = this.state;
     const appMenuBtn = e('div', null,
-      e('div',{style:{fontSize:17,fontWeight:600,color:'#0f172a',letterSpacing:'-.01em'}}, tabs.find(t=>t.id===tab)?.label ? 'Data Entry — ' + tabs.find(t=>t.id===tab).label : 'Data Entry'),
+      e('div',{style:{fontSize:17,fontWeight:600,color:'#0f172a',letterSpacing:'-.01em'}}, tabs.find(t=>t.id===tab)?.label ? 'Service Category — ' + tabs.find(t=>t.id===tab).label : 'Service Category'),
       e('div',{style:{fontSize:11,color:'#94a3b8',marginTop:1}}, this.state.orgSettings.companyName + ' · IT Department')
     );
 
