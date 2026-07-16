@@ -70,7 +70,7 @@ class Component extends DCLogic {
     session: null, user: null, userRole: null, userName: '', userAvatar: '', menuAccess: null,
     loginEmail: '', loginPassword: '', loginLoading: false, loginError: '',
     supabaseData: null, loadingData: false, trendMonths: [], budgetHistoryRaw: [], budgetViewMode: 'cumulative',
-    orgUsers: [], people: [], prgStatusFilter: '', bsInsightText: '', bsTopSpendText: '', bsWarningText: '',
+    orgUsers: [], people: [], peopleMeta: {}, prgStatusFilter: '', bsInsightText: '', bsTopSpendText: '', bsWarningText: '',
     orgSettings: (function() { try { const c = JSON.parse(localStorage.getItem('it_org_branding')); if (c && c.companyName) return c; } catch(_) {} return { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' }; })(),
     showProfileModal: false, profileName: '', profileAvatarPreview: '', profileSaving: false, profileError: '', profileSuccess: '',
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '' };
@@ -117,7 +117,11 @@ class Component extends DCLogic {
     const nonSys = (this.state.people||[])
       .filter(p => !sys.some(s => s.name.toLowerCase() === p.name.toLowerCase()))
       .map(p => ({ name: p.name, avatarUrl: p.avatarUrl||'', isSystem: false }));
-    return [...sys, ...nonSys];
+    const meta = this.state.peopleMeta || {};
+    return [...sys, ...nonSys].map(p => {
+      const m = meta[p.name.toLowerCase()] || {};
+      return { ...p, role: m.role || 'Member', reportsTo: m.reportsTo || '' };
+    });
   }
 
   _defaultMenuAccess(role) {
@@ -156,6 +160,10 @@ class Component extends DCLogic {
     try {
       const pp = JSON.parse(localStorage.getItem('it_people_directory') || '[]');
       if (pp.length) this.setState({ people: pp });
+    } catch(_) {}
+    try {
+      const pm = JSON.parse(localStorage.getItem('it_people_roles') || '{}');
+      if (pm && Object.keys(pm).length) this.setState({ peopleMeta: pm });
     } catch(_) {}
     // Load latest period + data from DB (same logic as Data Entry)
     try {
@@ -3394,9 +3402,60 @@ class Component extends DCLogic {
       e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 6 } }, titleTxt),
       kpiRowsTable(rows, emptyLabel)
     );
+    const leadKpiMapByName = {};
+    leadKpiRows.forEach(r => { leadKpiMapByName[r.name.toLowerCase()] = r; });
+    const capexItems = [
+      ...(_savedProjects || []).filter(p => p.capex),
+      ...(_savedInhouse || []).filter(p => p.capex && (p.kind || 'program') !== 'adhoc')
+    ];
+    const capexTotal = capexItems.length;
+    const capexSuccessCt = capexItems.filter(p => { const s = kpiScoreFor(p); return s != null && s >= 3; }).length;
+    const deptSuccessPct = capexTotal ? Math.round((capexSuccessCt / capexTotal) * 100) : null;
+    const DEPT_TARGET = 95;
+    const peopleDirKpi = this.getPeopleDirectory();
+    const directors = peopleDirKpi.filter(p => p.role === 'Director');
+    const childrenOf = (name) => peopleDirKpi.filter(p => p.reportsTo && p.reportsTo.toLowerCase() === name.toLowerCase());
+    const unassigned = peopleDirKpi.filter(p => p.role !== 'Director' && !p.reportsTo);
+    const personKpiBadge = (name) => {
+      const r = leadKpiMapByName[name.toLowerCase()];
+      if (!r) return e('span', { style: { fontSize: 12, color: '#94a3b8' } }, 'ไม่มีงานที่ปิดแล้ว');
+      return e('span', { style: { fontSize: 15, fontWeight: 700, color: kpiScoreColor(r.avg) } }, r.avg.toFixed(1) + ' (' + r.n + ' งาน)');
+    };
+    const renderPersonNode = (p, depth) => {
+      const kids = childrenOf(p.name);
+      return e('div', { key: p.name, style: { marginLeft: depth * 26, borderLeft: depth ? '2px solid #e2e8f0' : 'none', paddingLeft: depth ? 16 : 0 } },
+        e('div', { style: { display: 'flex', alignItems: 'center', gap: 12, background: p.role === 'Director' ? '#f5f3ff' : '#fff', border: '1px solid ' + (p.role === 'Director' ? '#ddd6fe' : '#e5e7eb'), borderRadius: 10, padding: '10px 14px', marginBottom: 8 } },
+          e('div', { style: { width: 32, height: 32, borderRadius: '50%', background: p.role === 'Director' ? '#7c3aed' : '#94a3b8', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 } },
+            p.name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+          ),
+          e('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minWidth: 0 } },
+            e('div', { style: { fontSize: 14, fontWeight: 700, color: '#0f172a' } }, p.name),
+            e('div', { style: { fontSize: 11, fontWeight: 600, color: p.role === 'Director' ? '#7c3aed' : '#94a3b8' } }, p.role)
+          ),
+          p.role === 'Director' ? e('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, paddingRight: 14, borderRight: '1px solid #e2e8f0', marginRight: 4 } },
+            e('div', { style: { fontSize: 10, color: '#94a3b8' } }, 'Dept KPI (CapEx Success, target ' + DEPT_TARGET + '%)'),
+            deptSuccessPct == null ? e('div', { style: { fontSize: 13, color: '#94a3b8' } }, 'ยังไม่มีข้อมูล') :
+              e('div', { style: { fontSize: 17, fontWeight: 700, color: deptSuccessPct >= DEPT_TARGET ? '#10b981' : '#ef4444' } }, deptSuccessPct + '%')
+          ) : null,
+          e('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 } },
+            e('div', { style: { fontSize: 10, color: '#94a3b8' } }, 'Individual KPI'),
+            personKpiBadge(p.name)
+          )
+        ),
+        ...kids.map(k => renderPersonNode(k, depth + 1))
+      );
+    };
+    const kpiTreeEl = e('div', { style: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,.07)', padding: 18, display: 'flex', flexDirection: 'column', gap: 4 } },
+      e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 4 } }, 'KPI Org Tree'),
+      e('div', { style: { fontSize: 11, color: '#94a3b8', marginBottom: 10 } }, 'Director เห็น Dept KPI (CapEx Project/Program Success ≥ ' + DEPT_TARGET + '%) + Individual KPI ของตัวเอง · ทีมงานเห็นเฉพาะ Individual KPI ตามงานที่ assign — ตั้งค่า Role/Reports To ได้ที่ Data Entry ▸ People & Org'),
+      directors.length === 0 && unassigned.length === 0 ? e('div', { style: { fontSize: 13, color: '#94a3b8' } }, 'ยังไม่ได้ตั้งค่า Role/Reports To') : null,
+      ...directors.map(d => renderPersonNode(d, 0)),
+      ...unassigned.map(p => renderPersonNode(p, 0))
+    );
     const kpiEl = e('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } },
       e('div', { style: { fontSize: 12, color: '#64748b', background: '#eef2f7', borderRadius: 8, padding: '10px 14px' } }, 'คะแนน: 5 = ก่อนแผน · 4 = ตรงแผน · 3 = ช้ากว่าแผน — คำนวณจากงานที่ปิดแล้ว (Completed) ของ Project และ In-house เทียบเดือน due กับ completedDate (งานเก่าที่ยังไม่มี completedDate จะประเมินเป็น "ตรงแผน" ไปก่อน จนกว่าจะอัปเดตสถานะใหม่)'),
-      kpiCard('Dept KPI Score', deptKpiRows, 'ยังไม่มีข้อมูล'),
+      kpiTreeEl,
+      kpiCard('Dept KPI Score (by department)', deptKpiRows, 'ยังไม่มีข้อมูล'),
       kpiCard('Individual (Lead) KPI Score', leadKpiRows, 'ยังไม่มีข้อมูล')
     );
 

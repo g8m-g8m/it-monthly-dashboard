@@ -110,7 +110,7 @@ class Component extends DCLogic {
     pwNew: '', pwConfirm: '', pwSaving: false, pwError: '', pwSuccess: '',
     orgSettings: (function() { try { const c = JSON.parse(localStorage.getItem('it_org_branding')); if (c && c.companyName) return c; } catch(_) {} return { companyName: 'Pacificpipe PLC', divisionName: 'IT Division', logoLetter: 'P', logoColor: '#2563eb', logoUrl: '' }; })(),
     dirty: false,
-    orgUsers: [], people: [], addingLeadFor: null, ihLeadFilter: '', ihView: 'table',
+    orgUsers: [], people: [], peopleMeta: {}, addingLeadFor: null, ihLeadFilter: '', ihView: 'table',
     duePicker: null,
     customTypes: [],
     addTypePopup: null,
@@ -373,7 +373,12 @@ class Component extends DCLogic {
   }
 
   updateProject(idx, field, val) {
-    const projects = this.state.projects.map((p, i) => i === idx ? Object.assign({}, p, { [field]: val }) : p);
+    const projects = this.state.projects.map((p, i) => {
+      if (i !== idx) return p;
+      const next = Object.assign({}, p, { [field]: val });
+      if (field === 'status') next.completedDate = val === 'completed' ? new Date().toISOString().slice(0,10) : '';
+      return next;
+    });
     this.setState({ projects });
   }
 
@@ -447,6 +452,10 @@ class Component extends DCLogic {
       const pp = JSON.parse(localStorage.getItem('it_people_directory') || '[]');
       if (pp.length) this.setState({ people: pp });
     } catch(_) {}
+    try {
+      const pm = JSON.parse(localStorage.getItem('it_people_roles') || '{}');
+      if (pm && Object.keys(pm).length) this.setState({ peopleMeta: pm });
+    } catch(_) {}
     // Save immediately when user switches tab or closes window
     this._saveNow = () => {
       try {
@@ -485,7 +494,7 @@ class Component extends DCLogic {
 
   _defaultMenuAccess(role) {
     const DASH_TABS = ['overview','projects','uptime','network','security','budget'];
-    const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq','riskissues'];
+    const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq','riskissues','people'];
     if (role === 'admin')  return { dashboard: DASH_TABS.slice(), data_entry: ENTRY_TABS.slice(), user_management: true };
     if (role === 'editor') return { dashboard: DASH_TABS.slice(), data_entry: ENTRY_TABS.slice(), user_management: false };
     return { dashboard: DASH_TABS.slice(), data_entry: [], user_management: false };
@@ -506,6 +515,7 @@ class Component extends DCLogic {
     // for other roles/users stay untouched.
     const dataEntry = Array.isArray(raw.data_entry) ? [...raw.data_entry] : [];
     if (def.data_entry.includes('riskissues') && !dataEntry.includes('riskissues')) dataEntry.push('riskissues');
+    if (def.data_entry.includes('people') && !dataEntry.includes('people')) dataEntry.push('people');
     return {
       dashboard: Array.isArray(raw.dashboard) ? raw.dashboard : [],
       data_entry: dataEntry,
@@ -756,7 +766,19 @@ class Component extends DCLogic {
     const nonSys = (this.state.people||[])
       .filter(p => !sys.some(s => s.name.toLowerCase() === p.name.toLowerCase()))
       .map(p => ({ name: p.name, avatarUrl: p.avatarUrl||'', isSystem: false }));
-    return [...sys, ...nonSys];
+    const meta = this.state.peopleMeta || {};
+    return [...sys, ...nonSys].map(p => {
+      const m = meta[p.name.toLowerCase()] || {};
+      return { ...p, role: m.role || 'Member', reportsTo: m.reportsTo || '' };
+    });
+  }
+
+  setPersonMeta(name, field, val) {
+    const key = name.toLowerCase();
+    const meta = { ...(this.state.peopleMeta||{}) };
+    meta[key] = { ...(meta[key]||{}), [field]: val };
+    this.setState({ peopleMeta: meta });
+    try { localStorage.setItem('it_people_roles', JSON.stringify(meta)); } catch(_) {}
   }
 
   // Finds an existing person (case-insensitive) or adds a new non-system person; returns canonical name
@@ -1095,6 +1117,7 @@ class Component extends DCLogic {
       { id: 'uptime',    label: 'Uptime',        num: '11', d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
       { id: 'changereq', label: 'Change Req',   num: '12', d: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
       { id: 'riskissues', label: 'Risk & Issues', num: '13', d: 'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z' },
+      { id: 'people',     label: 'People & Org', num: '14', d: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 100-8 4 4 0 000 8zm6 3c0-1.657-3.134-3-7-3s-7 1.343-7 3v2h14v-2z' },
     ];
     const _menuAccess = this.state.menuAccess || this._defaultMenuAccess(this.state.userRole || 'viewer');
     const tabsVisible = tabs.filter(t => _menuAccess.data_entry.includes(t.id));
@@ -1482,7 +1505,10 @@ class Component extends DCLogic {
       ...projects.map((p, idx) =>
         e('div', { key: p.id, className: 'row-tr', style: { display: 'grid', gridTemplateColumns: COL_P, gap: 0, background: '#fff' } },
           this.tdCell(e('span', { style: { fontSize: 13, color: '#9ca3af', fontWeight: 500 } }, idx+1)),
-          e('input', { type:'text', value: p.name, onChange:(ev)=>this.updateProject(idx,'name',ev.target.value), style:{ fontSize:14, fontWeight:600, color:'#111827', border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 10px', background:'#f8fafc', outline:'none', width:'100%', fontFamily:"'72','Inter','Kanit',sans-serif" } }),
+          e('div',{style:{display:'flex',flexDirection:'column',gap:3,width:'100%'}},
+            e('input', { type:'text', value: p.name, onChange:(ev)=>this.updateProject(idx,'name',ev.target.value), style:{ fontSize:14, fontWeight:600, color:'#111827', border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 10px', background:'#f8fafc', outline:'none', width:'100%', fontFamily:"'72','Inter','Kanit',sans-serif" } }),
+            e('span',{title:'สลับ CapEx / OpEx — ใช้กรอง Dept KPI Success',onClick:()=>this.updateProject(idx,'capex',!p.capex),style:{fontSize:10,fontWeight:700,color:p.capex?'#065f46':'#94a3b8',background:p.capex?'#d1fae5':'#f1f5f9',border:'1px solid '+(p.capex?'#6ee7b7':'#e2e8f0'),borderRadius:20,padding:'2px 8px',alignSelf:'flex-start',cursor:'pointer'}},p.capex?'✓ CapEx':'OpEx')
+          ),
           this.tdCell(
             e('div', { style: { display:'inline-flex', alignItems:'center', gap:0, background:typeGrad[p.type]||typeGrad['Other'], borderRadius:20, padding:'0', overflow:'hidden' } },
               e('select',{
@@ -2457,7 +2483,7 @@ class Component extends DCLogic {
       // Rows
       ...inhouse.filter(p => (!this.state.ihLeadFilter || this.getTaskLeads(p).includes(this.state.ihLeadFilter)) && (this.state.ihKindFilter==='all'||!this.state.ihKindFilter || (p.kind||'program')===this.state.ihKindFilter) && (!this.state.ihProjectFilter || p.linkedProjectId===this.state.ihProjectFilter)).flatMap((p) => {
         const idx = inhouse.indexOf(p);
-        const upd = (field, val) => { const a=[...this.state.inhouse]; a[idx]={...a[idx],[field]:val}; this.setState({inhouse:a}); };
+        const upd = (field, val) => { const a=[...this.state.inhouse]; const next={...a[idx],[field]:val}; if(field==='status') next.completedDate = val==='Completed' ? new Date().toISOString().slice(0,10) : ''; a[idx]=next; this.setState({inhouse:a}); };
         const sc = { color:ihColors[p.status]||'#6b7280', bg:ihBg[p.status]||'#f9fafb', border:ihBorder[p.status]||'#e5e7eb', ic:ihIcon[p.status]||ihIcon['NOT STARTED'] };
         const due = parseDue(p.due);
         return [
@@ -2468,7 +2494,8 @@ class Component extends DCLogic {
             this.tdCell(e('div',{style:{display:'flex',flexDirection:'column',gap:3,minWidth:0,width:'100%'}},
               e('div',{style:{display:'flex',alignItems:'center',gap:8,minWidth:0}},
                 e('input',{type:'text',value:p.name,onChange:(ev)=>upd('name',ev.target.value),style:{fontSize:14,fontWeight:600,color:'#111827',border:'none',background:'transparent',outline:'none',flex:1,minWidth:0,fontFamily:"'72','Inter','Kanit',sans-serif"}}),
-                (p.kind||'program')==='adhoc' ? e('span',{style:{fontSize:10,fontWeight:700,color:'#92400e',background:'#fef3c7',border:'1px dashed #fbbf24',borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}},'⚡ Ad-hoc') : e('span',{style:{fontSize:10,fontWeight:700,color:'#1d4ed8',background:'#dbeafe',borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}},'📅 Program')
+                (p.kind||'program')==='adhoc' ? e('span',{style:{fontSize:10,fontWeight:700,color:'#92400e',background:'#fef3c7',border:'1px dashed #fbbf24',borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}},'⚡ Ad-hoc') : e('span',{style:{fontSize:10,fontWeight:700,color:'#1d4ed8',background:'#dbeafe',borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}},'📅 Program'),
+                (p.kind||'program')!=='adhoc' ? e('span',{title:'สลับ CapEx / OpEx — ใช้กรอง Dept KPI Success',onClick:()=>upd('capex',!p.capex),style:{fontSize:10,fontWeight:700,color:p.capex?'#065f46':'#94a3b8',background:p.capex?'#d1fae5':'#f1f5f9',border:'1px solid '+(p.capex?'#6ee7b7':'#e2e8f0'),borderRadius:20,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap',cursor:'pointer'}},p.capex?'✓ CapEx':'OpEx') : null
               ),
               e('select',{value:p.linkedProjectId||'',onChange:(ev)=>upd('linkedProjectId',ev.target.value?parseInt(ev.target.value):''),style:{fontSize:11,color:p.linkedProjectId?'#6d28d9':'#c4b5fd',background:'transparent',border:'none',outline:'none',fontFamily:"'72','Inter','Kanit',sans-serif",padding:0,maxWidth:'100%'}},
                 e('option',{value:''},'🔗 Link to Project…'),
@@ -3245,8 +3272,33 @@ class Component extends DCLogic {
       )
     );
 
+    // ── People & Org (roles + reporting line, drives KPI tree) ────
+    const peopleDir = this.getPeopleDirectory();
+    const COL_PPL = '1fr 140px 220px 100px';
+    const peopleForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
+      e('div', null,
+        e('div', { style:{ fontSize:22, fontWeight:800, color:'#111827', letterSpacing:'-.03em' } }, 'People & Org'),
+        e('div', { style:{ fontSize:12, color:'#9ca3af', marginTop:3, marginBottom:20 } }, 'กำหนด Role และสายบังคับบัญชา — ใช้สร้าง KPI Tree ใน Dashboard (Director เห็น Dept KPI + ของตัวเอง, ทีมงานเห็นเฉพาะ Individual KPI)')
+      ),
+      e('div', { style:{ display:'grid', gridTemplateColumns:COL_PPL, gap:0 } },
+        ...['Name','Role','Reports To','Type'].map(h=>this.thCell(h))
+      ),
+      peopleDir.length===0 ? this.emptyRow(4,'ยังไม่มี Lead ในระบบ — เพิ่มจากหน้า Projects/In-house ก่อน') : null,
+      ...peopleDir.map((p, idx) => e('div', { key:p.name+idx, className:'row-tr', style:{ display:'grid', gridTemplateColumns:COL_PPL, gap:0, background:'#fff' } },
+        this.tdCell(e('span',{style:{fontSize:13,fontWeight:600,color:'#111827'}},p.name)),
+        this.tdCell(e('select',{key:'role'+idx+p.role,defaultValue:p.role,onChange:(ev)=>this.setPersonMeta(p.name,'role',ev.target.value),style:{fontSize:12,fontWeight:600,color:p.role==='Director'?'#7c3aed':'#374151',background:'transparent',border:'none',outline:'none',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},
+          ...['Director','Lead','Member'].map(v=>e('option',{key:v,value:v},v))
+        )),
+        this.tdCell(e('select',{key:'rpt'+idx+p.reportsTo,defaultValue:p.reportsTo,onChange:(ev)=>this.setPersonMeta(p.name,'reportsTo',ev.target.value),style:{fontSize:12,color:'#374151',background:'transparent',border:'none',outline:'none',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},
+          e('option',{value:''},'— ไม่มี —'),
+          ...peopleDir.filter(o=>o.name.toLowerCase()!==p.name.toLowerCase()).map(o=>e('option',{key:o.name,value:o.name},o.name))
+        )),
+        this.tdCell(e('span',{style:{fontSize:11,fontWeight:600,color:p.isSystem?'#2563eb':'#7c3aed'}},p.isSystem?'System':'Dev Team'))
+      ))
+    );
+
     // ── Form content by tab ───────────────────────────────────────
-    const contentMap = { period: periodForm, projects: projectsForm, inhouse: inhouseForm, budget: budgetForm, security: e('div',null,securityForm,vulnsSection), secevents: secEventsForm, changereq: changeReqForm, riskissues: riskRegisterForm, network: networkForm, netkpis: netKpisForm, bizsvcs: bizSvcsForm, statusovr: statusOvrForm, uptime: uptimeForm };
+    const contentMap = { period: periodForm, projects: projectsForm, inhouse: inhouseForm, budget: budgetForm, security: e('div',null,securityForm,vulnsSection), secevents: secEventsForm, changereq: changeReqForm, riskissues: riskRegisterForm, people: peopleForm, network: networkForm, netkpis: netKpisForm, bizsvcs: bizSvcsForm, statusovr: statusOvrForm, uptime: uptimeForm };
     // ── Confirm Delete modal ──────────────────────────────────────
         const { addTypePopup, newTypeName, addDeptPopup, newDeptName, confirmDelete, confirmDeleteIH, confirmDeleteCR, confirmDeleteSE, confirmDeleteBS, confirmDeleteCapex, confirmDeleteMA, confirmDeleteBudCat, confirmDeleteNet, confirmDeleteRisk } = this.state;
 
