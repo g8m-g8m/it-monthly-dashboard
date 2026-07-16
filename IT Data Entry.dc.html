@@ -770,7 +770,7 @@ class Component extends DCLogic {
     const meta = this.state.peopleMeta || {};
     return [...sys, ...nonSys].map(p => {
       const m = meta[p.name.toLowerCase()] || {};
-      return { ...p, role: m.role || 'Member', reportsTo: m.reportsTo || '' };
+      return { ...p, role: m.role || 'Individual', reportsTo: m.reportsTo || '' };
     });
   }
 
@@ -3314,7 +3314,7 @@ class Component extends DCLogic {
           e('span',{style:{fontSize:13,fontWeight:600,color:'#111827'}},p.name)
         )),
         this.tdCell(e('select',{key:'role'+idx+p.role,defaultValue:p.role,onChange:(ev)=>this.setPersonMeta(p.name,'role',ev.target.value),style:{fontSize:12,fontWeight:600,color:p.role==='Director'?'#7c3aed':'#374151',background:'transparent',border:'none',outline:'none',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},
-          ...['Director','Lead','Member'].map(v=>e('option',{key:v,value:v},v))
+          ...['Director','Manager','Team Lead','Individual'].map(v=>e('option',{key:v,value:v},v))
         )),
         this.tdCell(e('select',{key:'rpt'+idx+p.reportsTo,defaultValue:p.reportsTo,onChange:(ev)=>this.setPersonMeta(p.name,'reportsTo',ev.target.value),style:{fontSize:12,color:'#374151',background:'transparent',border:'none',outline:'none',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},
           e('option',{value:''},'— ไม่มี —'),
