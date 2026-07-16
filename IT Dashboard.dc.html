@@ -3332,6 +3332,84 @@ class Component extends DCLogic {
     const overallSt2 = cnt2['Delayed'] > 0 ? 'Delayed' : cnt2['On Hold'] > 0 ? 'On Hold' : cnt2['Not Started'] === total2 ? 'Not Started' : 'In Progress';
     const overallCfg = stCfg2[overallSt2] || stCfg2['In Progress'];
 
+    // ── Lead & Project KPI (due-date performance, month granularity) ──
+    const _kpiMonthMap = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+    const parseDueYM = (str) => {
+      if (!str) return null;
+      const s = String(str).trim();
+      const qm = s.match(/^Q([1-4])\s*(\d{4})$/i);
+      if (qm) return { m: parseInt(qm[1],10)*3, y: parseInt(qm[2],10) };
+      const mm = s.match(/^([A-Za-z]{3,})\s+(\d{4})$/);
+      if (mm) { const mi = _kpiMonthMap[mm[1].slice(0,3).toLowerCase()]; return mi ? { m: mi, y: parseInt(mm[2],10) } : null; }
+      return null;
+    };
+    const itemLeads = (p) => (p.leads && p.leads.length) ? p.leads : (p.lead ? [p.lead] : []);
+    const kpiScoreFor = (p) => {
+      if (p.status !== 'Completed' || !p.completedDate) return null;
+      const due = parseDueYM(p.due);
+      if (!due) return null;
+      const cd = new Date(p.completedDate);
+      if (isNaN(cd)) return null;
+      const compYM = cd.getFullYear() * 12 + cd.getMonth();
+      const dueYM = due.y * 12 + (due.m - 1);
+      return compYM < dueYM ? 5 : compYM === dueYM ? 4 : 3;
+    };
+    const _leadKpiMap = {}, _projKpiMap = {};
+    (_savedInhouse || []).forEach(p => {
+      const score = kpiScoreFor(p);
+      if (score == null) return;
+      itemLeads(p).forEach(name => {
+        if (!_leadKpiMap[name]) _leadKpiMap[name] = { sum: 0, n: 0, early: 0, onTime: 0, late: 0 };
+        const k = _leadKpiMap[name]; k.sum += score; k.n++;
+        if (score === 5) k.early++; else if (score === 4) k.onTime++; else k.late++;
+      });
+      if (p.linkedProjectId) {
+        if (!_projKpiMap[p.linkedProjectId]) _projKpiMap[p.linkedProjectId] = { sum: 0, n: 0 };
+        _projKpiMap[p.linkedProjectId].sum += score; _projKpiMap[p.linkedProjectId].n++;
+      }
+    });
+    const leadKpiRows = Object.keys(_leadKpiMap).map(name => {
+      const k = _leadKpiMap[name];
+      return { name, avg: k.sum / k.n, n: k.n, early: k.early, onTime: k.onTime, late: k.late };
+    }).sort((a, b) => b.avg - a.avg);
+    const projKpiRows = Object.keys(_projKpiMap).map(pid => {
+      const k = _projKpiMap[pid];
+      const proj = (_savedProjects || []).find(pr => String(pr.id) === String(pid));
+      return { name: proj ? proj.name : ('Project #' + pid), avg: k.sum / k.n, n: k.n };
+    }).sort((a, b) => b.avg - a.avg);
+    const kpiScoreColor = (v) => v >= 4.5 ? '#10b981' : v >= 3.5 ? '#2563eb' : '#ef4444';
+    const kpiPortletEl = e('div', { style: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,.07)', padding: 16, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 14 } },
+      e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a' } }, 'Lead & Project KPI — ตามกำหนดส่งงาน (due date)'),
+      e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 } },
+        e('div', null,
+          e('div', { style: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 8, letterSpacing: '.02em' } }, 'BY LEAD'),
+          leadKpiRows.length === 0 ? e('div', { style: { fontSize: 13, color: '#94a3b8' } }, 'ยังไม่มีข้อมูล') :
+          e('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+            ...leadKpiRows.map(r => e('div', { key: r.name, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid #f1f5f9' } },
+              e('div', { style: { fontSize: 13, fontWeight: 600, color: '#334155', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' } }, r.name),
+              e('div', { style: { fontSize: 12, color: '#94a3b8' } }, r.n + ' งาน'),
+              e('div', { style: { fontSize: 12, color: '#10b981' } }, 'ก่อน ' + r.early),
+              e('div', { style: { fontSize: 12, color: '#2563eb' } }, 'ตรง ' + r.onTime),
+              e('div', { style: { fontSize: 12, color: '#ef4444' } }, 'ช้า ' + r.late),
+              e('div', { style: { fontSize: 15, fontWeight: 700, color: kpiScoreColor(r.avg), minWidth: 34, textAlign: 'right' } }, r.avg.toFixed(1))
+            ))
+          )
+        ),
+        e('div', null,
+          e('div', { style: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 8, letterSpacing: '.02em' } }, 'BY PROJECT (DEPT LEVEL)'),
+          projKpiRows.length === 0 ? e('div', { style: { fontSize: 13, color: '#94a3b8' } }, 'ยังไม่มีข้อมูล') :
+          e('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+            ...projKpiRows.map(r => e('div', { key: r.name, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid #f1f5f9' } },
+              e('div', { style: { fontSize: 13, fontWeight: 600, color: '#334155', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' } }, r.name),
+              e('div', { style: { fontSize: 12, color: '#94a3b8' } }, r.n + ' งาน'),
+              e('div', { style: { fontSize: 15, fontWeight: 700, color: kpiScoreColor(r.avg), minWidth: 34, textAlign: 'right' } }, r.avg.toFixed(1))
+            ))
+          )
+        )
+      ),
+      e('div', { style: { fontSize: 11, color: '#94a3b8' } }, 'คะแนน: 5 = ก่อนแผน · 4 = ตรงแผน · 3 = ช้ากว่าแผน — คำนวณเฉพาะงานที่ปิดแล้ว (Completed) เทียบเดือน due')
+    );
+
     const stIcon2 = (st, sz) => {
       const cfg = stCfg2[st] || stCfg2['In Progress'];
       return e('div', { style: { width: sz||28, height: sz||28, borderRadius: '50%', background: cfg.c, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
@@ -3505,6 +3583,7 @@ class Component extends DCLogic {
     ]);
 
     const projectsEl = e('div', { style: { display: 'flex', flexDirection: 'column', gap: 0, background: '#eef2f7', borderRadius: 10 } },
+      kpiPortletEl,
       // ── In-house Develop KPI Strip ────────────────────────────
       e('div', { style: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', alignItems: 'center', overflow: 'hidden', marginBottom: 10 } },
         // Dark label block
