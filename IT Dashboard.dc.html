@@ -121,7 +121,7 @@ class Component extends DCLogic {
   }
 
   _defaultMenuAccess(role) {
-    const DASH_TABS = ['overview','projects','uptime','network','security','budget'];
+    const DASH_TABS = ['overview','projects','uptime','network','security','budget','kpi'];
     const ENTRY_TABS = ['period','projects','inhouse','budget','security','secevents','network','netkpis','bizsvcs','statusovr','uptime','changereq'];
     if (role === 'admin')  return { dashboard: DASH_TABS.slice(), data_entry: ENTRY_TABS.slice(), user_management: true };
     if (role === 'editor') return { dashboard: DASH_TABS.slice(), data_entry: ENTRY_TABS.slice(), user_management: false };
@@ -592,6 +592,7 @@ class Component extends DCLogic {
       { id: 'network',   label: 'Network & Infra',       d: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01' },
       { id: 'security',  label: 'Security',              d: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
       { id: 'budget',    label: 'Cost & Budget',         d: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+      { id: 'kpi',       label: 'Lead & Dept KPI',       d: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
     ];
     const _menuAccess = this.state.menuAccess || this._defaultMenuAccess(this.state.userRole || 'viewer');
     const navDefsVisible = navDefs.filter(n => _menuAccess.dashboard.includes(n.id));
@@ -605,7 +606,7 @@ class Component extends DCLogic {
       };
     });
 
-    const titles = { overview: 'Dashboard Overview', uptime: 'Uptime & Availability', network: 'Network & Infrastructure', security: 'Security & Vulnerabilities', budget: 'Cost & Budget Tracking', projects: 'Projects & Change Management' };
+    const titles = { overview: 'Dashboard Overview', uptime: 'Uptime & Availability', network: 'Network & Infrastructure', security: 'Security & Vulnerabilities', budget: 'Cost & Budget Tracking', projects: 'Projects & Change Management', kpi: 'Lead & Dept KPI' };
 
     // ── Period Filter ─────────────────────────────────────────────
     const { filterMonth, filterYear, filterOpen } = this.state;
@@ -3344,8 +3345,9 @@ class Component extends DCLogic {
       return null;
     };
     const itemLeads = (p) => (p.leads && p.leads.length) ? p.leads : (p.lead ? [p.lead] : []);
+    const isKpiDone = (s) => s === 'Completed' || s === 'completed';
     const kpiScoreFor = (p) => {
-      if (p.status !== 'Completed' || !p.completedDate) return null;
+      if (!isKpiDone(p.status) || !p.completedDate) return null;
       const due = parseDueYM(p.due);
       if (!due) return null;
       const cd = new Date(p.completedDate);
@@ -3354,60 +3356,46 @@ class Component extends DCLogic {
       const dueYM = due.y * 12 + (due.m - 1);
       return compYM < dueYM ? 5 : compYM === dueYM ? 4 : 3;
     };
-    const _leadKpiMap = {}, _projKpiMap = {};
-    (_savedInhouse || []).forEach(p => {
+    const _leadKpiMap = {}, _deptKpiMap = {};
+    const _bump = (map, key, score) => {
+      if (!key) return;
+      if (!map[key]) map[key] = { sum: 0, n: 0, early: 0, onTime: 0, late: 0 };
+      const k = map[key]; k.sum += score; k.n++;
+      if (score === 5) k.early++; else if (score === 4) k.onTime++; else k.late++;
+    };
+    [...(_savedProjects || []), ...(_savedInhouse || [])].forEach(p => {
       const score = kpiScoreFor(p);
       if (score == null) return;
-      itemLeads(p).forEach(name => {
-        if (!_leadKpiMap[name]) _leadKpiMap[name] = { sum: 0, n: 0, early: 0, onTime: 0, late: 0 };
-        const k = _leadKpiMap[name]; k.sum += score; k.n++;
-        if (score === 5) k.early++; else if (score === 4) k.onTime++; else k.late++;
-      });
-      if (p.linkedProjectId) {
-        if (!_projKpiMap[p.linkedProjectId]) _projKpiMap[p.linkedProjectId] = { sum: 0, n: 0 };
-        _projKpiMap[p.linkedProjectId].sum += score; _projKpiMap[p.linkedProjectId].n++;
-      }
+      itemLeads(p).forEach(name => _bump(_leadKpiMap, name, score));
+      _bump(_deptKpiMap, p.dept, score);
     });
-    const leadKpiRows = Object.keys(_leadKpiMap).map(name => {
-      const k = _leadKpiMap[name];
-      return { name, avg: k.sum / k.n, n: k.n, early: k.early, onTime: k.onTime, late: k.late };
+    const toRows = (map) => Object.keys(map).map(key => {
+      const k = map[key];
+      return { name: key, avg: k.sum / k.n, n: k.n, early: k.early, onTime: k.onTime, late: k.late };
     }).sort((a, b) => b.avg - a.avg);
-    const projKpiRows = Object.keys(_projKpiMap).map(pid => {
-      const k = _projKpiMap[pid];
-      const proj = (_savedProjects || []).find(pr => String(pr.id) === String(pid));
-      return { name: proj ? proj.name : ('Project #' + pid), avg: k.sum / k.n, n: k.n };
-    }).sort((a, b) => b.avg - a.avg);
+    const leadKpiRows = toRows(_leadKpiMap);
+    const deptKpiRows = toRows(_deptKpiMap);
     const kpiScoreColor = (v) => v >= 4.5 ? '#10b981' : v >= 3.5 ? '#2563eb' : '#ef4444';
-    const kpiPortletEl = e('div', { style: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,.07)', padding: 16, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 14 } },
-      e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a' } }, 'Lead & Project KPI — ตามกำหนดส่งงาน (due date)'),
-      e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 } },
-        e('div', null,
-          e('div', { style: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 8, letterSpacing: '.02em' } }, 'BY LEAD'),
-          leadKpiRows.length === 0 ? e('div', { style: { fontSize: 13, color: '#94a3b8' } }, 'ยังไม่มีข้อมูล') :
-          e('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
-            ...leadKpiRows.map(r => e('div', { key: r.name, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid #f1f5f9' } },
-              e('div', { style: { fontSize: 13, fontWeight: 600, color: '#334155', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' } }, r.name),
-              e('div', { style: { fontSize: 12, color: '#94a3b8' } }, r.n + ' งาน'),
-              e('div', { style: { fontSize: 12, color: '#10b981' } }, 'ก่อน ' + r.early),
-              e('div', { style: { fontSize: 12, color: '#2563eb' } }, 'ตรง ' + r.onTime),
-              e('div', { style: { fontSize: 12, color: '#ef4444' } }, 'ช้า ' + r.late),
-              e('div', { style: { fontSize: 15, fontWeight: 700, color: kpiScoreColor(r.avg), minWidth: 34, textAlign: 'right' } }, r.avg.toFixed(1))
-            ))
-          )
-        ),
-        e('div', null,
-          e('div', { style: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 8, letterSpacing: '.02em' } }, 'BY PROJECT (DEPT LEVEL)'),
-          projKpiRows.length === 0 ? e('div', { style: { fontSize: 13, color: '#94a3b8' } }, 'ยังไม่มีข้อมูล') :
-          e('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
-            ...projKpiRows.map(r => e('div', { key: r.name, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid #f1f5f9' } },
-              e('div', { style: { fontSize: 13, fontWeight: 600, color: '#334155', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' } }, r.name),
-              e('div', { style: { fontSize: 12, color: '#94a3b8' } }, r.n + ' งาน'),
-              e('div', { style: { fontSize: 15, fontWeight: 700, color: kpiScoreColor(r.avg), minWidth: 34, textAlign: 'right' } }, r.avg.toFixed(1))
-            ))
-          )
-        )
-      ),
-      e('div', { style: { fontSize: 11, color: '#94a3b8' } }, 'คะแนน: 5 = ก่อนแผน · 4 = ตรงแผน · 3 = ช้ากว่าแผน — คำนวณเฉพาะงานที่ปิดแล้ว (Completed) เทียบเดือน due')
+    const kpiRowsTable = (rows, emptyLabel) => rows.length === 0 ?
+      e('div', { style: { fontSize: 13, color: '#94a3b8', padding: '10px 0' } }, emptyLabel) :
+      e('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+        ...rows.map(r => e('div', { key: r.name, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #f1f5f9' } },
+          e('div', { style: { fontSize: 14, fontWeight: 600, color: '#334155', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' } }, r.name),
+          e('div', { style: { fontSize: 12, color: '#94a3b8', minWidth: 52 } }, r.n + ' งาน'),
+          e('div', { style: { fontSize: 12, color: '#10b981', minWidth: 46 } }, 'ก่อน ' + r.early),
+          e('div', { style: { fontSize: 12, color: '#2563eb', minWidth: 42 } }, 'ตรง ' + r.onTime),
+          e('div', { style: { fontSize: 12, color: '#ef4444', minWidth: 40 } }, 'ช้า ' + r.late),
+          e('div', { style: { fontSize: 17, fontWeight: 700, color: kpiScoreColor(r.avg), minWidth: 38, textAlign: 'right' } }, r.avg.toFixed(1))
+        ))
+      );
+    const kpiCard = (titleTxt, rows, emptyLabel) => e('div', { style: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,.07)', padding: 18, display: 'flex', flexDirection: 'column', gap: 4 } },
+      e('div', { style: { fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 6 } }, titleTxt),
+      kpiRowsTable(rows, emptyLabel)
+    );
+    const kpiEl = e('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } },
+      e('div', { style: { fontSize: 12, color: '#64748b', background: '#eef2f7', borderRadius: 8, padding: '10px 14px' } }, 'คะแนน: 5 = ก่อนแผน · 4 = ตรงแผน · 3 = ช้ากว่าแผน — คำนวณจากงานที่ปิดแล้ว (Completed) ของ Project และ In-house เทียบเดือน due กับ completedDate'),
+      kpiCard('Dept KPI Score', deptKpiRows, 'ยังไม่มีข้อมูล'),
+      kpiCard('Individual (Lead) KPI Score', leadKpiRows, 'ยังไม่มีข้อมูล')
     );
 
     const stIcon2 = (st, sz) => {
@@ -3583,7 +3571,6 @@ class Component extends DCLogic {
     ]);
 
     const projectsEl = e('div', { style: { display: 'flex', flexDirection: 'column', gap: 0, background: '#eef2f7', borderRadius: 10 } },
-      kpiPortletEl,
       // ── In-house Develop KPI Strip ────────────────────────────
       e('div', { style: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,.07)', display: 'flex', alignItems: 'center', overflow: 'hidden', marginBottom: 10 } },
         // Dark label block
@@ -3813,7 +3800,7 @@ class Component extends DCLogic {
     );
 
     // ── Assemble ─────────────────────────────────────────────────
-    const map = { overview: overviewEl, uptime: uptimeEl, network: networkEl, security: securityEl, budget: e('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } }, budgetSummaryPortlet, budgetEl), projects: projectsEl };
+    const map = { overview: overviewEl, uptime: uptimeEl, network: networkEl, security: securityEl, budget: e('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } }, budgetSummaryPortlet, budgetEl), projects: projectsEl, kpi: kpiEl };
 
     return {
       navItems,
@@ -3842,7 +3829,7 @@ class Component extends DCLogic {
           : (map[tab] || overviewEl),
       printFn: () => window.print(),
       appMenuBtn: (() => {
-        const titles = { overview:'Dashboard Overview', uptime:'Uptime & Availability', network:'Network & Infrastructure', security:'Security & Compliance', budget:'Budget & Projects', projects:'Project Portfolio' };
+        const titles = { overview:'Dashboard Overview', uptime:'Uptime & Availability', network:'Network & Infrastructure', security:'Security & Compliance', budget:'Budget & Projects', kpi:'Lead & Dept KPI', projects:'Project Portfolio' };
         return e('div', null,
           e('div',{style:{margin:0,fontSize:17,fontWeight:600,color:'#0f172a',letterSpacing:'-.01em'}},
             titles[tab]||'IT Dashboard'
