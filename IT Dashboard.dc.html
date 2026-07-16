@@ -3523,10 +3523,19 @@ class Component extends DCLogic {
             ),
             ringSvg(pct, tier.color, 60)
           ),
-          e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderTop: '1px solid #f1f5f9', fontSize: 11 } },
-            e('span', { style: { color: '#94a3b8' } }, 'Target >= ' + DEPT_TARGET + '%'),
-            statusBadge(tier)
-          )
+          p.role === 'Director' ?
+            e('div', { style: { display: 'flex', flexDirection: 'column', gap: 5, padding: '10px 14px 12px', borderTop: '1px solid #f1f5f9' } },
+              ...[['Target', '>= ' + DEPT_TARGET + '%'], ['Actual', (deptSuccessPct == null ? '—' : deptSuccessPct + '%')], ['Status', tier.label], ['Projects', capexProjectsCt], ['Programs', capexProgramsCt]].map(([k, v]) =>
+                e('div', { key: k, style: { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11.5 } },
+                  e('span', { style: { color: '#94a3b8' } }, k),
+                  e('span', { style: { fontWeight: 700, color: k === 'Status' ? tier.color : '#0f172a' } }, v)
+                )
+              )
+            ) :
+            e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderTop: '1px solid #f1f5f9', fontSize: 11 } },
+              e('span', { style: { color: '#94a3b8' } }, 'Target >= ' + DEPT_TARGET + '%'),
+              statusBadge(tier)
+            )
         ) :
         e('div', { ref: cardRef, title: tooltip, style: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden', width: 190, boxShadow: '0 1px 4px rgba(15,23,42,.06)', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' } },
           e('div', { style: { background: lvl.color, color: '#fff', fontSize: 12, fontWeight: 700, padding: '8px 10px', width: '100%', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', boxSizing: 'border-box' } }, p.name),
@@ -3541,18 +3550,7 @@ class Component extends DCLogic {
             statusBadge(tier)
           )
         );
-      if (p.role !== 'Director') return card;
-      return e('div', { style: { display: 'flex', alignItems: 'stretch', gap: 14 } },
-        card,
-        e('div', { style: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 150 } },
-          ...[['Target', '>= ' + DEPT_TARGET + '%'], ['Actual', (deptSuccessPct == null ? '—' : deptSuccessPct + '%')], ['Status', tier.label], ['Projects', capexProjectsCt], ['Programs', capexProgramsCt]].map(([k, v]) =>
-            e('div', { key: k, style: { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11.5 } },
-              e('span', { style: { color: '#94a3b8' } }, k),
-              e('span', { style: { fontWeight: 700, color: k === 'Status' ? tier.color : '#0f172a' } }, v)
-            )
-          )
-        )
-      );
+      return card;
     };
     const kpiLegend = e('div', { style: { display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' } },
       ...[{ c: '#10b981', l: 'บรรลุ KPI (>= ' + DEPT_TARGET + '%)', check: true }, { c: '#f59e0b', l: 'ใกล้เคียงเป้าหมาย (< ' + DEPT_TARGET + '%)' }, { c: '#ef4444', l: 'ต่ำกว่าเป้าหมาย (< 90%)' }].map(x =>
@@ -3623,9 +3621,7 @@ class Component extends DCLogic {
     );
     const kpiEl = e('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } },
       e('div', { style: { fontSize: 12, color: '#64748b', background: '#eef2f7', borderRadius: 8, padding: '10px 14px' } }, 'คะแนน: 5 = ก่อนแผน · 4 = ตรงแผน · 3 = ช้ากว่าแผน — คำนวณจากงานที่ปิดแล้ว (Completed) ของ Project และ In-house เทียบเดือน due กับ completedDate (งานเก่าที่ยังไม่มี completedDate จะประเมินเป็น "ตรงแผน" ไปก่อน จนกว่าจะอัปเดตสถานะใหม่)'),
-      kpiTreeEl,
-      kpiCard('Dept KPI Score (by department)', deptKpiRows, 'ยังไม่มีข้อมูล'),
-      kpiCard('Individual (Lead) KPI Score', leadKpiRows, 'ยังไม่มีข้อมูล')
+      kpiTreeEl
     );
 
     const stIcon2 = (st, sz) => {
@@ -4014,10 +4010,10 @@ class Component extends DCLogic {
       // Program: Data Entry (link to the other page)
       React.createElement('div', {
         onClick: () => { window.location.href = './IT Data Entry.dc.html'; },
-        style: progRowStyle(false, true), title: !sidebarOpen ? 'Data Entry' : ''
+        style: progRowStyle(false, true), title: !sidebarOpen ? 'Service Category' : ''
       },
         this.ic('M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'),
-        sidebarOpen ? React.createElement('span', null, 'Data Entry') : null
+        sidebarOpen ? React.createElement('span', null, 'Service Category') : null
       ),
       // User Management (admin only)
       (userRole === 'admin' && _menuAccess.user_management) ? React.createElement('div', {
