@@ -3305,7 +3305,14 @@ class Component extends DCLogic {
       ),
       peopleDir.length===0 ? this.emptyRow(5,'ยังไม่มี Lead ในระบบ — เพิ่มจากด้านบน หรือจากหน้า Projects/In-house') : null,
       ...peopleDir.map((p, idx) => e('div', { key:p.name+idx, className:'row-tr', style:{ display:'grid', gridTemplateColumns:COL_PPL, gap:0, background:'#fff' } },
-        this.tdCell(e('span',{style:{fontSize:13,fontWeight:600,color:'#111827'}},p.name)),
+        this.tdCell(e('div',{style:{display:'flex',alignItems:'center',gap:8}},
+          e('label',{title:'เพิ่ม/เปลี่ยนรูปให้ '+p.name,style:{position:'relative',cursor:'pointer',flexShrink:0}},
+            p.avatarUrl ? e('img',{src:p.avatarUrl,style:{width:28,height:28,borderRadius:'50%',objectFit:'cover',display:'block'}}) :
+              e('div',{style:{width:28,height:28,borderRadius:'50%',background:p.isSystem?'#dbeafe':'#ede9fe',color:p.isSystem?'#2563eb':'#7c3aed',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700}},p.name.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()),
+            e('input',{type:'file',accept:'image/*',style:{display:'none'},onChange:(ev)=>{const f=ev.target.files&&ev.target.files[0]; if(f) this.handlePersonAvatarFile(f,p.name); ev.target.value='';}})
+          ),
+          e('span',{style:{fontSize:13,fontWeight:600,color:'#111827'}},p.name)
+        )),
         this.tdCell(e('select',{key:'role'+idx+p.role,defaultValue:p.role,onChange:(ev)=>this.setPersonMeta(p.name,'role',ev.target.value),style:{fontSize:12,fontWeight:600,color:p.role==='Director'?'#7c3aed':'#374151',background:'transparent',border:'none',outline:'none',cursor:'pointer',fontFamily:"'72','Inter','Kanit',sans-serif"}},
           ...['Director','Lead','Member'].map(v=>e('option',{key:v,value:v},v))
         )),
