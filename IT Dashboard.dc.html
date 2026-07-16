@@ -3422,11 +3422,14 @@ class Component extends DCLogic {
       const s = kpiScoreFor(p);
       itemLeads(p).forEach(name => {
         const k = name.toLowerCase();
-        if (!_personAssignMap[k]) _personAssignMap[k] = { total: 0, success: 0 };
+        if (!_personAssignMap[k]) _personAssignMap[k] = { total: 0, success: 0, items: [] };
         _personAssignMap[k].total++;
         if (s != null && s >= 3) _personAssignMap[k].success++;
+        _personAssignMap[k].items.push({ name: p.name, completedDate: p.completedDate, status: p.status });
       });
     });
+    const kpiTooltip = (items) => !items || !items.length ? 'ยังไม่มีข้อมูล Project/Program' :
+      items.map(it => it.name + ' — ' + (it.completedDate ? ('เสร็จ: ' + it.completedDate) : ('สถานะ: ' + (it.status || 'ไม่ระบุ')))).join('\n');
     const statusTier = (pct) => {
       if (pct == null) return { color: '#94a3b8', label: 'ไม่มีข้อมูล' };
       if (pct >= DEPT_TARGET) return { color: '#10b981', label: 'บรรลุเป้าหมาย' };
@@ -3465,28 +3468,46 @@ class Component extends DCLogic {
     const KPI_LEVELS = Object.values(KPI_LEVEL_CFG);
     const kpiPersonCard = (p) => {
       const lvl = KPI_LEVEL_CFG[p.role] || KPI_LEVEL_CFG['Individual'];
-      let pct, count, metricLabel, unitLabel;
+      let pct, count, metricLabel, unitLabel, tooltipItems;
       if (p.role === 'Director') {
-        pct = deptSuccessPct; count = capexTotal; metricLabel = 'KPI Dept Project Success (CapEx)'; unitLabel = 'Project & Program';
+        pct = deptSuccessPct; count = capexTotal; metricLabel = 'KPI Dept Project Success (CapEx)'; unitLabel = 'Project & Program'; tooltipItems = capexItems;
       } else {
-        const pa = _personAssignMap[p.name.toLowerCase()] || { total: 0, success: 0 };
+        const pa = _personAssignMap[p.name.toLowerCase()] || { total: 0, success: 0, items: [] };
         pct = pa.total ? Math.round((pa.success / pa.total) * 100) : null;
-        count = pa.total; metricLabel = p.role === 'Manager' ? 'Project Success' : 'Task Success'; unitLabel = p.role === 'Manager' ? 'Projects' : 'Tasks';
+        count = pa.total; metricLabel = p.role === 'Manager' ? 'Project Success' : 'Task Success'; unitLabel = p.role === 'Manager' ? 'Projects' : 'Tasks'; tooltipItems = pa.items;
       }
       const tier = statusTier(pct);
-      const card = e('div', { style: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden', width: 190, boxShadow: '0 1px 4px rgba(15,23,42,.06)', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' } },
-        e('div', { style: { background: lvl.color, color: '#fff', fontSize: 12, fontWeight: 700, padding: '8px 10px', width: '100%', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', boxSizing: 'border-box' } }, p.name),
-        e('div', { style: { padding: '14px 12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 } },
-          kpiAvatar(p, lvl, 42),
-          e('div', { style: { fontSize: 10.5, color: '#64748b', fontWeight: 600, textAlign: 'center', lineHeight: 1.3 } }, metricLabel),
-          ringSvg(pct, tier.color, 72),
-          e('div', { style: { fontSize: 10.5, color: '#cbd5e1', textAlign: 'center' } }, count + ' ' + unitLabel)
-        ),
-        e('div', { style: { display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', padding: '8px 12px 12px', borderTop: '1px solid #f1f5f9', width: '100%', boxSizing: 'border-box' } },
-          e('span', { style: { fontSize: 10.5, color: '#94a3b8' } }, 'Target >= ' + DEPT_TARGET + '%'),
-          statusBadge(tier)
-        )
-      );
+      const tooltip = p.name + '\n' + metricLabel + (pct == null ? '' : ' — ' + pct + '%') + '\n\n' + kpiTooltip(tooltipItems);
+      const isWide = p.role === 'Director' || p.role === 'Manager';
+      const card = isWide ?
+        e('div', { title: tooltip, style: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden', width: 300, boxShadow: '0 1px 4px rgba(15,23,42,.06)', flexShrink: 0 } },
+          e('div', { style: { background: lvl.color, color: '#fff', fontSize: 12, fontWeight: 700, padding: '8px 12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p.name),
+          e('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' } },
+            kpiAvatar(p, lvl, 40),
+            e('div', { style: { flex: 1, minWidth: 0 } },
+              e('div', { style: { fontSize: 11.5, color: '#64748b', fontWeight: 600, lineHeight: 1.3 } }, metricLabel),
+              e('div', { style: { fontSize: 11, color: '#cbd5e1' } }, count + ' ' + unitLabel)
+            ),
+            ringSvg(pct, tier.color, 60)
+          ),
+          e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderTop: '1px solid #f1f5f9', fontSize: 11 } },
+            e('span', { style: { color: '#94a3b8' } }, 'Target >= ' + DEPT_TARGET + '%'),
+            statusBadge(tier)
+          )
+        ) :
+        e('div', { title: tooltip, style: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden', width: 190, boxShadow: '0 1px 4px rgba(15,23,42,.06)', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' } },
+          e('div', { style: { background: lvl.color, color: '#fff', fontSize: 12, fontWeight: 700, padding: '8px 10px', width: '100%', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', boxSizing: 'border-box' } }, p.name),
+          e('div', { style: { padding: '14px 12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 } },
+            kpiAvatar(p, lvl, 42),
+            e('div', { style: { fontSize: 10.5, color: '#64748b', fontWeight: 600, textAlign: 'center', lineHeight: 1.3 } }, metricLabel),
+            ringSvg(pct, tier.color, 72),
+            e('div', { style: { fontSize: 10.5, color: '#cbd5e1', textAlign: 'center' } }, count + ' ' + unitLabel)
+          ),
+          e('div', { style: { display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', padding: '8px 12px 12px', borderTop: '1px solid #f1f5f9', width: '100%', boxSizing: 'border-box' } },
+            e('span', { style: { fontSize: 10.5, color: '#94a3b8' } }, 'Target >= ' + DEPT_TARGET + '%'),
+            statusBadge(tier)
+          )
+        );
       if (p.role !== 'Director') return card;
       return e('div', { style: { display: 'flex', alignItems: 'stretch', gap: 14 } },
         card,
@@ -3557,7 +3578,7 @@ class Component extends DCLogic {
       ),
       kpiLevelStrip,
       roots.length === 0 ? e('div', { style: { fontSize: 13, color: '#94a3b8' } }, 'ยังไม่ได้ตั้งค่า Role/Reports To — ไปที่ Data Entry ▸ People & Org') :
-        e('div', { style: { display: 'flex', justifyContent: 'center', gap: 40, flexWrap: 'wrap', overflowX: 'auto', padding: '4px 0' } }, ...roots.map(p => renderKpiNode(p))),
+        e('div', { style: { display: 'flex', justifyContent: roots.length > 1 ? 'center' : 'flex-start', gap: 40, flexWrap: 'nowrap', overflowX: 'auto', overflowY: 'visible', padding: '4px 4px 12px', width: '100%', boxSizing: 'border-box' } }, ...roots.map(p => renderKpiNode(p))),
       e('div', { style: { display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6, borderTop: '1px solid #f1f5f9', paddingTop: 16 } },
         kpiFooterBox('หมายเหตุ', ['KPI Dept Project Success คำนวณจากทุก Project & Program ระดับ CapEx', 'Individual/Team KPI คำนวณจากงานที่ได้รับมอบหมาย (Assigned Task)']),
         kpiFooterBox('เกณฑ์การประเมิน', ['บรรลุเป้าหมาย >= ' + DEPT_TARGET + '%', 'ใกล้เคียงเป้าหมาย 90% – ' + (DEPT_TARGET - 0.01).toFixed(2) + '%', 'ต่ำกว่าเป้าหมาย < 90%']),
