@@ -3526,11 +3526,11 @@ class Component extends DCLogic {
             ),
             ringSvg(pct, tier.color, 64),
             e('div', { style: { width: 1, alignSelf: 'stretch', background: '#f1f5f9', flexShrink: 0 } }),
-            e('div', { style: { display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 0 } },
+            e('div', { style: { display: 'flex', flexDirection: 'column', gap: 5, minWidth: 160, flexShrink: 0 } },
               ...[['Target', '>= ' + DEPT_TARGET + '%'], ['Actual', (deptSuccessPct == null ? '—' : deptSuccessPct + '%')], ['Status', tier.label], ['Projects', capexProjectsCt], ['Programs', capexProgramsCt]].map(([k, v]) =>
-                e('div', { key: k, style: { display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11.5 } },
-                  e('span', { style: { color: '#94a3b8' } }, k),
-                  e('span', { style: { fontWeight: 700, color: k === 'Status' ? tier.color : '#0f172a' } }, v)
+                e('div', { key: k, style: { display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11.5, whiteSpace: 'nowrap' } },
+                  e('span', { style: { color: '#94a3b8', flexShrink: 0 } }, k),
+                  e('span', { style: { fontWeight: 700, color: k === 'Status' ? tier.color : '#0f172a', flexShrink: 0 } }, v)
                 )
               )
             )
