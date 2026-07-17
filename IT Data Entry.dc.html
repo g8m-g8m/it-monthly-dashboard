@@ -2285,7 +2285,7 @@ class Component extends DCLogic {
     );
 
     // ── 5. Network ────────────────────────────────────────────────
-    const COL_N = '90px minmax(180px,1fr) minmax(180px,1fr) 150px 44px';
+    const COL_N = '180px minmax(130px,1fr) minmax(130px,1fr) 150px 44px';
     const addNetworkPlant = () => { const label='New Plant'; this.setState({ network:[...this.state.network,{plant:label,latency:0,packetLoss:0}] }); };
     const delNetworkPlant = (idx) => this.setState({ network:this.state.network.filter((_,i)=>i!==idx), confirmDeleteNet:null });
     const networkForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
