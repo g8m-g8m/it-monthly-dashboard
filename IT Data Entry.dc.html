@@ -2285,7 +2285,7 @@ class Component extends DCLogic {
     );
 
     // ── 5. Network ────────────────────────────────────────────────
-    const COL_N = '80px 1fr 1fr 140px 44px';
+    const COL_N = '90px minmax(180px,1fr) minmax(180px,1fr) 150px 44px';
     const addNetworkPlant = () => { const label='New Plant'; this.setState({ network:[...this.state.network,{plant:label,latency:0,packetLoss:0}] }); };
     const delNetworkPlant = (idx) => this.setState({ network:this.state.network.filter((_,i)=>i!==idx), confirmDeleteNet:null });
     const networkForm = e('div', { style:{ background:'#fff', borderRadius:18, border:'1px solid #e5e7eb', boxShadow:'0 2px 16px rgba(15,23,42,.07)', padding:'24px 24px 16px', marginBottom:16 } },
@@ -2299,7 +2299,7 @@ class Component extends DCLogic {
           e('div',{style:{background:'#fff1f2',border:'1px solid #fecdd3',borderRadius:20,padding:'4px 12px',fontSize:11,color:'#e11d48',fontWeight:600}}, 'Alert: '+network.filter(n=>n.latency>50||n.packetLoss>1).length)
         )
       ),
-      e('div', { style:{ display:'grid', gridTemplateColumns:COL_N, gap:0 } },
+      e('div', { style:{ display:'grid', gridTemplateColumns:COL_N, gap:'0 16px', padding:'0 4px' } },
         ...['Plant','Latency (ms)','Packet Loss (%)','Status',''].map(h=>this.thCell(h))
       ),
       network.length===0 ? this.emptyRow(4,'ยังไม่มีข้อมูล Network') : null,
@@ -2311,7 +2311,7 @@ class Component extends DCLogic {
         const stBrd = stC==='#16a34a'?'#bbf7d0':stC==='#d97706'?'#fde68a':'#fecdd3';
         const stL   = stC==='#16a34a'?'Good':stC==='#d97706'?'Moderate':'Alert';
         const stIc  = stC==='#16a34a'?'M5 13l4 4L19 7':stC==='#d97706'?'M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z':'M6 18L18 6M6 6l12 12';
-        return e('div',{key:n.plant,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_N,gap:0,background:'#fff'}},
+        return e('div',{key:n.plant,className:'row-tr',style:{display:'grid',gridTemplateColumns:COL_N,gap:'0 16px',padding:'0 4px',background:'#fff',alignItems:'center'}},
           this.tdCell(e('input',{type:'text',value:n.plant,onChange:(ev)=>this.updateNetwork(idx,'plant',ev.target.value),style:{fontSize:14,fontWeight:700,color:'#111827',border:'none',background:'transparent',outline:'none',width:'100%',fontFamily:"'72','Inter','Kanit',sans-serif"}})),
           this.tdCell(e('div',{style:{display:'flex',flexDirection:'column',gap:4,width:'100%'}},
             e('div',{style:{height:3,background:'#f3f4f6',borderRadius:99,overflow:'hidden',marginBottom:4}},

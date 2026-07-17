@@ -2203,15 +2203,15 @@ class Component extends DCLogic {
             e('div',{style:{display:'grid',gridTemplateColumns:'52px 1fr 68px 1fr 80px',gap:4,marginBottom:4,padding:'4px 6px',background:'#1e3a5f',borderRadius:6}},
               ...['Plant','Latency (ms)','ms','Packet Loss (%)','Status'].map(h=>e('div',{key:h,style:{fontSize: 12,fontWeight:600,color:'#e2e8f0',letterSpacing: '0'}},h))
             ),
-            ...[
-              {pl:'PL',  lat:_sdNet?(_sdNet.find(n=>n.plant==='PL')||{latency:18}).latency:M.lat(18,60), pkt:_sdNet?(_sdNet.find(n=>n.plant==='PL')||{packetLoss:0.10}).packetLoss:M.pkt(0.10,70)},
-              {pl:'PP',  lat:_sdNet?(_sdNet.find(n=>n.plant==='PP')||{latency:22}).latency:M.lat(22,61), pkt:_sdNet?(_sdNet.find(n=>n.plant==='PP')||{packetLoss:0.15}).packetLoss:M.pkt(0.15,71)},
-              {pl:'PM1', lat:_sdNet?(_sdNet.find(n=>n.plant==='PM1')||{latency:24}).latency:M.lat(24,62), pkt:_sdNet?(_sdNet.find(n=>n.plant==='PM1')||{packetLoss:0.20}).packetLoss:M.pkt(0.20,72)},
-              {pl:'PM2', lat:_sdNet?(_sdNet.find(n=>n.plant==='PM2')||{latency:20}).latency:M.lat(20,63), pkt:_sdNet?(_sdNet.find(n=>n.plant==='PM2')||{packetLoss:0.12}).packetLoss:M.pkt(0.12,73)},
-              {pl:'PM3', lat:_sdNet?(_sdNet.find(n=>n.plant==='PM3')||{latency:26}).latency:M.lat(26,64), pkt:_sdNet?(_sdNet.find(n=>n.plant==='PM3')||{packetLoss:0.18}).packetLoss:M.pkt(0.18,74)},
-              {pl:'PB',  lat:_sdNet?(_sdNet.find(n=>n.plant==='PB')||{latency:31}).latency:M.lat(31,65),  pkt:_sdNet?(_sdNet.find(n=>n.plant==='PB')||{packetLoss:0.28}).packetLoss:M.pkt(0.28,75)},
-              {pl:'PK',  lat:_sdNet?(_sdNet.find(n=>n.plant==='PK')||{latency:19}).latency:M.lat(19,66),  pkt:_sdNet?(_sdNet.find(n=>n.plant==='PK')||{packetLoss:0.11}).packetLoss:M.pkt(0.11,76)},
-            ].map((r,i)=>{
+            ...(_sdNet && _sdNet.length ? _sdNet.map(n=>({pl:n.plant, lat:n.latency, pkt:n.packetLoss})) : [
+              {pl:'PL',  lat:M.lat(18,60), pkt:M.pkt(0.10,70)},
+              {pl:'PP',  lat:M.lat(22,61), pkt:M.pkt(0.15,71)},
+              {pl:'PM1', lat:M.lat(24,62), pkt:M.pkt(0.20,72)},
+              {pl:'PM2', lat:M.lat(20,63), pkt:M.pkt(0.12,73)},
+              {pl:'PM3', lat:M.lat(26,64), pkt:M.pkt(0.18,74)},
+              {pl:'PB',  lat:M.lat(31,65), pkt:M.pkt(0.28,75)},
+              {pl:'PK',  lat:M.lat(19,66), pkt:M.pkt(0.11,76)},
+            ]).map((r,i)=>{
               const latC = r.lat > 50 ? '#ef4444' : r.lat > 30 ? '#f59e0b' : '#10b981';
               const pktC = r.pkt > 1 ? '#ef4444' : r.pkt > 0.5 ? '#f59e0b' : '#10b981';
               const trafficC = (r.lat > 50 || r.pkt > 1) ? '#ef4444' : (r.lat > 30 || r.pkt > 0.5) ? '#f59e0b' : '#10b981';
@@ -2237,9 +2237,19 @@ class Component extends DCLogic {
                 )
               );
             }),
-            e('div',{style:{marginTop:8,padding:'6px 8px',background:'#f0fdf4',borderRadius:6,border:'1px solid #86efac'}},
-              e('div',{style:{fontSize: 13,color:'#166534',lineHeight:1.6}},'✓ ทุก Plant มีค่า Latency ≤ 50ms และ Packet Loss ≤ 1% · อยู่ในเกณฑ์ดี')
-            ),
+            (() => {
+              const rows = (_sdNet && _sdNet.length ? _sdNet.map(n=>({pl:n.plant, lat:n.latency, pkt:n.packetLoss})) : [
+                {pl:'PL',lat:M.lat(18,60),pkt:M.pkt(0.10,70)},{pl:'PP',lat:M.lat(22,61),pkt:M.pkt(0.15,71)},{pl:'PM1',lat:M.lat(24,62),pkt:M.pkt(0.20,72)},
+                {pl:'PM2',lat:M.lat(20,63),pkt:M.pkt(0.12,73)},{pl:'PM3',lat:M.lat(26,64),pkt:M.pkt(0.18,74)},{pl:'PB',lat:M.lat(31,65),pkt:M.pkt(0.28,75)},{pl:'PK',lat:M.lat(19,66),pkt:M.pkt(0.11,76)},
+              ]);
+              const bad = rows.filter(r => r.lat > 50 || r.pkt > 1);
+              const ok = bad.length === 0;
+              return e('div',{style:{marginTop:8,padding:'6px 8px',background:ok?'#f0fdf4':'#fef2f2',borderRadius:6,border:'1px solid '+(ok?'#86efac':'#fecaca')}},
+                e('div',{style:{fontSize: 13,color:ok?'#166534':'#991b1b',lineHeight:1.6}},
+                  ok ? '✓ ทุก Plant มีค่า Latency ≤ 50ms และ Packet Loss ≤ 1% · อยู่ในเกณฑ์ดี' : '⚠ พบ '+bad.length+' Plant เกินเกณฑ์ ('+bad.map(r=>r.pl).join(', ')+')'
+                )
+              );
+            })(),
             e('div',{style:{display:'flex',gap:10,marginTop:6,flexWrap:'wrap'}},
               ...[['#10b981','Good'],['#f59e0b','Moderate'],['#ef4444','High']].map(([c,l])=>e('div',{key:l,style:{display:'flex',alignItems:'center',gap:4}},e('div',{style:{width:7,height:7,borderRadius:'50%',background:c}}),e('span',{style:{fontSize: 13,color:'#64748b'}},l)))
             )
