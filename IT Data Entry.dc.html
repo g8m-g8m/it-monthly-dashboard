@@ -1442,29 +1442,29 @@ class Component extends DCLogic {
         const leadMap = {};
         projects.forEach(p => { const nm=(p.lead||'').trim(); if(!nm) return; leadMap[nm]=leadMap[nm]||0; if(!(p.status||'').toLowerCase().includes('complet')) leadMap[nm]++; });
         const overloadedLeads = Object.keys(leadMap).filter(k=>leadMap[k]>3).length;
-        const stat = (label, value, color, sub) => e('div',{style:{flex:1,minWidth:130,padding:'12px 14px',borderRight:'1px solid #f1f5f9'}},
-          e('div',{style:{fontSize:10.5,fontWeight:600,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}},label),
-          e('div',{style:{fontSize:19,fontWeight:800,color:color||'#111827',letterSpacing:'-.02em'}},value),
-          sub ? e('div',{style:{fontSize:10.5,color:'#9ca3af',marginTop:1}},sub) : null
+        const stat = (label, value, color, sub) => e('div',{style:{flex:1,minWidth:150,padding:'16px 18px',borderRight:'1px solid #f1f5f9'}},
+          e('div',{style:{fontSize:12,fontWeight:600,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}},label),
+          e('div',{style:{fontSize:30,fontWeight:700,color:color||'#111827',letterSpacing:'-.02em',lineHeight:1}},value),
+          sub ? e('div',{style:{fontSize:12,color:'#94a3b8',marginTop:4}},sub) : null
         );
         return e('div',{style:{background:'#f8fafc',borderRadius:14,border:'1px solid #e5e7eb',marginBottom:20,overflow:'hidden'}},
-          e('div',{style:{padding:'10px 14px',borderBottom:'1px solid #e5e7eb',display:'flex',alignItems:'center',gap:8}},
-            e('div',{style:{width:4,height:14,borderRadius:2,background:'#2563eb'}}),
-            e('div',{style:{fontSize:13,fontWeight:700,color:'#111827'}},'Program & Project Health'),
-            e('div',{style:{fontSize:11,color:'#9ca3af'}},'สรุปเฉพาะ Programs & Projects')
+          e('div',{style:{padding:'12px 18px',borderBottom:'1px solid #e5e7eb',display:'flex',alignItems:'center',gap:8}},
+            e('div',{style:{width:4,height:16,borderRadius:2,background:'#2563eb'}}),
+            e('div',{style:{fontSize:16,fontWeight:700,color:'#111827'}},'Program & Project Health'),
+            e('div',{style:{fontSize:13,color:'#9ca3af'}},'สรุปเฉพาะ Programs & Projects')
           ),
           e('div',{style:{display:'flex',flexWrap:'wrap'}},
             stat('Total Projects', total, '#111827', completed+' completed'),
             stat('Avg. Progress', avgProgress+'%', '#2563eb'),
             stat('At Risk / Delayed', atRisk, atRisk>0?'#e11d48':'#16a34a'),
-            budgetHealth ? e('div',{style:{flex:1,minWidth:130,padding:'12px 14px',borderRight:'1px solid #f1f5f9'}},
-              e('div',{style:{fontSize:10.5,fontWeight:600,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}},'Budget Health'),
-              e('span',{style:{fontSize:11.5,fontWeight:700,color:budgetHealth.color,background:budgetHealth.bg,border:'1px solid '+budgetHealth.border,borderRadius:20,padding:'2px 10px',display:'inline-block'}},budgetHealth.label)
+            budgetHealth ? e('div',{style:{flex:1,minWidth:150,padding:'16px 18px',borderRight:'1px solid #f1f5f9'}},
+              e('div',{style:{fontSize:12,fontWeight:600,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}},'Budget Health'),
+              e('span',{style:{fontSize:15,fontWeight:700,color:budgetHealth.color,background:budgetHealth.bg,border:'1px solid '+budgetHealth.border,borderRadius:20,padding:'4px 14px',display:'inline-block'}},budgetHealth.label)
             ) : stat('Budget Health', '—', '#cbd5e1'),
             stat('Open Risks/Issues', openRisks, openRisks>0?'#d97706':'#16a34a', highRisks>0?highRisks+' high impact':''),
-            e('div',{style:{flex:1,minWidth:130,padding:'12px 14px'}},
-              e('div',{style:{fontSize:10.5,fontWeight:600,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}},'Workload'),
-              e('div',{style:{fontSize:19,fontWeight:800,color:overloadedLeads>0?'#e11d48':'#16a34a'}},overloadedLeads>0?(overloadedLeads+' overloaded'):'Healthy')
+            e('div',{style:{flex:1,minWidth:150,padding:'16px 18px'}},
+              e('div',{style:{fontSize:12,fontWeight:600,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}},'Workload'),
+              e('div',{style:{fontSize:30,fontWeight:700,color:overloadedLeads>0?'#e11d48':'#16a34a',lineHeight:1}},overloadedLeads>0?(overloadedLeads+' overloaded'):'Healthy')
             )
           )
         );
